@@ -1,0 +1,41 @@
+<application>
+  <component name="RecentProjectsManager">
+    <option name="additionalInfo">
+      <map>
+        <entry key="$USER_HOME$/Projetos/plugins/jetbrains-flatpak">
+          <value>
+            <RecentProjectMetaInfo frameTitle="jetbrains-flatpak" projectWorkspaceId="3HoaDpzeHWQ9PBPqjE2qtwY4hgp">
+              <option name="activationTimestamp" value="1786547497263" />
+              <option name="binFolder" value="$APPLICATION_HOME_DIR$/bin" />
+              <option name="build" value="IU-253.33514.17" />
+              <option name="buildTimestamp" value="1778043600000" />
+              <option name="colorInfo">
+                <RecentProjectColorInfo associatedIndex="7" />
+              </option>
+              <frame x="437" y="1120" width="1400" height="1000" />
+              <option name="productionCode" value="IU" />
+              <option name="projectOpenTimestamp" value="1786546651184" />
+            </RecentProjectMetaInfo>
+          </value>
+        </entry>
+        <entry key="$USER_HOME$/Projetos/opensource/Doit">
+          <value>
+            <RecentProjectMetaInfo frameTitle="Doit" opened="true" projectWorkspaceId="3HjskfbPOEFbG7YNuwCrPXEnG9S">
+              <option name="activationTimestamp" value="1786563624135" />
+              <option name="binFolder" value="$APPLICATION_HOME_DIR$/bin" />
+              <option name="build" value="IU-253.33514.17" />
+              <option name="buildTimestamp" value="1778043600000" />
+              <option name="colorInfo">
+                <RecentProjectColorInfo associatedIndex="4" />
+              </option>
+              <frame x="400" y="32" width="1400" height="1000" />
+              <option name="productionCode" value="IU" />
+              <option name="projectOpenTimestamp" value="1786547582955" />
+            </RecentProjectMetaInfo>
+          </value>
+        </entry>
+      </map>
+    </option>
+    <option name="lastOpenedProject" value="$USER_HOME$/Projetos/opensource/Doit" />
+  </component>
+</application>

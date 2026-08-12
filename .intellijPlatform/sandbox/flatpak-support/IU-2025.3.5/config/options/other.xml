@@ -1,0 +1,59 @@
+<application>
+  <component name="FileEditorProviderManager">{}</component>
+  <component name="LangManager">
+    <option name="languageName" value="JAVA" />
+  </component>
+  <component name="NotRoamableUiSettings">
+    <option name="fontSize" value="15.0" />
+    <option name="presentationModeIdeScale" value="1.75" />
+  </component>
+  <component name="PropertyService"><![CDATA[{
+  "keyToString": {
+    "FileTemplates.SelectedTemplate": "HTML File",
+    "InstalledPluginsSearchHistory": "flatpak\nflat\nfl",
+    "JSHintOptionsTreeView.TREE_SCROLL_BAR_HORIZONTAL": "22",
+    "JSHintOptionsTreeView.TREE_SCROLL_BAR_VERTICAL": "0",
+    "JSHintOptionsTreeView.TREE_SELECTED_NODE_ID": "1",
+    "LAST_EXTRACTOR_SCRIPTS_CLEANUP_VERSION/data/aggregators": "IU-253.33514.17",
+    "PluginConfigurable.selectionTab": "1",
+    "RunOnceActivity.TerminalFontSettingsService.fixStoredNonMonospacedFonts": "true",
+    "RunOnceActivity.TerminalOptionsProvider.migration.2025.1.1": "true",
+    "RunOnceActivity.VFSInitializationConditionsToFusReporter": "true",
+    "RunOnceActivity.git.modal.commit.toggle": "true",
+    "RunOnceActivity.reset.auto.reparse.settings.to.default": "true",
+    "SettingsSearchHistory": "flat",
+    "defaultJdkConfigured": "true",
+    "evlsprt3.253": "7",
+    "experimental.ui.on.first.startup": "true",
+    "experimental.ui.onboarding.proposed.version": "253.33514.17",
+    "experimental.ui.used.version": "253.33514.17",
+    "fileTypeChangedCounter": "11",
+    "fontSizeToResetConsole": "13.0",
+    "fontSizeToResetEditor": "13.0",
+    "got.it.tooltip.Plugins Auto-Update": "1",
+    "input.method.disabler.muted": "true",
+    "installed.kotlin.plugin.version": "253.33514.17-IJ",
+    "last_opened_file_path": "/var/home/apg/Projetos/opensource/Doit",
+    "llm.installer.last.toolwindow.state": "LLM_INSTALLER",
+    "migrated.non.roamable.values.from.general.settings": "true",
+    "previousColorScheme": "_@user_Default",
+    "registry.to.advanced.settings.migration.build": "IU-253.33514.17",
+    "terminal.gen.one.option.visible": "false",
+    "trial.state.last.availability.check": "1786546586091",
+    "trial.state.last.availability.state": "true",
+    "trial.state.last.state": "TRIAL_AVAILABLE"
+  },
+  "keyToStringList": {
+    "file.chooser.recent.files": [
+      "/var/home/apg/Projetos/opensource/Doit",
+      "/var/home/apg/Projetos/plugins/jetbrains-flatpak"
+    ],
+    "fileTypeDetectors": [
+      "com.intellij.ide.scratch.ScratchFileServiceImpl$Detector",
+      "com.intellij.database.vfs.DbStorageFileType$Detector",
+      "com.intellij.docker.dockerFile.DockerFileTypeDetector",
+      "org.jetbrains.plugins.textmate.TextMateFileType$TextMateFileDetector"
+    ]
+  }
+}]]></component>
+</application>

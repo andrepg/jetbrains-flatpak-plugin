@@ -1,0 +1,64 @@
+<project version="4">
+  <component name="BookmarksManager">
+    <option name="groups">
+      <GroupState>
+        <option name="name" value="flatpak-support" />
+      </GroupState>
+    </option>
+  </component>
+  <component name="IdeDocumentHistory">{}</component>
+  <component name="IgnoredFileRootStore">
+    <option name="generatedRoots">
+      <set>
+        <option value="$PROJECT_DIR$/.idea" />
+      </set>
+    </option>
+  </component>
+  <component name="ProjectRoots">
+    <project-root url="file://$PROJECT_DIR$" />
+  </component>
+  <component name="ProjectView">
+    <navigator currentView="ProjectPane" proportions="" version="1" />
+    <panes>
+      <pane id="PackagesPane" />
+      <pane id="ProjectPane" />
+      <pane id="Scope" />
+    </panes>
+  </component>
+  <component name="ToolWindowManager">
+    <layoutV2>
+      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.33035713" />
+      <window_info id="Commit" order="1" weight="0.25" />
+      <window_info id="Structure" order="2" side_tool="true" weight="0.25" />
+      <window_info id="MyToolWindow" order="3" />
+      <window_info anchor="bottom" id="Version Control" order="0" />
+      <window_info anchor="bottom" id="Problems" order="1" />
+      <window_info anchor="bottom" id="Problems View" order="2" />
+      <window_info anchor="bottom" id="Terminal" order="3" />
+      <window_info anchor="bottom" id="Services" order="4" />
+      <window_info anchor="right" content_ui="combo" id="Notifications" order="0" weight="0.25" />
+      <window_info anchor="right" id="AIAssistant" order="1" weight="0.25" />
+      <window_info anchor="right" id="Database" order="2" weight="0.25" />
+      <window_info anchor="right" id="Gradle" order="3" weight="0.25" />
+      <window_info anchor="right" id="Maven" order="4" weight="0.25" />
+      <unified_weights left="0.33035713" />
+    </layoutV2>
+    <recentWindows>
+      <value>Project</value>
+    </recentWindows>
+  </component>
+  <component name="WindowStateProjectService">
+    <state x="737" y="1276" key="#Run/Debug_Configuration_Templates" timestamp="1786547346368">
+      <screen x="177" y="1080" width="1920" height="1080" />
+    </state>
+    <state x="737" y="1276" key="#Run/Debug_Configuration_Templates/177.1080.1920.1080/0.0.1920.1080@177.1080.1920.1080" timestamp="1786547346368" />
+    <state x="737" y="1276" key="#com.intellij.execution.impl.EditConfigurationsDialog" timestamp="1786547497234">
+      <screen x="177" y="1080" width="1920" height="1080" />
+    </state>
+    <state x="737" y="1276" key="#com.intellij.execution.impl.EditConfigurationsDialog/177.1080.1920.1080/0.0.1920.1080@177.1080.1920.1080" timestamp="1786547497234" />
+    <state x="646" y="1251" key="SettingsEditor" timestamp="1786546708651">
+      <screen x="177" y="1080" width="1920" height="1080" />
+    </state>
+    <state x="646" y="1251" key="SettingsEditor/177.1080.1920.1080/0.0.1920.1080@177.1080.1920.1080" timestamp="1786546708651" />
+  </component>
+</project>

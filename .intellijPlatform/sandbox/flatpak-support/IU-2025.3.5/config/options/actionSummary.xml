@@ -1,0 +1,76 @@
+<application>
+  <component name="ActionsLocalSummary">
+    <e n="$SelectAll">
+      <i c="4" l="1786563409764" />
+    </e>
+    <e n="CloseProject">
+      <i c="1" l="1786547511154" />
+    </e>
+    <e n="DeleteRunConfiguration">
+      <i c="1" l="1786547490036" />
+    </e>
+    <e n="EditorCopy">
+      <i c="5" l="1786563410342" />
+    </e>
+    <e n="EditorDeleteToWordStart">
+      <i c="6" l="1786549182201" />
+    </e>
+    <e n="FileChooser.GotoDesktop">
+      <i c="1" l="1786546632700" />
+    </e>
+    <e n="FileChooser.GotoHome">
+      <i c="1" l="1786546635232" />
+    </e>
+    <e n="MoreRunToolbarActions">
+      <i c="1" l="1786547488614" />
+    </e>
+    <e n="RedesignedRunConfigurationSelector">
+      <i c="10" l="1786552235254" />
+    </e>
+    <e n="ShowPopupMenu">
+      <i c="1" l="1786550802068" />
+    </e>
+    <e n="ShowSettings">
+      <i c="20" l="1786563620359" />
+    </e>
+    <e n="Tree-selectNext">
+      <i c="2" l="1786554674638" />
+    </e>
+    <e n="Tree-selectParent">
+      <i c="1" l="1786547568313" />
+    </e>
+    <e n="WelcomeScreen.OpenProject">
+      <i c="2" l="1786547515117" />
+    </e>
+    <e n="WelcomeScreen.Settings">
+      <i c="1" l="1786546599460" />
+    </e>
+    <e n="com.intellij.notification.NotificationAction$Simple">
+      <i c="4" l="1786563407114" />
+    </e>
+    <e n="com.intellij.openapi.actionSystem.AnActionWrapper">
+      <i c="1" l="1786554431590" />
+    </e>
+    <e n="com.intellij.openapi.ui.DialogWrapper$5">
+      <i c="1" l="1786554495866" />
+    </e>
+    <e n="com.intellij.openapi.ui.impl.DialogWrapperPeerImpl$AnCancelAction">
+      <i c="2" l="1786559918985" />
+    </e>
+    <e n="com.intellij.openapi.wm.impl.SquareAnActionButton">
+      <i c="4" l="1786550798062" />
+    </e>
+    <e n="com.intellij.openapi.wm.impl.customFrameDecorations.header.toolbar.MainMenuButton$ShowMenuAction">
+      <i c="1" l="1786547485830" />
+    </e>
+    <e n="com.intellij.openapi.wm.impl.welcomeScreen.WelcomeScreenComponentFactory$4">
+      <i c="1" l="1786546597766" />
+    </e>
+    <e n="com.intellij.ui.CommonActionsPanel$AddButton">
+      <i c="6" l="1786549158475" />
+    </e>
+    <e n="editRunConfigurations">
+      <i c="9" l="1786552237738" />
+    </e>
+  </component>
+</application>
