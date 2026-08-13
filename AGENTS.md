@@ -10,7 +10,7 @@
 - **Entry point**: `src/main/resources/META-INF/plugin.xml`
 - **Flatpak commands**: `src/main/kotlin/io/github/andrepg/flatpak/`
   - `FlatpakCommand.kt`: Command enum (BUILD, CLEAN, COMPILE, EXPORT, RUN)
-  - `FlatpakExecutor.kt`: Maps commands to flatpak-builder/flatpak CLI calls
+  - `FlatpakRunExecutor.kt`: Maps commands to flatpak-builder/flatpak CLI calls
   - `FlatpakRunState.kt`: Executes commands via IntelliJ's RunConfiguration
   - `FlatpakRunConfigurationType.kt`: Registers "Flatpak" run configuration type
 
@@ -39,7 +39,7 @@
 - **Current limitation**: `FlatpakCommand.RUN` uses placeholder `your.app.id` - must be replaced with actual Flatpak app ID
 - Configuration requires:
   - `manifestPath`: Path to flatpak manifest file
-  - `buildDir`: Build directory for flatpak-builder
+  - `BUILD_DIR`: Build directory for flatpak-builder
 
 ## GNOME/Adwaita UI support
 - **Not currently implemented** - plugin only has basic tool window
