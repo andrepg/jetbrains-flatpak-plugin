@@ -50,7 +50,7 @@ class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFilePr
     /**
      * @return the URL of the remote schema source
      */
-    override fun getRemoteSource(): String = GTK_MANIFEST_PATH
+    override fun getRemoteSource(): String = FLATPAK_MANIFEST_PATH
 
     /**
      * Resolves the remote schema to a local [VirtualFile], logging warnings when resolution fails
@@ -59,9 +59,9 @@ class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFilePr
      * @return the resolved schema file, or null if it could not be obtained
      */
     override fun getSchemaFile(): VirtualFile? {
-        val file = JsonFileResolver.urlToFile(GTK_MANIFEST_PATH)
+        val file = JsonFileResolver.urlToFile(FLATPAK_MANIFEST_PATH)
 
-        logger.info("Resolving Flatpak schema from $GTK_MANIFEST_PATH -> ${file?.url}")
+        logger.info("Resolving Flatpak schema from $FLATPAK_MANIFEST_PATH -> ${file?.url}")
 
         file?.let { if (!it.isValid) logger.warn("Flatpak schema file is invalid: ${it.url}") }
 
