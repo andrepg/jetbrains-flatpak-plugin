@@ -8,11 +8,12 @@
 
 ## Key files
 - **Entry point**: `src/main/resources/META-INF/plugin.xml`
-- **Flatpak commands**: `src/main/kotlin/io/github/andrepg/flatpak/`
-  - `FlatpakCommand.kt`: Command enum (BUILD, CLEAN, COMPILE, EXPORT, RUN)
-  - `FlatpakRunExecutor.kt`: Maps commands to flatpak-builder/flatpak CLI calls
-  - `FlatpakRunState.kt`: Executes commands via IntelliJ's RunConfiguration
-  - `FlatpakRunConfigurationType.kt`: Registers "Flatpak" run configuration type
+- **Flatpak runs**: `src/main/kotlin/io/github/andrepg/flatpak/runs/`
+  - `FlatpakCommand.kt`: Command enum (BUILD, CLEAN, EXPORT, RUN, VALIDATE, CUSTOM)
+  - `configuration/`: Run configuration machinery (type, configuration, factory, configurator, manifest producer, project opener, settings defaults)
+  - `execution/FlatpakCommandBuilder.kt`: Maps commands to flatpak-builder/flatpak CLI calls
+  - `execution/FlatpakRunState.kt`: Executes commands via IntelliJ's RunConfiguration
+  - `ui/FlatpakRunSettingsEditor.kt`: Settings editor form for the run configuration
 
 ## Commands
 
@@ -36,7 +37,7 @@
 
 ## Flatpak integration notes
 - Commands execute via `flatpak-builder` and `flatpak` CLI
-- **Current limitation**: `FlatpakCommand.RUN` uses placeholder `your.app.id` - must be replaced with actual Flatpak app ID
+- `FlatpakCommand.RUN` derives the app ID from the manifest via `FlatpakManifestReader`, falling back to the manifest filename
 - Configuration requires:
   - `manifestPath`: Path to flatpak manifest file
   - `BUILD_DIR`: Build directory for flatpak-builder
@@ -57,8 +58,7 @@
 - Message bundles in `src/main/resources/messages/` for i18n
 
 ## Next steps for full implementation
-1. Replace placeholder app ID in `FlatpakExecutor.kt:19`
-2. Add GNOME/Adwaita XML schema support
-3. Implement LSP for XML files
-4. Add proper configuration validation
-5. Implement full SettingsEditor UI with command selection dropdown
+1. Add GNOME/Adwaita XML schema support
+2. Implement LSP for XML files
+3. Add proper configuration validation
+4. Implement full SettingsEditor UI with command selection dropdown

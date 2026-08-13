@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs
+package io.github.andrepg.flatpak.runs.configuration
 
 import com.intellij.execution.Executor
 import com.intellij.execution.configurations.RunConfiguration
@@ -6,9 +6,8 @@ import com.intellij.execution.configurations.RunConfigurationBase
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
-import io.github.andrepg.flatpak.runs.enums.FlatpakCommand
-import io.github.andrepg.flatpak.runs.enums.FlatpakRunAttributes
-import io.github.andrepg.flatpak.runs.ui.FlatpakRunSettings
+import io.github.andrepg.flatpak.runs.FlatpakCommand
+import io.github.andrepg.flatpak.runs.execution.FlatpakRunState
 import io.github.andrepg.flatpak.runs.ui.FlatpakRunSettingsEditor
 import org.jdom.Element
 
@@ -50,10 +49,10 @@ class FlatpakRunConfiguration(
      */
     override fun writeExternal(element: Element) {
         super.writeExternal(element)
-        element.setAttribute(FlatpakRunAttributes.COMMAND.toString(), command.name)
-        element.setAttribute(FlatpakRunAttributes.MANIFEST.toString(), manifestPath)
-        element.setAttribute(FlatpakRunAttributes.CUSTOM_ARGS.toString(), customArguments.joinToString(";"))
-        element.setAttribute(FlatpakRunAttributes.BUILD_DIR.toString(), buildDir)
+        element.setAttribute(ATTR_COMMAND, command.name)
+        element.setAttribute(ATTR_MANIFEST, manifestPath)
+        element.setAttribute(ATTR_CUSTOM_ARGS, customArguments.joinToString(";"))
+        element.setAttribute(ATTR_BUILD_DIR, buildDir)
     }
 
     /**
@@ -68,37 +67,31 @@ class FlatpakRunConfiguration(
         super.readExternal(element)
 
         command = FlatpakCommand.valueOf(
-            getAttributeValue(element,
-                FlatpakRunAttributes.COMMAND,
-                FlatpakCommand.BUILD.toString()
-            )
+            getAttributeValue(element, ATTR_COMMAND, FlatpakCommand.BUILD.toString())
         )
 
-        manifestPath = getAttributeValue(element,
-            FlatpakRunAttributes.MANIFEST,
-            FlatpakRunSettings.DEFAULT_MANIFEST
-        )
+        manifestPath = getAttributeValue(element, ATTR_MANIFEST, FlatpakRunSettings.DEFAULT_MANIFEST)
 
-        customArguments = getAttributeValue(element,
-            FlatpakRunAttributes.CUSTOM_ARGS,
-            "")
+        customArguments = getAttributeValue(element, ATTR_CUSTOM_ARGS, "")
             .split(";")
             .filter { it.isNotBlank() }
 
-        buildDir = getAttributeValue(element,
-            FlatpakRunAttributes.BUILD_DIR,
-            FlatpakRunSettings.DEFAULT_OUTPUT
-        )
+        buildDir = getAttributeValue(element, ATTR_BUILD_DIR, FlatpakRunSettings.DEFAULT_OUTPUT)
     }
 
     /**
      * Get current element attribute, or return a default value
      */
-    fun getAttributeValue(
+    private fun getAttributeValue(
         element: Element,
-        attribute: FlatpakRunAttributes,
+        attribute: String,
         default: String
-    ): String {
-        return element.getAttributeValue(attribute.toString(), default)
+    ): String = element.getAttributeValue(attribute, default)
+
+    private companion object {
+        const val ATTR_COMMAND = "COMMAND"
+        const val ATTR_MANIFEST = "MANIFEST"
+        const val ATTR_CUSTOM_ARGS = "CUSTOM_ARGS"
+        const val ATTR_BUILD_DIR = "BUILD_DIR"
     }
 }

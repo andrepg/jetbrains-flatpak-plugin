@@ -1,12 +1,11 @@
-package io.github.andrepg.flatpak.runs
+package io.github.andrepg.flatpak.runs.configuration
 
 import com.intellij.execution.RunManager
 import com.intellij.execution.RunnerAndConfigurationSettings
 import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import io.github.andrepg.flatpak.runs.enums.FlatpakCommand
-import io.github.andrepg.flatpak.runs.ui.FlatpakRunSettings
+import io.github.andrepg.flatpak.runs.FlatpakCommand
 import io.github.andrepg.shared.Localization
 
 /**

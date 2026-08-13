@@ -3,8 +3,8 @@ package io.github.andrepg.flatpak.runs.ui
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBTextField
-import io.github.andrepg.flatpak.runs.enums.FlatpakCommand
-import io.github.andrepg.flatpak.runs.FlatpakRunConfiguration
+import io.github.andrepg.flatpak.runs.FlatpakCommand
+import io.github.andrepg.flatpak.runs.configuration.FlatpakRunConfiguration
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.Insets

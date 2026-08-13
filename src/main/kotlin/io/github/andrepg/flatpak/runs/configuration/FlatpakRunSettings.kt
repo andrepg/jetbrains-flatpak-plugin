@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs.ui
+package io.github.andrepg.flatpak.runs.configuration
 
 /**
  * Default settings values shared by Flatpak run configurations.

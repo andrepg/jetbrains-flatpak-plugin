@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs
+package io.github.andrepg.flatpak.runs.configuration
 
 import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.ConfigurationTypeBase

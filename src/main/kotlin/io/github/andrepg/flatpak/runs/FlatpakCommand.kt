@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs.enums
+package io.github.andrepg.flatpak.runs
 
 /**
  * Enum representing different Flatpak commands that can be executed.

@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs
+package io.github.andrepg.flatpak.runs.configuration
 
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.LazyRunConfigurationProducer
@@ -9,8 +9,7 @@ import com.intellij.openapi.util.Ref
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
-import io.github.andrepg.flatpak.runs.enums.FlatpakCommand
-import io.github.andrepg.flatpak.runs.ui.FlatpakRunSettings
+import io.github.andrepg.flatpak.runs.FlatpakCommand
 import io.github.andrepg.shared.Localization
 
 /**

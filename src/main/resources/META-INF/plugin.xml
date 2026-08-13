@@ -39,10 +39,10 @@
     <resource-bundle>messages.Messages</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
-        <configurationType implementation="io.github.andrepg.flatpak.runs.FlatpakRunConfigurationType"/>
-        <runConfigurationProducer implementation="io.github.andrepg.flatpak.runs.FlatpakManifestProducer"/>
+        <configurationType implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakRunConfigurationType"/>
+        <runConfigurationProducer implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakManifestProducer"/>
         <notificationGroup id="io.github.andrepg.flatpak.detection" displayType="BALLOON"/>
-        <postStartupActivity implementation="io.github.andrepg.flatpak.runs.FlatpakProjectOpener"/>
+        <postStartupActivity implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakProjectOpener"/>
 
         <projectConfigurable
             parentId="language"

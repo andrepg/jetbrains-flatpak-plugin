@@ -67,9 +67,9 @@ object FlatpakProjectDetector {
      */
     fun findManifests(project: Project): List<Pair<VirtualFile, String>> {
         val manifests = mutableListOf<Pair<VirtualFile, String>>()
-        for (root in ProjectRootManager.getInstance(project).contentRoots) {
+        for (projectRootRecord in ProjectRootManager.getInstance(project).contentRoots) {
             VfsUtilCore.visitChildrenRecursively(
-                root,
+                projectRootRecord,
                 object : VirtualFileVisitor<Any>(VirtualFileVisitor.NO_FOLLOW_SYMLINKS) {
                     override fun visitFile(file: VirtualFile): Boolean {
                         if (file.isDirectory) {
