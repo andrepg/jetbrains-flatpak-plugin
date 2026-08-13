@@ -108,7 +108,7 @@ object GirSchemaExtractor {
 
     // ------------------------------------------------------------------ JSON
 
-    private sealed class Js {
+    internal sealed class Js {
         data class Str(val value: String) : Js()
         data class Arr(val items: List<Js>) : Js()
         data class Obj(val entries: List<Pair<String, Js>>) : Js()
@@ -244,17 +244,8 @@ object GirSchemaExtractor {
         "items" to obj(
             "allOf" to arr(
                 ref("#/\$defs/objectCommon"),
-                obj("anyOf" to Js.Arr(variants + genericClassVariant())),
+                obj("anyOf" to Js.Arr(variants)),
             ),
-        ),
-    )
-
-    private fun genericClassVariant() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "class" to obj("type" to str("string")),
-            "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
-            "signal" to obj("type" to str("array"), "items" to ref("#/\$defs/signal")),
         ),
     )
 
@@ -268,31 +259,6 @@ object GirSchemaExtractor {
             "packing" to ref("#/\$defs/packing"),
             "accessibility" to ref("#/\$defs/accessibility"),
             "style" to ref("#/\$defs/style"),
-            "attributes" to obj(
-                "type" to str("array"),
-                "items" to obj(
-                    "type" to str("object"),
-                    "properties" to obj(
-                        "name" to obj("type" to str("string")),
-                        "value" to obj("type" to str("string")),
-                    ),
-                ),
-            ),
-            "condition" to obj(
-                "type" to str("array"),
-                "items" to obj("type" to str("string"), "$" to obj("type" to str("string"))),
-            ),
-            "setter" to obj(
-                "type" to str("array"),
-                "items" to obj(
-                    "type" to str("object"),
-                    "properties" to obj(
-                        "object" to obj("type" to str("string")),
-                        "property" to obj("type" to str("string")),
-                        "$" to obj("type" to str("string")),
-                    ),
-                ),
-            ),
         ),
     )
 
@@ -317,7 +283,6 @@ object GirSchemaExtractor {
                 "translatable" to yesNoEnum(),
                 "context" to obj("type" to str("string")),
                 "comments" to obj("type" to str("string")),
-                "object" to ref("#/\$defs/object"),
             ),
         ),
     )
@@ -344,7 +309,6 @@ object GirSchemaExtractor {
             "translatable" to yesNoEnum(),
             "context" to obj("type" to str("string")),
             "comments" to obj("type" to str("string")),
-            "object" to ref("#/\$defs/object"),
         ),
     )
 
@@ -401,10 +365,7 @@ object GirSchemaExtractor {
         "type" to str("object"),
         "properties" to obj(
             "name" to obj("type" to str("string")),
-            "value" to obj("type" to str("string")),
             "$" to obj("type" to str("string")),
-            "translatable" to yesNoEnum(),
-            "context" to obj("type" to str("string")),
         ),
     )
 
@@ -538,18 +499,7 @@ object GirSchemaExtractor {
         return null
     }
 
-    private fun buildXsd(registry: Registry): String {
-        val allTypes = registry.allTypes()
-        val allClassNames = allTypes.map { it.cType }
-        val allPropertyNames = allTypes
-            .flatMap { registry.flattened(it) { e -> e.properties } }
-            .distinct()
-            .sorted()
-        val allSignalNames = allTypes
-            .flatMap { registry.flattened(it) { e -> e.signals } }
-            .distinct()
-            .sorted()
-
+    private fun buildXsd(): String {
         val sb = StringBuilder()
         sb.appendLine("<?xml version=\"1.0\" encoding=\"UTF-8\"?>")
         sb.appendLine("<xs:schema xmlns:xs=\"http://www.w3.org/2001/XMLSchema\">")
@@ -582,21 +532,7 @@ object GirSchemaExtractor {
 
         sb.appendLine("  <xs:element name=\"object\" type=\"objectType\"/>")
         sb.appendLine()
-        sb.appendLine("  <xs:simpleType name=\"className\">")
-        sb.appendLine("    <xs:union>")
-        sb.appendLine("      <xs:simpleType>")
-        sb.appendLine("        <xs:restriction base=\"xs:string\">")
-        allClassNames.forEach { sb.appendLine("          <xs:enumeration value=\"${xmlEscape(it)}\"/>") }
-        sb.appendLine("        </xs:restriction>")
-        sb.appendLine("      </xs:simpleType>")
-        sb.appendLine("      <xs:simpleType>")
-        sb.appendLine("        <xs:restriction base=\"xs:string\">")
-        sb.appendLine("          <xs:pattern value=\"[A-Za-z_][A-Za-z0-9_.]*\"/>")
-        sb.appendLine("        </xs:restriction>")
-        sb.appendLine("      </xs:simpleType>")
-        sb.appendLine("    </xs:union>")
-        sb.appendLine("  </xs:simpleType>")
-
+        sb.appendLine("<!-- gb-patch:class-name-union -->")
         sb.appendLine("  <xs:complexType name=\"objectType\">")
         sb.appendLine("    <xs:choice minOccurs=\"0\" maxOccurs=\"unbounded\">")
         sb.appendLine("      <xs:element ref=\"condition\"/>")
@@ -613,10 +549,8 @@ object GirSchemaExtractor {
         sb.appendLine("    <xs:attribute name=\"class\" type=\"className\" use=\"required\"/>")
         sb.appendLine("    <xs:attribute name=\"id\" type=\"xs:string\"/>")
         sb.appendLine("  </xs:complexType>")
-
-        appendElementWithNameEnum(sb, "property", allPropertyNames, extraAttributes = true, allowChildObject = true)
-        appendElementWithNameEnum(sb, "signal", allSignalNames, extraAttributes = false)
-
+        sb.appendLine("<!-- gb-patch:property-element -->")
+        sb.appendLine("<!-- gb-patch:signal-element -->")
         sb.appendLine("  <xs:element name=\"child\">")
         sb.appendLine("    <xs:complexType>")
         sb.appendLine("      <xs:sequence>")
@@ -776,102 +710,40 @@ object GirSchemaExtractor {
         return sb.toString()
     }
 
-    private fun appendElementWithNameEnum(
-        sb: StringBuilder,
-        elementName: String,
-        names: List<String>,
-        extraAttributes: Boolean,
-        allowChildObject: Boolean = false,
-    ) {
-        sb.appendLine("  <xs:element name=\"$elementName\">")
-        sb.appendLine("    <xs:complexType mixed=\"true\">")
-        if (allowChildObject) {
-            sb.appendLine("      <xs:sequence minOccurs=\"0\" maxOccurs=\"1\">")
-            sb.appendLine("        <xs:element ref=\"object\"/>")
-            sb.appendLine("      </xs:sequence>")
-        }
-        sb.appendLine("      <xs:attribute name=\"name\" use=\"required\">")
-        sb.appendLine("        <xs:simpleType>")
-        sb.appendLine("          <xs:restriction base=\"xs:string\">")
-        names.forEach { sb.appendLine("            <xs:enumeration value=\"${xmlEscape(it)}\"/>") }
-        sb.appendLine("          </xs:restriction>")
-        sb.appendLine("        </xs:simpleType>")
-        sb.appendLine("      </xs:attribute>")
-        if (extraAttributes) {
-            sb.appendLine("      <xs:attribute name=\"translatable\">")
-            sb.appendLine("        <xs:simpleType>")
-            sb.appendLine("          <xs:restriction base=\"xs:string\">")
-            sb.appendLine("            <xs:enumeration value=\"yes\"/>")
-            sb.appendLine("            <xs:enumeration value=\"no\"/>")
-            sb.appendLine("            <xs:enumeration value=\"true\"/>")
-            sb.appendLine("            <xs:enumeration value=\"false\"/>")
-            sb.appendLine("          </xs:restriction>")
-            sb.appendLine("        </xs:simpleType>")
-            sb.appendLine("      </xs:attribute>")
-            sb.appendLine("      <xs:attribute name=\"context\" type=\"xs:string\"/>")
-            sb.appendLine("      <xs:attribute name=\"comments\" type=\"xs:string\"/>")
-        } else {
-            sb.appendLine("      <xs:attribute name=\"handler\" type=\"xs:string\"/>")
-            sb.appendLine("      <xs:attribute name=\"object\" type=\"xs:string\"/>")
-            sb.appendLine("      <xs:attribute name=\"swapped\">")
-            sb.appendLine("        <xs:simpleType>")
-            sb.appendLine("          <xs:restriction base=\"xs:string\">")
-            sb.appendLine("            <xs:enumeration value=\"yes\"/>")
-            sb.appendLine("            <xs:enumeration value=\"no\"/>")
-            sb.appendLine("            <xs:enumeration value=\"true\"/>")
-            sb.appendLine("            <xs:enumeration value=\"false\"/>")
-            sb.appendLine("          </xs:restriction>")
-            sb.appendLine("        </xs:simpleType>")
-            sb.appendLine("      </xs:attribute>")
-            sb.appendLine("      <xs:attribute name=\"after\">")
-            sb.appendLine("        <xs:simpleType>")
-            sb.appendLine("          <xs:restriction base=\"xs:string\">")
-            sb.appendLine("            <xs:enumeration value=\"yes\"/>")
-            sb.appendLine("            <xs:enumeration value=\"no\"/>")
-            sb.appendLine("            <xs:enumeration value=\"true\"/>")
-            sb.appendLine("            <xs:enumeration value=\"false\"/>")
-            sb.appendLine("          </xs:restriction>")
-            sb.appendLine("        </xs:simpleType>")
-            sb.appendLine("      </xs:attribute>")
-        }
-        sb.appendLine("    </xs:complexType>")
-        sb.appendLine("  </xs:element>")
-    }
-
-    private fun xmlEscape(value: String): String = buildString {
-        for (ch in value) {
-            when (ch) {
-                '&' -> append("&amp;")
-                '<' -> append("&lt;")
-                '>' -> append("&gt;")
-                '"' -> append("&quot;")
-                '\'' -> append("&apos;")
-                else -> append(ch)
-            }
-        }
-    }
-
     fun extract(girDir: File, output: File) {
         val resolved = resolveGirDir(girDir)
             ?: error("No Gtk-4.0.gir found under $girDir. Pass the gir-1.0 dir or the GNOME SDK runtime base dir, or override with -PgirDir=")
 
         val entries = GIR_FILE_NAMES.flatMap { name -> parseGir(File(resolved, name)) }
         val registry = Registry(entries)
+        val allTypes = registry.allTypes()
 
-        val schema = buildSchema(registry)
+        val enums = SchemaPatches.GtkEnums(
+            classNames = allTypes.map { it.cType },
+            propertyNames = allTypes
+                .flatMap { registry.flattened(it) { e -> e.properties } }
+                .distinct()
+                .sorted(),
+            signalNames = allTypes
+                .flatMap { registry.flattened(it) { e -> e.signals } }
+                .distinct()
+                .sorted(),
+        )
+
+        val schema = SchemaPatches.applyJson(buildSchema(registry))
         output.parentFile?.mkdirs()
         output.writeText(schema.render())
 
+        val xsd = SchemaPatches.applyXsd(buildXsd(), enums)
         val xsdOutput = File(output.parentFile, "gtk-ui.xsd")
-        xsdOutput.writeText(buildXsd(registry))
+        xsdOutput.writeText(xsd)
 
-        val types = registry.allTypes()
-        val propertyCount = types.sumOf { registry.flattened(it) { e -> e.properties }.size }
-        val signalCount = types.sumOf { registry.flattened(it) { e -> e.signals }.size }
+        val propertyCount = allTypes.sumOf { registry.flattened(it) { e -> e.properties }.size }
+        val signalCount = allTypes.sumOf { registry.flattened(it) { e -> e.signals }.size }
         println("GIR dir : $resolved")
         println("Output  : ${output.absolutePath}")
         println("XSD     : ${xsdOutput.absolutePath}")
-        println("Types   : ${types.size} classes/interfaces")
+        println("Types   : ${allTypes.size} classes/interfaces")
         println("Flattened members: ${propertyCount} properties, $signalCount signals")
     }
 
