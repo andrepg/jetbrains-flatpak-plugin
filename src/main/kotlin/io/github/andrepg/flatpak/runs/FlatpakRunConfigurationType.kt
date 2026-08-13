@@ -4,6 +4,7 @@ import com.intellij.execution.configurations.ConfigurationFactory
 import com.intellij.execution.configurations.ConfigurationTypeBase
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.project.Project
+import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
 import io.github.andrepg.shared.Localization
 
 /**
@@ -41,4 +42,10 @@ class FlatpakConfigurationFactory(type: FlatpakRunConfigurationType) :
      * @return the unique identifier of this factory
      */
     override fun getId(): String = "FlatpakFactory"
+
+    /**
+     * Hides the Flatpak type in the Edit Configurations dialog for projects without manifests.
+     */
+    override fun isApplicable(project: Project): Boolean =
+        FlatpakProjectDetector.isFlatpakProject(project)
 }

@@ -33,12 +33,16 @@
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
     <depends>com.intellij.modules.json</depends>
 
     <resource-bundle>messages.Messages</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
         <configurationType implementation="io.github.andrepg.flatpak.runs.FlatpakRunConfigurationType"/>
+        <runConfigurationProducer implementation="io.github.andrepg.flatpak.runs.FlatpakManifestProducer"/>
+        <notificationGroup id="io.github.andrepg.flatpak.detection" displayType="BALLOON"/>
+        <postStartupActivity implementation="io.github.andrepg.flatpak.runs.FlatpakProjectOpener"/>
 
         <projectConfigurable
             parentId="language"
