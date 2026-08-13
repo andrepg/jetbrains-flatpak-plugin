@@ -1,2 +1,0 @@
-#!/bin/sh
-"/var/home/apg/.gradle/caches/9.6.1/transforms/4693db8db71c8234ccfb18eb52feb2d3/transformed/idea-2025.3.5/jbr/bin/java" -cp "/var/home/apg/.gradle/caches/9.6.1/transforms/4693db8db71c8234ccfb18eb52feb2d3/transformed/idea-2025.3.5/lib/externalProcess-rt.jar" externalApp.nativessh.NativeSshAskPassApp "$@"
