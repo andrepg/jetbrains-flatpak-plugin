@@ -1,35 +1,41 @@
 <!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
 <idea-plugin>
     <id>io.github.andrepg.flatpak-support</id>
-
-    <!-- Public plugin name should be written in Title Case.
-     Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-name -->
     <name>Flatpak DevTools</name>
+    <version>0.0.1-alpha</version>
 
-    <vendor url="https://andrepg.github.io">André Paul Grandsire</vendor>
+    <vendor
+        url="https://andrepg.github.io"
+        email="contato@startap.dev.br"
+    >André Paul Grandsire</vendor>
 
-    <!--
-        Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
-        @see https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description
-     -->
     <description><![CDATA[
-        Integrate Flatpak builder into any JetBrains IDE
-        ]]></description>
+        Integrate Flatpak builder into any JetBrains IDE. The core features are:
 
-    <!-- Product and plugin compatibility requirements.
-         Read more: https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html -->
+        <h2>Flatpak features</h2>
+
+        <ul>
+            <li>Flatpak Build integrated with your IDE</li>
+            <li>WIP: Flatpak Schema autocompletion and validation</li>
+        </ul>
+    ]]></description>
+
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.json</depends>
 
+    <resource-bundle>messages.Messages</resource-bundle>
 
-    <!-- Extensions defined by the plugin.
-          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <configurationType implementation="io.github.andrepg.flatpak.runs.FlatpakRunConfigurationType"/>
 
         <projectConfigurable
-                parentId="language"
-                id="io.github.andrepg.flatpak.settings.FlatpakSettingsConfigurable"
-                instance="io.github.andrepg.flatpak.settings.FlatpakSettingsConfigurable"
-                displayName="Flatpak"/>
+            parentId="language"
+            id="io.github.andrepg.flatpak.settings.FlatpakSettingsConfigurable"
+            instance="io.github.andrepg.flatpak.settings.FlatpakSettingsConfigurable"
+            displayName="Flatpak"/>
+    </extensions>
+
+    <extensions defaultExtensionNs="JavaScript">
+        <JsonSchema.ProviderFactory implementation="io.github.andrepg.flatpak.providers.FlatpakSchemaProviderFactory"/>
     </extensions>
 </idea-plugin>
