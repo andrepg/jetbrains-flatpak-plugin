@@ -1,6 +1,5 @@
 package io.github.andrepg.flatpak.utils
 
-import io.github.andrepg.flatpak.settings.FlatpakPaths
 import java.io.File
 
 /**
