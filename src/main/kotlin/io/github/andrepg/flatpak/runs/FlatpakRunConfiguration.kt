@@ -17,8 +17,8 @@ class FlatpakRunConfiguration(
 ) : RunConfigurationBase<Any>(project, factory, name) {
 
     var command: FlatpakCommand = FlatpakCommand.BUILD
-    var manifestPath: String = FlatpakRunSettings.defaultFlatpakManifest
-    var buildDir: String = FlatpakRunSettings.defaultFlatpakOutput
+    var manifestPath: String = FlatpakRunSettings.DEFAULT_MANIFEST
+    var buildDir: String = FlatpakRunSettings.DEFAULT_OUTPUT
 
     /**
      * Get current plugin status
@@ -56,12 +56,12 @@ class FlatpakRunConfiguration(
 
         manifestPath = getAttributeValue(element,
             FlatpakRunAttributes.manifest,
-            FlatpakRunSettings.defaultFlatpakManifest
+            FlatpakRunSettings.DEFAULT_MANIFEST
         )
 
         buildDir = getAttributeValue(element,
             FlatpakRunAttributes.buildDir,
-            FlatpakRunSettings.defaultFlatpakOutput
+            FlatpakRunSettings.DEFAULT_OUTPUT
         )
     }
 

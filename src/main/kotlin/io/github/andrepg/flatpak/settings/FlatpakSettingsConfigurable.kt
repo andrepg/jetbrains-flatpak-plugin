@@ -1,15 +1,16 @@
 package io.github.andrepg.flatpak.settings
 
+import io.github.andrepg.flatpak.utils.FlatpakPathValidator
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
+import io.github.andrepg.shared.Localization
 import javax.swing.JComponent
 
 class FlatpakSettingsConfigurable : SearchableConfigurable {
-    
-    private var flatpakBinaryPath: String = "/usr/bin/flatpak"
-    private var flatpakBuilderBinaryPath: String = "/usr/bin/flatpak run org.flatpak.Builder"
+    var flatpakBinaryPath: String = FlatpakPaths.MAIN_BINARY
+    var flatpakBuilderBinaryPath: String = FlatpakPaths.BUILDER_BINARY
     
     @NlsContexts.ConfigurableName
     override fun getDisplayName(): String = "Flatpak"
@@ -18,20 +19,41 @@ class FlatpakSettingsConfigurable : SearchableConfigurable {
     
     override fun createComponent(): JComponent {
         return panel {
-            group("Flatpak Binaries") {
-                row("Flatpak binary:") {
+            group(Localization.message("settings.flatpak.binaries.title")) {
+                row(Localization.message("settings.flatpak.binaries.flatpak.label")) {
+                    rowComment(Localization.message("settings.flatpak.binaries.flatpak.description"))
                     textField().bindText(::flatpakBinaryPath)
+                        .validationOnInput {
+                            if (!FlatpakPathValidator.validateBinaryPath(flatpakBinaryPath)) {
+                                error(Localization.message("settings.flatpak.binaries.flatpak.error"))
+                            } else if (!flatpakBinaryPath.startsWith("/")) {
+                                error(Localization.message("settings.flatpak.binaries.flatpak.error"))
+                            } else {
+                                null
+                            }
+                        }
                 }
-                row("Flatpak-builder command:") {
+                
+                row(Localization.message("settings.flatpak.binaries.flatpak-builder.label")) {
+                    rowComment(Localization.message("settings.flatpak.binaries.flatpak-builder.description"))
                     textField().bindText(::flatpakBuilderBinaryPath)
+                        .validationOnInput {
+                            if (!FlatpakPathValidator.validateBinaryPath(flatpakBuilderBinaryPath)) {
+                                error(Localization.message("settings.flatpak.binaries.flatpak-builder.error"))
+                            } else if (!flatpakBuilderBinaryPath.startsWith("/")) {
+                                error(Localization.message("settings.flatpak.binaries.flatpak-builder.error"))
+                            } else {
+                                null
+                            }
+                        }
                 }
             }
         }
     }
     
     override fun isModified(): Boolean {
-        return flatpakBinaryPath != "/usr/bin/flatpak" ||
-               flatpakBuilderBinaryPath != "/usr/bin/flatpak run org.flatpak.Builder"
+        return flatpakBinaryPath != FlatpakPaths.MAIN_BINARY ||
+               flatpakBuilderBinaryPath != FlatpakPaths.BUILDER_BINARY
     }
     
     override fun apply() {
@@ -39,8 +61,8 @@ class FlatpakSettingsConfigurable : SearchableConfigurable {
     }
     
     override fun reset() {
-        flatpakBinaryPath = "/usr/bin/flatpak"
-        flatpakBuilderBinaryPath = "/usr/bin/flatpak run org.flatpak.Builder"
+        flatpakBinaryPath = FlatpakPaths.MAIN_BINARY
+        flatpakBuilderBinaryPath = FlatpakPaths.BUILDER_BINARY
     }
     
     override fun disposeUIResources() {
