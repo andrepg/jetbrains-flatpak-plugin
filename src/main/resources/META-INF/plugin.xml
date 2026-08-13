@@ -42,8 +42,8 @@
 
         <projectConfigurable
             parentId="language"
-            id="io.github.andrepg.flatpak.settings.FlatpakSettingsConfigurable"
-            instance="io.github.andrepg.flatpak.settings.FlatpakSettingsConfigurable"
+            id="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+            instance="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
             displayName="Flatpak"/>
     </extensions>
 

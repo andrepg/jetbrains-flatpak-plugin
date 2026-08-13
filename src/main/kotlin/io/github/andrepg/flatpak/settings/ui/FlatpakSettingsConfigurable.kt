@@ -1,10 +1,11 @@
-package io.github.andrepg.flatpak.settings
+package io.github.andrepg.flatpak.settings.ui
 
-import io.github.andrepg.flatpak.utils.FlatpakPathValidator
 import com.intellij.openapi.options.SearchableConfigurable
 import com.intellij.openapi.util.NlsContexts
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
+import io.github.andrepg.flatpak.settings.FlatpakPaths
+import io.github.andrepg.flatpak.utils.FlatpakPathValidator
 import io.github.andrepg.shared.Localization
 import javax.swing.JComponent
 
@@ -30,7 +31,7 @@ class FlatpakSettingsConfigurable : SearchableConfigurable {
     /**
      * @return the unique identifier of this configurable
      */
-    override fun getId(): String = "io.github.andrepg.flatpak.settings.FlatpakSettingsConfigurable"
+    override fun getId(): String = "io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
 
     /**
      * @return the settings component to display
