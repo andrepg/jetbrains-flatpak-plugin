@@ -36,6 +36,7 @@
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
-        <JsonSchema.ProviderFactory implementation="io.github.andrepg.flatpak.providers.FlatpakSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory implementation="io.github.andrepg.flatpak.schemas.factories.GtkInterfaceSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory implementation="io.github.andrepg.flatpak.schemas.factories.FlatpakSchemaProviderFactory"/>
     </extensions>
 </idea-plugin>
