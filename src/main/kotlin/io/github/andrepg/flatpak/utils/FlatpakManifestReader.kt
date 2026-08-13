@@ -7,10 +7,10 @@ import org.yaml.snakeyaml.Yaml
 import java.io.File
 
 /**
- * Utility class for reading Flatpak manifest files and extracting application IDs.
+ * Utility class for reading Flatpak manifest files.
  *
- * This class provides functionality to read Flatpak manifest files in JSON or YAML format
- * and extract the application ID from them. It supports both 'app-id' and 'id' fields in the manifest.
+ * Provides access to the application id (`app-id`/`id`), the `sdk` and the
+ * `runtime` fields in both JSON and YAML manifests.
  */
 object FlatpakManifestReader {
     private val logger = Logger.getInstance(FlatpakManifestReader::class.java)
@@ -21,49 +21,47 @@ object FlatpakManifestReader {
      * @param manifestPath The path to the Flatpak manifest file
      * @return The application ID if found, or null if the file cannot be read or parsed
      */
-    fun readAppId(manifestPath: String): String? {
+    fun readAppId(manifestPath: String): String? =
+        readField(manifestPath, "app-id") ?: readField(manifestPath, "id")
+
+    /**
+     * Reads the `sdk` field from a Flatpak manifest file (e.g. `org.gnome.Sdk`).
+     *
+     * @param manifestPath The path to the Flatpak manifest file
+     * @return The SDK app-id if found, or null if the file cannot be read or parsed
+     */
+    fun readSdk(manifestPath: String): String? = readField(manifestPath, "sdk")
+
+    /**
+     * Reads the `runtime` field from a Flatpak manifest file (e.g. `org.gnome.Platform`).
+     *
+     * @param manifestPath The path to the Flatpak manifest file
+     * @return The runtime app-id if found, or null if the file cannot be read or parsed
+     */
+    fun readRuntime(manifestPath: String): String? = readField(manifestPath, "runtime")
+
+    private fun readField(manifestPath: String, key: String): String? {
         val file = File(manifestPath)
         if (!file.exists() || file.isDirectory) return null
         return try {
-            parseAppId(file.readText(), file.extension)
+            val content = file.readText()
+            if (isJson(content, file.extension)) jsonField(content, key) else yamlField(content, key)
         } catch (e: Exception) {
             logger.warn("Could not read Flatpak manifest: $manifestPath", e)
             null
         }
     }
 
-    /**
-     * Parses the application ID from the content of a Flatpak manifest file.
-     *
-     * @param content The content of the Flatpak manifest file
-     * @param extension The file extension of the manifest file
-     * @return The application ID if found, or null if parsing fails
-     */
-    private fun parseAppId(content: String, extension: String?): String? {
-        val isJson = extension?.equals("json", ignoreCase = true) == true
-                || content.trimStart().startsWith("{")
-        return if (isJson) parseJsonAppId(content) else parseYamlAppId(content)
-    }
+    private fun isJson(content: String, extension: String?): Boolean =
+        extension?.equals("json", ignoreCase = true) == true || content.trimStart().startsWith("{")
 
-    /**
-     * Parses the application ID from a JSON-formatted Flatpak manifest.
-     *
-     * @param content The JSON content of the Flatpak manifest file
-     * @return The application ID if found, or null if parsing fails
-     */
-    private fun parseJsonAppId(content: String): String? {
+    private fun jsonField(content: String, key: String): String? {
         val json = Gson().fromJson(content, JsonObject::class.java)
-        return json.get("app-id")?.asString ?: json.get("id")?.asString
+        return json.get(key)?.asString
     }
 
-    /**
-     * Parses the application ID from a YAML-formatted Flatpak manifest.
-     *
-     * @param content The YAML content of the Flatpak manifest file
-     * @return The application ID if found, or null if parsing fails
-     */
-    private fun parseYamlAppId(content: String): String? {
+    private fun yamlField(content: String, key: String): String? {
         val yaml = Yaml().load<Map<String, Any>>(content)
-        return yaml["app-id"]?.toString() ?: yaml["id"]?.toString()
+        return yaml[key]?.toString()
     }
 }

@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<repository version="2.0" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
+  <include name="GObject" version="2.0" c:identifier="GObject"/>
+  <namespace name="Gtk" version="4.0" shared-library="libgtk-4.so.1">
+    <interface name="Actionable" c:type="GtkActionable">
+      <property name="action-name" c:identifier="action_name" readable="1" writable="1"/>
+    </interface>
+    <class name="Widget" c:type="GtkWidget" glib:type-name="GtkWidget" glib:get-type="gtk_widget_get_type">
+      <property name="name" c:identifier="name" readable="1" writable="1"/>
+      <property name="visible" c:identifier="visible" readable="1" writable="1"/>
+      <property name="hexpand" c:identifier="hexpand" readable="1" writable="1"/>
+      <glib:signal name="destroy" when="LAST" no-recurse="1"/>
+      <glib:signal name="map" when="LAST" no-recurse="1"/>
+    </class>
+    <class name="Button" c:type="GtkButton" parent="Widget" glib:type-name="GtkButton" glib:get-type="gtk_button_get_type">
+      <implements name="Actionable"/>
+      <property name="label" c:identifier="label" readable="1" writable="1"/>
+      <property name="always-show-image" c:identifier="always_show_image" readable="1" writable="1"/>
+      <glib:signal name="clicked" when="LAST" no-recurse="1"/>
+    </class>
+  </namespace>
+</repository>

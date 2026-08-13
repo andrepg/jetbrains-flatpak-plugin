@@ -21,43 +21,35 @@ dependencies {
     }
 }
 
-// Standalone Kotlin source set for the GtkBuilder schema extractor.
-// It only relies on the JDK's built-in XML parser, so it runs on any machine
-// that can run Gradle (including CI agents in GitHub Actions).
-sourceSets {
-    create("scripts") {
-        kotlin.srcDir("scripts/src/main/kotlin")
-    }
+// The GtkBuilder schema extractor lives in the main module (JDK-only core).
+// The root project opts out of the default Kotlin stdlib dependency (see
+// gradle.properties), so the extractGtkSchema task needs stdlib explicitly.
+// It is wired through a dedicated non-consumable configuration so the stdlib
+// never leaks into the plugin distribution.
+val extractGtkSchemaClasspath = configurations.create("extractGtkSchemaClasspath") {
+    isCanBeConsumed = false
+    isCanBeResolved = true
 }
 
-// The root project opts out of the default Kotlin stdlib dependency (see
-// gradle.properties), so the standalone extractor needs it explicitly.
 dependencies {
-    "scriptsImplementation"(kotlin("stdlib"))
+    "extractGtkSchemaClasspath"(kotlin("stdlib"))
 }
 
 /**
- * Generates `src/main/resources/schemas/gtk-ui-schema.json` from the GObject
- * Introspection (GIR) files of the GNOME 50 SDK.
+ * Regenerates `src/main/resources/schemas/gtk-ui-schema.json` and `gtk-ui.xsd`
+ * from the GObject Introspection (GIR) files of the GNOME SDK.
  *
  * Usage:
- *   ./gradlew extractGtkSchema
+ *   ./gradlew extractGtkSchema                              # auto-detect the installed GNOME SDK
  *   ./gradlew extractGtkSchema -PgirDir=/usr/share/gir-1.0
  *   ./gradlew extractGtkSchema -PschemaOut=/tmp/gtk-ui-schema.json
  */
 val extractGtkSchema = tasks.register<JavaExec>("extractGtkSchema") {
     group = "flatpak"
-    description = "Extracts the GtkBuilder UI JSON schema from Gtk/Adw GIR files (GNOME 50 SDK)"
-    classpath = sourceSets["scripts"].runtimeClasspath
-    mainClass = "io.github.andrepg.flatpak.schema.GirSchemaExtractor"
+    description = "Extracts the GtkBuilder UI JSON schema + XSD from Gtk/Adw/GtkSource GIR files (GNOME SDK)"
+    classpath = sourceSets["main"].runtimeClasspath + configurations.getByName("extractGtkSchemaClasspath")
+    mainClass = "io.github.andrepg.gtk.schema.gir.GirSchemaExtractor"
 
-    // Hardcoded GNOME 50 SDK base path for now; the extractor resolves the
-    // SDK commit sub-directory that actually contains the .gir files.
-    val girDirArg = providers.gradleProperty("girDir").orElse(
-        "/var/home/apg/.local/share/flatpak/runtime/org.gnome.Sdk/x86_64/50"
-    ).get()
-    val outputArg = providers.gradleProperty("schemaOut").orElse(
-        layout.projectDirectory.file("src/main/resources/schemas/gtk-ui-schema.json").asFile.absolutePath
-    ).get()
-    args(girDirArg, outputArg)
+    providers.gradleProperty("girDir").orNull?.let { args("--gir-dir", it) }
+    providers.gradleProperty("schemaOut").orNull?.let { args("--schema-out", it) }
 }

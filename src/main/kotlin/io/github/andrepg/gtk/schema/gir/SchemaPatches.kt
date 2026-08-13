@@ -1,6 +1,6 @@
-package io.github.andrepg.flatpak.schema
+package io.github.andrepg.gtk.schema.gir
 
-import io.github.andrepg.flatpak.schema.GirSchemaExtractor.Js
+import io.github.andrepg.gtk.schema.gir.GirSchemaExtractor.Js
 import java.util.regex.Matcher.quoteReplacement
 
 /**

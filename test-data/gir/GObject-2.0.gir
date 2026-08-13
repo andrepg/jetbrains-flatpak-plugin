@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<repository version="2.0" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
+  <include name="GObject" version="2.0" c:identifier="GObject"/>
+  <namespace name="GObject" version="2.0" shared-library="libgobject-2.0.so.0">
+    <class name="Object" c:type="GObject" glib:type-name="GObject" glib:get-type="g_object_get_type">
+      <property name="name" c:identifier="name" readable="1" writable="1" construct="0" construct-only="0"/>
+      <glib:signal name="notify" when="LAST" no-recurse="1"/>
+    </class>
+  </namespace>
+</repository>

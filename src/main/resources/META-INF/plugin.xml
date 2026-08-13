@@ -46,7 +46,7 @@
         <fileType name="XML" extensions="ui;glade"/>
 
         <xml.schemaProvider
-                implementation="io.github.andrepg.flatpak.schemas.providers.GtkInterfaceXmlSchemaProvider"
+                implementation="io.github.andrepg.gtk.schema.providers.GtkInterfaceXmlSchemaProvider"
                 id="flatpak-gtk-interface"/>
 
         <runConfigurationProducer

@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<repository version="2.0" xmlns="http://www.gtk.org/introspection/core/1.0" xmlns:c="http://www.gtk.org/introspection/c/1.0" xmlns:glib="http://www.gtk.org/introspection/glib/1.0">
+  <include name="Gtk" version="4.0" c:identifier="Gtk"/>
+  <include name="GObject" version="2.0" c:identifier="GObject"/>
+  <namespace name="Adw" version="1" shared-library="libadwaita-1.so.0">
+    <class name="HeaderBar" c:type="AdwHeaderBar" parent="Gtk.Widget" glib:type-name="AdwHeaderBar" glib:get-type="adw_header_bar_get_type">
+      <property name="title-widget" c:identifier="title_widget" readable="1" writable="1"/>
+      <property name="show-back-button" c:identifier="show_back_button" readable="1" writable="1"/>
+    </class>
+  </namespace>
+</repository>

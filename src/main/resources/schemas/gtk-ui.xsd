@@ -2,8 +2,8 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
   <xs:annotation>
     <xs:documentation>
-      GtkBuilder UI layout schema for GTK 4 + Libadwaita.
-      Generated from the GObject Introspection (GIR) files of the GNOME 50 SDK
+      GtkBuilder UI layout schema for GTK 4 + Libadwaita + GtkSource-5.
+      Generated from the GObject Introspection (GIR) files of the GNOME SDK
       by the Flatpak DevTools extractGtkSchema task.
       No target namespace: applies to plain (namespace-less) GtkBuilder .ui files.
     </xs:documentation>
@@ -543,6 +543,54 @@
           <xs:enumeration value="GtkSnapshot"/>
           <xs:enumeration value="GtkSortListModel"/>
           <xs:enumeration value="GtkSorter"/>
+          <xs:enumeration value="GtkSourceAnnotation"/>
+          <xs:enumeration value="GtkSourceAnnotationProvider"/>
+          <xs:enumeration value="GtkSourceAnnotations"/>
+          <xs:enumeration value="GtkSourceBuffer"/>
+          <xs:enumeration value="GtkSourceCompletion"/>
+          <xs:enumeration value="GtkSourceCompletionCell"/>
+          <xs:enumeration value="GtkSourceCompletionContext"/>
+          <xs:enumeration value="GtkSourceCompletionProposal"/>
+          <xs:enumeration value="GtkSourceCompletionProvider"/>
+          <xs:enumeration value="GtkSourceCompletionSnippets"/>
+          <xs:enumeration value="GtkSourceCompletionWords"/>
+          <xs:enumeration value="GtkSourceFile"/>
+          <xs:enumeration value="GtkSourceFileLoader"/>
+          <xs:enumeration value="GtkSourceFileSaver"/>
+          <xs:enumeration value="GtkSourceGutter"/>
+          <xs:enumeration value="GtkSourceGutterLines"/>
+          <xs:enumeration value="GtkSourceGutterRenderer"/>
+          <xs:enumeration value="GtkSourceGutterRendererPixbuf"/>
+          <xs:enumeration value="GtkSourceGutterRendererText"/>
+          <xs:enumeration value="GtkSourceHover"/>
+          <xs:enumeration value="GtkSourceHoverContext"/>
+          <xs:enumeration value="GtkSourceHoverDisplay"/>
+          <xs:enumeration value="GtkSourceHoverProvider"/>
+          <xs:enumeration value="GtkSourceIndenter"/>
+          <xs:enumeration value="GtkSourceLanguage"/>
+          <xs:enumeration value="GtkSourceLanguageManager"/>
+          <xs:enumeration value="GtkSourceMap"/>
+          <xs:enumeration value="GtkSourceMark"/>
+          <xs:enumeration value="GtkSourceMarkAttributes"/>
+          <xs:enumeration value="GtkSourcePrintCompositor"/>
+          <xs:enumeration value="GtkSourceRegion"/>
+          <xs:enumeration value="GtkSourceSearchContext"/>
+          <xs:enumeration value="GtkSourceSearchSettings"/>
+          <xs:enumeration value="GtkSourceSnippet"/>
+          <xs:enumeration value="GtkSourceSnippetChunk"/>
+          <xs:enumeration value="GtkSourceSnippetContext"/>
+          <xs:enumeration value="GtkSourceSnippetManager"/>
+          <xs:enumeration value="GtkSourceSpaceDrawer"/>
+          <xs:enumeration value="GtkSourceStyle"/>
+          <xs:enumeration value="GtkSourceStyleScheme"/>
+          <xs:enumeration value="GtkSourceStyleSchemeChooser"/>
+          <xs:enumeration value="GtkSourceStyleSchemeChooserButton"/>
+          <xs:enumeration value="GtkSourceStyleSchemeChooserWidget"/>
+          <xs:enumeration value="GtkSourceStyleSchemeManager"/>
+          <xs:enumeration value="GtkSourceStyleSchemePreview"/>
+          <xs:enumeration value="GtkSourceTag"/>
+          <xs:enumeration value="GtkSourceView"/>
+          <xs:enumeration value="GtkSourceVimIMContext"/>
           <xs:enumeration value="GtkSpinButton"/>
           <xs:enumeration value="GtkSpinner"/>
           <xs:enumeration value="GtkStack"/>
@@ -667,6 +715,7 @@
             <xs:enumeration value="align"/>
             <xs:enumeration value="align-set"/>
             <xs:enumeration value="alignment"/>
+            <xs:enumeration value="alignment-mode"/>
             <xs:enumeration value="allow-async"/>
             <xs:enumeration value="allow-breaks"/>
             <xs:enumeration value="allow-breaks-set"/>
@@ -683,6 +732,7 @@
             <xs:enumeration value="always-show-arrow"/>
             <xs:enumeration value="anchors"/>
             <xs:enumeration value="animate-transitions"/>
+            <xs:enumeration value="annotations"/>
             <xs:enumeration value="anonymous"/>
             <xs:enumeration value="api"/>
             <xs:enumeration value="appdata-resource-path"/>
@@ -694,11 +744,13 @@
             <xs:enumeration value="arguments"/>
             <xs:enumeration value="argv"/>
             <xs:enumeration value="artists"/>
+            <xs:enumeration value="at-word-boundaries"/>
             <xs:enumeration value="attributes"/>
             <xs:enumeration value="authentication-mode"/>
             <xs:enumeration value="authentication-observer"/>
             <xs:enumeration value="authors"/>
             <xs:enumeration value="auto-grow"/>
+            <xs:enumeration value="auto-indent"/>
             <xs:enumeration value="auto-render"/>
             <xs:enumeration value="autoexpand"/>
             <xs:enumeration value="autohide"/>
@@ -708,6 +760,7 @@
             <xs:enumeration value="background"/>
             <xs:enumeration value="background-full-height"/>
             <xs:enumeration value="background-full-height-set"/>
+            <xs:enumeration value="background-pattern"/>
             <xs:enumeration value="background-rgba"/>
             <xs:enumeration value="background-set"/>
             <xs:enumeration value="badge-number"/>
@@ -721,7 +774,10 @@
             <xs:enumeration value="black-background"/>
             <xs:enumeration value="blocking"/>
             <xs:enumeration value="body"/>
+            <xs:enumeration value="body-font-name"/>
             <xs:enumeration value="body-use-markup"/>
+            <xs:enumeration value="bold"/>
+            <xs:enumeration value="bold-set"/>
             <xs:enumeration value="bottom-bar"/>
             <xs:enumeration value="bottom-bar-height"/>
             <xs:enumeration value="bottom-bar-style"/>
@@ -730,6 +786,7 @@
             <xs:enumeration value="buffer"/>
             <xs:enumeration value="buffer-size"/>
             <xs:enumeration value="bus-type"/>
+            <xs:enumeration value="busy"/>
             <xs:enumeration value="button"/>
             <xs:enumeration value="button-label"/>
             <xs:enumeration value="button-sensitivity"/>
@@ -757,6 +814,8 @@
             <xs:enumeration value="capabilities"/>
             <xs:enumeration value="carousel"/>
             <xs:enumeration value="cascade-popdown"/>
+            <xs:enumeration value="case-sensitive"/>
+            <xs:enumeration value="category"/>
             <xs:enumeration value="cell-area"/>
             <xs:enumeration value="cell-area-context"/>
             <xs:enumeration value="cell-background"/>
@@ -794,10 +853,13 @@
             <xs:enumeration value="column-span"/>
             <xs:enumeration value="column-view"/>
             <xs:enumeration value="columns"/>
+            <xs:enumeration value="command-bar-text"/>
+            <xs:enumeration value="command-text"/>
             <xs:enumeration value="comments"/>
             <xs:enumeration value="complete"/>
             <xs:enumeration value="completed"/>
             <xs:enumeration value="completion"/>
+            <xs:enumeration value="compression-type"/>
             <xs:enumeration value="condition"/>
             <xs:enumeration value="connectable"/>
             <xs:enumeration value="connection"/>
@@ -879,6 +941,8 @@
             <xs:enumeration value="domain"/>
             <xs:enumeration value="drag-motion-activate"/>
             <xs:enumeration value="draw-sensitive"/>
+            <xs:enumeration value="draw-spaces"/>
+            <xs:enumeration value="draw-spaces-set"/>
             <xs:enumeration value="draw-value"/>
             <xs:enumeration value="drop"/>
             <xs:enumeration value="drop-preload"/>
@@ -899,16 +963,19 @@
             <xs:enumeration value="enable-expansion"/>
             <xs:enumeration value="enable-grid-lines"/>
             <xs:enumeration value="enable-hide-gesture"/>
+            <xs:enumeration value="enable-matrix"/>
             <xs:enumeration value="enable-new-tab"/>
             <xs:enumeration value="enable-popup"/>
             <xs:enumeration value="enable-proxy"/>
             <xs:enumeration value="enable-rubberband"/>
             <xs:enumeration value="enable-search"/>
             <xs:enumeration value="enable-show-gesture"/>
+            <xs:enumeration value="enable-snippets"/>
             <xs:enumeration value="enable-transitions"/>
             <xs:enumeration value="enable-tree-lines"/>
             <xs:enumeration value="enable-undo"/>
             <xs:enumeration value="enabled"/>
+            <xs:enumeration value="encoding"/>
             <xs:enumeration value="end"/>
             <xs:enumeration value="end-action-widget"/>
             <xs:enumeration value="end-child"/>
@@ -958,6 +1025,7 @@
             <xs:enumeration value="flowinfo"/>
             <xs:enumeration value="focus-cell"/>
             <xs:enumeration value="focus-on-click"/>
+            <xs:enumeration value="focus-position"/>
             <xs:enumeration value="focus-visible"/>
             <xs:enumeration value="focus-widget"/>
             <xs:enumeration value="focusable"/>
@@ -972,6 +1040,7 @@
             <xs:enumeration value="font-features"/>
             <xs:enumeration value="font-features-set"/>
             <xs:enumeration value="font-map"/>
+            <xs:enumeration value="footer-font-name"/>
             <xs:enumeration value="foreground"/>
             <xs:enumeration value="foreground-rgba"/>
             <xs:enumeration value="foreground-set"/>
@@ -1075,6 +1144,7 @@
             <xs:enumeration value="has-unapplied"/>
             <xs:enumeration value="has-video"/>
             <xs:enumeration value="header-factory"/>
+            <xs:enumeration value="header-font-name"/>
             <xs:enumeration value="header-menu"/>
             <xs:enumeration value="header-suffix"/>
             <xs:enumeration value="headers-clickable"/>
@@ -1086,11 +1156,17 @@
             <xs:enumeration value="hexpand"/>
             <xs:enumeration value="hexpand-set"/>
             <xs:enumeration value="hhomogeneous"/>
+            <xs:enumeration value="hidden"/>
             <xs:enumeration value="hide-expander"/>
             <xs:enumeration value="hide-on-close"/>
             <xs:enumeration value="high-contrast"/>
+            <xs:enumeration value="highlight"/>
+            <xs:enumeration value="highlight-current-line"/>
+            <xs:enumeration value="highlight-matching-brackets"/>
+            <xs:enumeration value="highlight-syntax"/>
             <xs:enumeration value="homogeneous"/>
             <xs:enumeration value="hostname"/>
+            <xs:enumeration value="hover-delay"/>
             <xs:enumeration value="hover-expand"/>
             <xs:enumeration value="hover-selection"/>
             <xs:enumeration value="hscroll-policy"/>
@@ -1107,13 +1183,17 @@
             <xs:enumeration value="ignore-case"/>
             <xs:enumeration value="ignore-hosts"/>
             <xs:enumeration value="im-module"/>
+            <xs:enumeration value="implicit-trailing-newline"/>
             <xs:enumeration value="inactivity-timeout"/>
             <xs:enumeration value="inconsistent"/>
             <xs:enumeration value="incremental"/>
             <xs:enumeration value="indent"/>
             <xs:enumeration value="indent-for-depth"/>
             <xs:enumeration value="indent-for-icon"/>
+            <xs:enumeration value="indent-on-tab"/>
             <xs:enumeration value="indent-set"/>
+            <xs:enumeration value="indent-width"/>
+            <xs:enumeration value="indenter"/>
             <xs:enumeration value="indicator-activatable"/>
             <xs:enumeration value="indicator-icon"/>
             <xs:enumeration value="indicator-tooltip"/>
@@ -1128,6 +1208,7 @@
             <xs:enumeration value="input-stream"/>
             <xs:enumeration value="insert-hyphens"/>
             <xs:enumeration value="insert-hyphens-set"/>
+            <xs:enumeration value="insert-spaces-instead-of-tabs"/>
             <xs:enumeration value="interaction"/>
             <xs:enumeration value="interactive"/>
             <xs:enumeration value="interpolate-size"/>
@@ -1169,6 +1250,8 @@
             <xs:enumeration value="issue-url"/>
             <xs:enumeration value="issuer"/>
             <xs:enumeration value="issuer-name"/>
+            <xs:enumeration value="italic"/>
+            <xs:enumeration value="italic-set"/>
             <xs:enumeration value="item"/>
             <xs:enumeration value="item-orientation"/>
             <xs:enumeration value="item-padding"/>
@@ -1192,6 +1275,8 @@
             <xs:enumeration value="label-widget"/>
             <xs:enumeration value="label-xalign"/>
             <xs:enumeration value="language"/>
+            <xs:enumeration value="language-id"/>
+            <xs:enumeration value="language-ids"/>
             <xs:enumeration value="language-set"/>
             <xs:enumeration value="layout"/>
             <xs:enumeration value="layout-manager"/>
@@ -1207,9 +1292,13 @@
             <xs:enumeration value="license"/>
             <xs:enumeration value="license-type"/>
             <xs:enumeration value="limit-events"/>
+            <xs:enumeration value="line"/>
+            <xs:enumeration value="line-background"/>
+            <xs:enumeration value="line-background-set"/>
             <xs:enumeration value="line-height"/>
             <xs:enumeration value="line-height-set"/>
             <xs:enumeration value="line-homogeneous"/>
+            <xs:enumeration value="line-numbers-font-name"/>
             <xs:enumeration value="line-spacing"/>
             <xs:enumeration value="line-spacing-unit"/>
             <xs:enumeration value="lines"/>
@@ -1235,6 +1324,8 @@
             <xs:enumeration value="markup"/>
             <xs:enumeration value="markup-column"/>
             <xs:enumeration value="match-mode"/>
+            <xs:enumeration value="match-style"/>
+            <xs:enumeration value="matrix"/>
             <xs:enumeration value="max-children-per-line"/>
             <xs:enumeration value="max-columns"/>
             <xs:enumeration value="max-content-height"/>
@@ -1275,6 +1366,7 @@
             <xs:enumeration value="minimum-height"/>
             <xs:enumeration value="minimum-key-length"/>
             <xs:enumeration value="minimum-width"/>
+            <xs:enumeration value="minimum-word-size"/>
             <xs:enumeration value="mnemonic-keyval"/>
             <xs:enumeration value="mnemonic-modifiers"/>
             <xs:enumeration value="mnemonic-widget"/>
@@ -1324,6 +1416,7 @@
             <xs:enumeration value="obey-child"/>
             <xs:enumeration value="object"/>
             <xs:enumeration value="object-path"/>
+            <xs:enumeration value="occurrences-count"/>
             <xs:enumeration value="offset"/>
             <xs:enumeration value="opacity"/>
             <xs:enumeration value="open"/>
@@ -1349,6 +1442,7 @@
             <xs:enumeration value="page-type"/>
             <xs:enumeration value="pages"/>
             <xs:enumeration value="paintable"/>
+            <xs:enumeration value="pango-underline"/>
             <xs:enumeration value="paragraph-background"/>
             <xs:enumeration value="paragraph-background-rgba"/>
             <xs:enumeration value="paragraph-background-set"/>
@@ -1417,6 +1511,9 @@
             <xs:enumeration value="primary-icon-tooltip-text"/>
             <xs:enumeration value="primary-sort-column"/>
             <xs:enumeration value="primary-sort-order"/>
+            <xs:enumeration value="print-footer"/>
+            <xs:enumeration value="print-header"/>
+            <xs:enumeration value="print-line-numbers"/>
             <xs:enumeration value="print-settings"/>
             <xs:enumeration value="printer"/>
             <xs:enumeration value="priority"/>
@@ -1432,6 +1529,7 @@
             <xs:enumeration value="propagation-limit"/>
             <xs:enumeration value="propagation-phase"/>
             <xs:enumeration value="property-name"/>
+            <xs:enumeration value="proposals-batch-size"/>
             <xs:enumeration value="protocol"/>
             <xs:enumeration value="protocol-version"/>
             <xs:enumeration value="proxy-resolver"/>
@@ -1441,14 +1539,18 @@
             <xs:enumeration value="radio"/>
             <xs:enumeration value="rate-limit"/>
             <xs:enumeration value="ratio"/>
+            <xs:enumeration value="read-only"/>
             <xs:enumeration value="realized"/>
             <xs:enumeration value="realloc-function"/>
             <xs:enumeration value="receives-default"/>
+            <xs:enumeration value="regex-enabled"/>
+            <xs:enumeration value="regex-error"/>
             <xs:enumeration value="register-session"/>
             <xs:enumeration value="rehandshake-mode"/>
             <xs:enumeration value="relation"/>
             <xs:enumeration value="release-notes"/>
             <xs:enumeration value="release-notes-version"/>
+            <xs:enumeration value="remember-info-visibility"/>
             <xs:enumeration value="remote-address"/>
             <xs:enumeration value="reorderable"/>
             <xs:enumeration value="repeat-count"/>
@@ -1475,6 +1577,7 @@
             <xs:enumeration value="reversed"/>
             <xs:enumeration value="rgba"/>
             <xs:enumeration value="right-margin"/>
+            <xs:enumeration value="right-margin-position"/>
             <xs:enumeration value="right-margin-set"/>
             <xs:enumeration value="rise"/>
             <xs:enumeration value="rise-set"/>
@@ -1489,9 +1592,11 @@
             <xs:enumeration value="scale"/>
             <xs:enumeration value="scale-factor"/>
             <xs:enumeration value="scale-set"/>
+            <xs:enumeration value="scan-batch-size"/>
             <xs:enumeration value="schema"/>
             <xs:enumeration value="schema-id"/>
             <xs:enumeration value="scheme"/>
+            <xs:enumeration value="scheme-ids"/>
             <xs:enumeration value="scope"/>
             <xs:enumeration value="scope-id"/>
             <xs:enumeration value="screensaver-active"/>
@@ -1508,6 +1613,7 @@
             <xs:enumeration value="search-mode"/>
             <xs:enumeration value="search-mode-enabled"/>
             <xs:enumeration value="search-path"/>
+            <xs:enumeration value="search-text"/>
             <xs:enumeration value="second"/>
             <xs:enumeration value="secondary-icon-activatable"/>
             <xs:enumeration value="secondary-icon-gicon"/>
@@ -1528,6 +1634,7 @@
             <xs:enumeration value="seekable"/>
             <xs:enumeration value="seeking"/>
             <xs:enumeration value="select-multiple"/>
+            <xs:enumeration value="select-on-show"/>
             <xs:enumeration value="selectable"/>
             <xs:enumeration value="selected"/>
             <xs:enumeration value="selected-item"/>
@@ -1570,13 +1677,17 @@
             <xs:enumeration value="show-fallback"/>
             <xs:enumeration value="show-fill-level"/>
             <xs:enumeration value="show-heading"/>
+            <xs:enumeration value="show-icons"/>
             <xs:enumeration value="show-initials"/>
+            <xs:enumeration value="show-line-marks"/>
+            <xs:enumeration value="show-line-numbers"/>
             <xs:enumeration value="show-menubar"/>
             <xs:enumeration value="show-other"/>
             <xs:enumeration value="show-peek-icon"/>
             <xs:enumeration value="show-preview-entry"/>
             <xs:enumeration value="show-progress"/>
             <xs:enumeration value="show-recommended"/>
+            <xs:enumeration value="show-right-margin"/>
             <xs:enumeration value="show-row-separators"/>
             <xs:enumeration value="show-separators"/>
             <xs:enumeration value="show-sidebar"/>
@@ -1605,6 +1716,8 @@
             <xs:enumeration value="size-points"/>
             <xs:enumeration value="size-set"/>
             <xs:enumeration value="sizing"/>
+            <xs:enumeration value="smart-backspace"/>
+            <xs:enumeration value="smart-home-end"/>
             <xs:enumeration value="snap-to-ticks"/>
             <xs:enumeration value="socket"/>
             <xs:enumeration value="sort-column-id"/>
@@ -1614,7 +1727,9 @@
             <xs:enumeration value="source"/>
             <xs:enumeration value="source-attribute"/>
             <xs:enumeration value="source-property"/>
+            <xs:enumeration value="space-drawer"/>
             <xs:enumeration value="spacing"/>
+            <xs:enumeration value="spec"/>
             <xs:enumeration value="spinning"/>
             <xs:enumeration value="spring-params"/>
             <xs:enumeration value="stack"/>
@@ -1644,6 +1759,7 @@
             <xs:enumeration value="strings"/>
             <xs:enumeration value="style"/>
             <xs:enumeration value="style-manager"/>
+            <xs:enumeration value="style-scheme"/>
             <xs:enumeration value="style-set"/>
             <xs:enumeration value="stylus-only"/>
             <xs:enumeration value="subject-name"/>
@@ -1669,6 +1785,7 @@
             <xs:enumeration value="tab-fill"/>
             <xs:enumeration value="tab-label"/>
             <xs:enumeration value="tab-pos"/>
+            <xs:enumeration value="tab-width"/>
             <xs:enumeration value="tabs"/>
             <xs:enumeration value="tabs-revealed"/>
             <xs:enumeration value="tabs-set"/>
@@ -1683,6 +1800,7 @@
             <xs:enumeration value="text-length"/>
             <xs:enumeration value="text-lock"/>
             <xs:enumeration value="text-overflow"/>
+            <xs:enumeration value="text-set"/>
             <xs:enumeration value="text-transform"/>
             <xs:enumeration value="text-transform-set"/>
             <xs:enumeration value="text-unlock"/>
@@ -1731,6 +1849,8 @@
             <xs:enumeration value="tweak-action"/>
             <xs:enumeration value="type"/>
             <xs:enumeration value="underline"/>
+            <xs:enumeration value="underline-color"/>
+            <xs:enumeration value="underline-color-set"/>
             <xs:enumeration value="underline-rgba"/>
             <xs:enumeration value="underline-rgba-set"/>
             <xs:enumeration value="underline-set"/>
@@ -1779,6 +1899,7 @@
             <xs:enumeration value="visible-child"/>
             <xs:enumeration value="visible-child-name"/>
             <xs:enumeration value="visible-dialog"/>
+            <xs:enumeration value="visible-only"/>
             <xs:enumeration value="visible-page"/>
             <xs:enumeration value="visible-page-name"/>
             <xs:enumeration value="visible-page-tag"/>
@@ -1799,10 +1920,12 @@
             <xs:enumeration value="width-chars"/>
             <xs:enumeration value="width-request"/>
             <xs:enumeration value="window-placement"/>
+            <xs:enumeration value="window-type"/>
             <xs:enumeration value="with-alpha"/>
             <xs:enumeration value="word"/>
             <xs:enumeration value="word-set"/>
             <xs:enumeration value="wrap"/>
+            <xs:enumeration value="wrap-around"/>
             <xs:enumeration value="wrap-license"/>
             <xs:enumeration value="wrap-mode"/>
             <xs:enumeration value="wrap-mode-set"/>
@@ -1877,12 +2000,15 @@
             <xs:enumeration value="begin-swipe"/>
             <xs:enumeration value="begin-user-action"/>
             <xs:enumeration value="bind"/>
+            <xs:enumeration value="bracket-matched"/>
             <xs:enumeration value="button-clicked"/>
             <xs:enumeration value="cancel"/>
             <xs:enumeration value="cancel-position"/>
             <xs:enumeration value="cancelled"/>
+            <xs:enumeration value="change-case"/>
             <xs:enumeration value="change-current-page"/>
             <xs:enumeration value="change-event"/>
+            <xs:enumeration value="change-number"/>
             <xs:enumeration value="change-state"/>
             <xs:enumeration value="change-value"/>
             <xs:enumeration value="changed"/>
@@ -1904,6 +2030,7 @@
             <xs:enumeration value="create-tab"/>
             <xs:enumeration value="create-window"/>
             <xs:enumeration value="cursor-changed"/>
+            <xs:enumeration value="cursor-moved"/>
             <xs:enumeration value="cursor-on-match"/>
             <xs:enumeration value="custom-item-activated"/>
             <xs:enumeration value="custom-widget-apply"/>
@@ -1944,6 +2071,7 @@
             <xs:enumeration value="drop-value-loaded"/>
             <xs:enumeration value="edge-overshot"/>
             <xs:enumeration value="edge-reached"/>
+            <xs:enumeration value="edit"/>
             <xs:enumeration value="edited"/>
             <xs:enumeration value="editing-canceled"/>
             <xs:enumeration value="editing-done"/>
@@ -1960,6 +2088,7 @@
             <xs:enumeration value="error"/>
             <xs:enumeration value="escape"/>
             <xs:enumeration value="event"/>
+            <xs:enumeration value="execute-command"/>
             <xs:enumeration value="expand-collapse-cursor-row"/>
             <xs:enumeration value="extend-selection"/>
             <xs:enumeration value="extra-drag-drop"/>
@@ -1969,6 +2098,7 @@
             <xs:enumeration value="font-activated"/>
             <xs:enumeration value="font-set"/>
             <xs:enumeration value="format-entry-text"/>
+            <xs:enumeration value="format-text"/>
             <xs:enumeration value="g-authorize-method"/>
             <xs:enumeration value="g-properties-changed"/>
             <xs:enumeration value="g-signal"/>
@@ -1981,6 +2111,7 @@
             <xs:enumeration value="hidden"/>
             <xs:enumeration value="hide"/>
             <xs:enumeration value="hiding"/>
+            <xs:enumeration value="highlight-updated"/>
             <xs:enumeration value="home-folder"/>
             <xs:enumeration value="icon-press"/>
             <xs:enumeration value="icon-release"/>
@@ -2002,6 +2133,7 @@
             <xs:enumeration value="invalid-composition"/>
             <xs:enumeration value="item-activated"/>
             <xs:enumeration value="items-changed"/>
+            <xs:enumeration value="join-lines"/>
             <xs:enumeration value="key-pressed"/>
             <xs:enumeration value="key-released"/>
             <xs:enumeration value="keynav-failed"/>
@@ -2010,6 +2142,7 @@
             <xs:enumeration value="launch-started"/>
             <xs:enumeration value="launched"/>
             <xs:enumeration value="leave"/>
+            <xs:enumeration value="line-mark-activated"/>
             <xs:enumeration value="location-popup"/>
             <xs:enumeration value="location-popup-on-paste"/>
             <xs:enumeration value="location-toggle-popup"/>
@@ -2031,8 +2164,11 @@
             <xs:enumeration value="move-focus"/>
             <xs:enumeration value="move-focus-out"/>
             <xs:enumeration value="move-handle"/>
+            <xs:enumeration value="move-lines"/>
             <xs:enumeration value="move-slider"/>
+            <xs:enumeration value="move-to-matching-bracket"/>
             <xs:enumeration value="move-viewport"/>
+            <xs:enumeration value="move-words"/>
             <xs:enumeration value="name-lost"/>
             <xs:enumeration value="network-changed"/>
             <xs:enumeration value="new-connection"/>
@@ -2071,10 +2207,18 @@
             <xs:enumeration value="prev-year"/>
             <xs:enumeration value="preview"/>
             <xs:enumeration value="previous-match"/>
+            <xs:enumeration value="provider-added"/>
+            <xs:enumeration value="provider-model-changed"/>
+            <xs:enumeration value="provider-removed"/>
             <xs:enumeration value="proximity"/>
+            <xs:enumeration value="push-snippet"/>
             <xs:enumeration value="pushed"/>
+            <xs:enumeration value="query-activatable"/>
+            <xs:enumeration value="query-data"/>
             <xs:enumeration value="query-end"/>
             <xs:enumeration value="query-tooltip"/>
+            <xs:enumeration value="query-tooltip-markup"/>
+            <xs:enumeration value="query-tooltip-text"/>
             <xs:enumeration value="quick-bookmark"/>
             <xs:enumeration value="ready"/>
             <xs:enumeration value="realize"/>
@@ -2127,13 +2271,16 @@
             <xs:enumeration value="setup"/>
             <xs:enumeration value="setup-menu"/>
             <xs:enumeration value="show"/>
+            <xs:enumeration value="show-completion"/>
             <xs:enumeration value="show-hidden"/>
             <xs:enumeration value="show-processes"/>
             <xs:enumeration value="show-unmount-progress"/>
             <xs:enumeration value="showing"/>
             <xs:enumeration value="shown"/>
             <xs:enumeration value="shutdown"/>
+            <xs:enumeration value="smart-home-end"/>
             <xs:enumeration value="sort-column-changed"/>
+            <xs:enumeration value="source-mark-updated"/>
             <xs:enumeration value="start-interactive-search"/>
             <xs:enumeration value="startup"/>
             <xs:enumeration value="state-change"/>
@@ -2182,6 +2329,7 @@
             <xs:enumeration value="wrapped"/>
             <xs:enumeration value="writable-change-event"/>
             <xs:enumeration value="writable-changed"/>
+            <xs:enumeration value="write"/>
           </xs:restriction>
         </xs:simpleType>
       </xs:attribute>
