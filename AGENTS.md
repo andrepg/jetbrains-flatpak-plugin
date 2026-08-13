@@ -43,8 +43,14 @@
   - `BUILD_DIR`: Build directory for flatpak-builder
 
 ## GNOME/Adwaita UI support
-- **Not currently implemented** - plugin only has basic tool window
-- Future work: Add XML schema support for GNOME/Adwaita UI files
+- `.ui`/`.glade` are served the generated **XSD** (`src/main/resources/schemas/gtk-ui.xsd`, no target namespace, root `<interface>`) — NOT the JSON schema: the bundled JSON schema feature (`com.jetbrains.jsonSchema`, EP `JavaScript.JsonSchema.ProviderFactory`) has **no XML support**, so it can never drive completion/validation in XML files.
+- The XSD is wired through the XML plugin's `com.intellij.xml.schemaProvider` EP (`XmlSchemaProvider`, see `src/main/kotlin/io/github/andrepg/flatpak/schemas/providers/GtkInterfaceXmlSchemaProvider.kt`); `.ui`/`.glade` are mapped to the XML file type via `<fileType name="XML" extensions="ui;glade"/>` in `plugin.xml`, so the files open as XML (highlighting, structure view) and get schema completion/validation.
+- `gtk-ui.xsd` is also registered as a **standard resource** in `plugin.xml`:
+  ```xml
+  <standardResource url="urn:io.github.andrepg:flatpak-support:schemas:gtk-ui" path="schemas/gtk-ui.xsd" version="1"/>
+  ```
+  `url` = canonical identifier, `path` = bundled resource path (both required). Note: standard resources only resolve documents that reference `url` — GtkBuilder `.ui` files carry no namespace/URL, so this registration is auxiliary; auto-association must come from the `XmlSchemaProvider`.
+- `gtk-ui-schema.json` (JSON Schema draft-07, `$defs`) stays on the classpath as an artifact of the generator but is **not** registered for `.ui` files.
 - LSP integration would require additional dependencies and configuration
 
 ## Configuration quirks
@@ -58,7 +64,6 @@
 - Message bundles in `src/main/resources/messages/` for i18n
 
 ## Next steps for full implementation
-1. Add GNOME/Adwaita XML schema support
-2. Implement LSP for XML files
-3. Add proper configuration validation
-4. Implement full SettingsEditor UI with command selection dropdown
+1. Implement LSP for XML files
+2. Add proper configuration validation
+3. Implement full SettingsEditor UI with command selection dropdown

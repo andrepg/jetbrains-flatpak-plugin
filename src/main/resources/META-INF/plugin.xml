@@ -5,9 +5,10 @@
     <version>0.0.1-alpha</version>
 
     <vendor
-        url="https://andrepg.github.io"
-        email="contato@startap.dev.br"
-    >André Paul Grandsire</vendor>
+            url="https://andrepg.github.io"
+            email="contato@startap.dev.br"
+    >André Paul Grandsire
+    </vendor>
 
     <description><![CDATA[
         Build, run, and validate Flatpak applications from your JetBrains IDE. <b>Flatpak DevTools</b> turns
@@ -34,25 +35,46 @@
 
     <depends>com.intellij.modules.platform</depends>
     <depends>com.intellij.modules.lang</depends>
+    <depends>com.intellij.modules.xml</depends>
     <depends>com.intellij.modules.json</depends>
 
     <resource-bundle>messages.Messages</resource-bundle>
 
     <extensions defaultExtensionNs="com.intellij">
         <configurationType implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakRunConfigurationType"/>
-        <runConfigurationProducer implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakManifestProducer"/>
-        <notificationGroup id="io.github.andrepg.flatpak.detection" displayType="BALLOON"/>
+
+        <fileType name="XML" extensions="ui;glade"/>
+
+        <xml.schemaProvider
+                implementation="io.github.andrepg.flatpak.schemas.providers.GtkInterfaceXmlSchemaProvider"
+                id="flatpak-gtk-interface"/>
+
+        <runConfigurationProducer
+                implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakManifestProducer"/>
+
+        <notificationGroup
+                id="io.github.andrepg.flatpak.detection"
+                displayType="BALLOON"
+                bundle="messages.Messages"
+                key="detection.notification.title"/>
+
         <postStartupActivity implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakProjectOpener"/>
 
         <projectConfigurable
-            parentId="language"
-            id="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
-            instance="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
-            displayName="Flatpak"/>
+                parentId="language"
+                id="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+                instance="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+                bundle="messages.Messages"
+                key="settings.flatpak.binaries.title" />
+
+        <standardResource
+                url="urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"
+                path="schemas/gtk-ui.xsd"
+                version="1"/>
     </extensions>
 
     <extensions defaultExtensionNs="JavaScript">
-        <JsonSchema.ProviderFactory implementation="io.github.andrepg.flatpak.schemas.factories.GtkInterfaceSchemaProviderFactory"/>
-        <JsonSchema.ProviderFactory implementation="io.github.andrepg.flatpak.schemas.factories.FlatpakSchemaProviderFactory"/>
+        <JsonSchema.ProviderFactory
+                implementation="io.github.andrepg.flatpak.schemas.factories.FlatpakSchemaProviderFactory"/>
     </extensions>
 </idea-plugin>
