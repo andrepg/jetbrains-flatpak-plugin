@@ -10,12 +10,12 @@
   </xs:annotation>
   <xs:element name="interface">
     <xs:complexType>
-      <xs:sequence>
-        <xs:element ref="requires" minOccurs="0" maxOccurs="unbounded"/>
-        <xs:element ref="object" minOccurs="0" maxOccurs="unbounded"/>
-        <xs:element ref="template" minOccurs="0" maxOccurs="unbounded"/>
-        <xs:element ref="menu" minOccurs="0" maxOccurs="unbounded"/>
-      </xs:sequence>
+      <xs:choice minOccurs="0" maxOccurs="unbounded">
+        <xs:element ref="requires"/>
+        <xs:element ref="object"/>
+        <xs:element ref="template"/>
+        <xs:element ref="menu"/>
+      </xs:choice>
     </xs:complexType>
   </xs:element>
   <xs:element name="requires">
@@ -26,17 +26,8 @@
   </xs:element>
   <xs:element name="object" type="objectType"/>
 
-  <xs:complexType name="objectType">
-    <xs:sequence>
-      <xs:element ref="property" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element ref="signal" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element ref="child" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element ref="layout" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element ref="packing" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element ref="accessibility" minOccurs="0" maxOccurs="unbounded"/>
-      <xs:element ref="style" minOccurs="0" maxOccurs="unbounded"/>
-    </xs:sequence>
-    <xs:attribute name="class" use="required">
+  <xs:simpleType name="className">
+    <xs:union>
       <xs:simpleType>
         <xs:restriction base="xs:string">
           <xs:enumeration value="AdwAboutDialog"/>
@@ -604,11 +595,34 @@
           <xs:enumeration value="GtkWindowHandle"/>
         </xs:restriction>
       </xs:simpleType>
-    </xs:attribute>
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:pattern value="[A-Za-z_][A-Za-z0-9_.]*"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:union>
+  </xs:simpleType>
+  <xs:complexType name="objectType">
+    <xs:choice minOccurs="0" maxOccurs="unbounded">
+      <xs:element ref="condition"/>
+      <xs:element ref="setter"/>
+      <xs:element ref="property"/>
+      <xs:element ref="signal"/>
+      <xs:element ref="child"/>
+      <xs:element ref="layout"/>
+      <xs:element ref="packing"/>
+      <xs:element ref="accessibility"/>
+      <xs:element ref="style"/>
+      <xs:element ref="attributes"/>
+    </xs:choice>
+    <xs:attribute name="class" type="className" use="required"/>
     <xs:attribute name="id" type="xs:string"/>
   </xs:complexType>
   <xs:element name="property">
     <xs:complexType mixed="true">
+      <xs:sequence minOccurs="0" maxOccurs="1">
+        <xs:element ref="object"/>
+      </xs:sequence>
       <xs:attribute name="name" use="required">
         <xs:simpleType>
           <xs:restriction base="xs:string">
@@ -2213,575 +2227,7 @@
         <xs:element ref="child" minOccurs="0" maxOccurs="unbounded"/>
       </xs:sequence>
       <xs:attribute name="class" type="xs:string" use="required"/>
-      <xs:attribute name="parent" use="required">
-        <xs:simpleType>
-          <xs:restriction base="xs:string">
-            <xs:enumeration value="AdwAboutDialog"/>
-            <xs:enumeration value="AdwAboutWindow"/>
-            <xs:enumeration value="AdwActionRow"/>
-            <xs:enumeration value="AdwAlertDialog"/>
-            <xs:enumeration value="AdwAnimation"/>
-            <xs:enumeration value="AdwAnimationTarget"/>
-            <xs:enumeration value="AdwApplication"/>
-            <xs:enumeration value="AdwApplicationWindow"/>
-            <xs:enumeration value="AdwAvatar"/>
-            <xs:enumeration value="AdwBanner"/>
-            <xs:enumeration value="AdwBin"/>
-            <xs:enumeration value="AdwBottomSheet"/>
-            <xs:enumeration value="AdwBreakpoint"/>
-            <xs:enumeration value="AdwBreakpointBin"/>
-            <xs:enumeration value="AdwButtonContent"/>
-            <xs:enumeration value="AdwButtonRow"/>
-            <xs:enumeration value="AdwCallbackAnimationTarget"/>
-            <xs:enumeration value="AdwCarousel"/>
-            <xs:enumeration value="AdwCarouselIndicatorDots"/>
-            <xs:enumeration value="AdwCarouselIndicatorLines"/>
-            <xs:enumeration value="AdwClamp"/>
-            <xs:enumeration value="AdwClampLayout"/>
-            <xs:enumeration value="AdwClampScrollable"/>
-            <xs:enumeration value="AdwComboRow"/>
-            <xs:enumeration value="AdwDialog"/>
-            <xs:enumeration value="AdwEntryRow"/>
-            <xs:enumeration value="AdwEnumListItem"/>
-            <xs:enumeration value="AdwEnumListModel"/>
-            <xs:enumeration value="AdwExpanderRow"/>
-            <xs:enumeration value="AdwFlap"/>
-            <xs:enumeration value="AdwHeaderBar"/>
-            <xs:enumeration value="AdwInlineViewSwitcher"/>
-            <xs:enumeration value="AdwLayout"/>
-            <xs:enumeration value="AdwLayoutSlot"/>
-            <xs:enumeration value="AdwLeaflet"/>
-            <xs:enumeration value="AdwLeafletPage"/>
-            <xs:enumeration value="AdwMessageDialog"/>
-            <xs:enumeration value="AdwMultiLayoutView"/>
-            <xs:enumeration value="AdwNavigationPage"/>
-            <xs:enumeration value="AdwNavigationSplitView"/>
-            <xs:enumeration value="AdwNavigationView"/>
-            <xs:enumeration value="AdwNoneAnimationTarget"/>
-            <xs:enumeration value="AdwOverlaySplitView"/>
-            <xs:enumeration value="AdwPasswordEntryRow"/>
-            <xs:enumeration value="AdwPreferencesDialog"/>
-            <xs:enumeration value="AdwPreferencesGroup"/>
-            <xs:enumeration value="AdwPreferencesPage"/>
-            <xs:enumeration value="AdwPreferencesRow"/>
-            <xs:enumeration value="AdwPreferencesWindow"/>
-            <xs:enumeration value="AdwPropertyAnimationTarget"/>
-            <xs:enumeration value="AdwShortcutLabel"/>
-            <xs:enumeration value="AdwShortcutsDialog"/>
-            <xs:enumeration value="AdwShortcutsItem"/>
-            <xs:enumeration value="AdwShortcutsSection"/>
-            <xs:enumeration value="AdwSidebar"/>
-            <xs:enumeration value="AdwSidebarItem"/>
-            <xs:enumeration value="AdwSidebarSection"/>
-            <xs:enumeration value="AdwSpinRow"/>
-            <xs:enumeration value="AdwSpinner"/>
-            <xs:enumeration value="AdwSpinnerPaintable"/>
-            <xs:enumeration value="AdwSplitButton"/>
-            <xs:enumeration value="AdwSpringAnimation"/>
-            <xs:enumeration value="AdwSqueezer"/>
-            <xs:enumeration value="AdwSqueezerPage"/>
-            <xs:enumeration value="AdwStatusPage"/>
-            <xs:enumeration value="AdwStyleManager"/>
-            <xs:enumeration value="AdwSwipeTracker"/>
-            <xs:enumeration value="AdwSwipeable"/>
-            <xs:enumeration value="AdwSwitchRow"/>
-            <xs:enumeration value="AdwTabBar"/>
-            <xs:enumeration value="AdwTabButton"/>
-            <xs:enumeration value="AdwTabOverview"/>
-            <xs:enumeration value="AdwTabPage"/>
-            <xs:enumeration value="AdwTabView"/>
-            <xs:enumeration value="AdwTimedAnimation"/>
-            <xs:enumeration value="AdwToast"/>
-            <xs:enumeration value="AdwToastOverlay"/>
-            <xs:enumeration value="AdwToggle"/>
-            <xs:enumeration value="AdwToggleGroup"/>
-            <xs:enumeration value="AdwToolbarView"/>
-            <xs:enumeration value="AdwViewStack"/>
-            <xs:enumeration value="AdwViewStackPage"/>
-            <xs:enumeration value="AdwViewStackPages"/>
-            <xs:enumeration value="AdwViewSwitcher"/>
-            <xs:enumeration value="AdwViewSwitcherBar"/>
-            <xs:enumeration value="AdwViewSwitcherSidebar"/>
-            <xs:enumeration value="AdwViewSwitcherTitle"/>
-            <xs:enumeration value="AdwWindow"/>
-            <xs:enumeration value="AdwWindowTitle"/>
-            <xs:enumeration value="AdwWrapBox"/>
-            <xs:enumeration value="AdwWrapLayout"/>
-            <xs:enumeration value="GAction"/>
-            <xs:enumeration value="GActionGroup"/>
-            <xs:enumeration value="GActionMap"/>
-            <xs:enumeration value="GAppInfo"/>
-            <xs:enumeration value="GAppInfoMonitor"/>
-            <xs:enumeration value="GAppLaunchContext"/>
-            <xs:enumeration value="GApplication"/>
-            <xs:enumeration value="GApplicationCommandLine"/>
-            <xs:enumeration value="GAsyncInitable"/>
-            <xs:enumeration value="GAsyncResult"/>
-            <xs:enumeration value="GBinding"/>
-            <xs:enumeration value="GBindingGroup"/>
-            <xs:enumeration value="GBufferedInputStream"/>
-            <xs:enumeration value="GBufferedOutputStream"/>
-            <xs:enumeration value="GBytesIcon"/>
-            <xs:enumeration value="GCancellable"/>
-            <xs:enumeration value="GCharsetConverter"/>
-            <xs:enumeration value="GConverter"/>
-            <xs:enumeration value="GConverterInputStream"/>
-            <xs:enumeration value="GConverterOutputStream"/>
-            <xs:enumeration value="GCredentials"/>
-            <xs:enumeration value="GDBusActionGroup"/>
-            <xs:enumeration value="GDBusAuthObserver"/>
-            <xs:enumeration value="GDBusConnection"/>
-            <xs:enumeration value="GDBusInterface"/>
-            <xs:enumeration value="GDBusInterfaceSkeleton"/>
-            <xs:enumeration value="GDBusMenuModel"/>
-            <xs:enumeration value="GDBusMessage"/>
-            <xs:enumeration value="GDBusMethodInvocation"/>
-            <xs:enumeration value="GDBusObject"/>
-            <xs:enumeration value="GDBusObjectManager"/>
-            <xs:enumeration value="GDBusObjectManagerClient"/>
-            <xs:enumeration value="GDBusObjectManagerServer"/>
-            <xs:enumeration value="GDBusObjectProxy"/>
-            <xs:enumeration value="GDBusObjectSkeleton"/>
-            <xs:enumeration value="GDBusProxy"/>
-            <xs:enumeration value="GDBusServer"/>
-            <xs:enumeration value="GDataInputStream"/>
-            <xs:enumeration value="GDataOutputStream"/>
-            <xs:enumeration value="GDatagramBased"/>
-            <xs:enumeration value="GDebugController"/>
-            <xs:enumeration value="GDebugControllerDBus"/>
-            <xs:enumeration value="GDrive"/>
-            <xs:enumeration value="GDtlsClientConnection"/>
-            <xs:enumeration value="GDtlsConnection"/>
-            <xs:enumeration value="GDtlsServerConnection"/>
-            <xs:enumeration value="GEmblem"/>
-            <xs:enumeration value="GEmblemedIcon"/>
-            <xs:enumeration value="GFile"/>
-            <xs:enumeration value="GFileEnumerator"/>
-            <xs:enumeration value="GFileIOStream"/>
-            <xs:enumeration value="GFileIcon"/>
-            <xs:enumeration value="GFileInfo"/>
-            <xs:enumeration value="GFileInputStream"/>
-            <xs:enumeration value="GFileMonitor"/>
-            <xs:enumeration value="GFileOutputStream"/>
-            <xs:enumeration value="GFilenameCompleter"/>
-            <xs:enumeration value="GFilterInputStream"/>
-            <xs:enumeration value="GFilterOutputStream"/>
-            <xs:enumeration value="GIOModule"/>
-            <xs:enumeration value="GIOStream"/>
-            <xs:enumeration value="GIPTosMessage"/>
-            <xs:enumeration value="GIPv6TclassMessage"/>
-            <xs:enumeration value="GIcon"/>
-            <xs:enumeration value="GInetAddress"/>
-            <xs:enumeration value="GInetAddressMask"/>
-            <xs:enumeration value="GInetSocketAddress"/>
-            <xs:enumeration value="GInitable"/>
-            <xs:enumeration value="GInitiallyUnowned"/>
-            <xs:enumeration value="GInputStream"/>
-            <xs:enumeration value="GListModel"/>
-            <xs:enumeration value="GListStore"/>
-            <xs:enumeration value="GLoadableIcon"/>
-            <xs:enumeration value="GMemoryInputStream"/>
-            <xs:enumeration value="GMemoryMonitor"/>
-            <xs:enumeration value="GMemoryOutputStream"/>
-            <xs:enumeration value="GMenu"/>
-            <xs:enumeration value="GMenuAttributeIter"/>
-            <xs:enumeration value="GMenuItem"/>
-            <xs:enumeration value="GMenuLinkIter"/>
-            <xs:enumeration value="GMenuModel"/>
-            <xs:enumeration value="GMount"/>
-            <xs:enumeration value="GMountOperation"/>
-            <xs:enumeration value="GNativeSocketAddress"/>
-            <xs:enumeration value="GNativeVolumeMonitor"/>
-            <xs:enumeration value="GNetworkAddress"/>
-            <xs:enumeration value="GNetworkMonitor"/>
-            <xs:enumeration value="GNetworkService"/>
-            <xs:enumeration value="GNotification"/>
-            <xs:enumeration value="GObject"/>
-            <xs:enumeration value="GOutputStream"/>
-            <xs:enumeration value="GParamSpec"/>
-            <xs:enumeration value="GParamSpecBoolean"/>
-            <xs:enumeration value="GParamSpecBoxed"/>
-            <xs:enumeration value="GParamSpecChar"/>
-            <xs:enumeration value="GParamSpecDouble"/>
-            <xs:enumeration value="GParamSpecEnum"/>
-            <xs:enumeration value="GParamSpecFlags"/>
-            <xs:enumeration value="GParamSpecFloat"/>
-            <xs:enumeration value="GParamSpecGType"/>
-            <xs:enumeration value="GParamSpecInt"/>
-            <xs:enumeration value="GParamSpecInt64"/>
-            <xs:enumeration value="GParamSpecLong"/>
-            <xs:enumeration value="GParamSpecObject"/>
-            <xs:enumeration value="GParamSpecOverride"/>
-            <xs:enumeration value="GParamSpecParam"/>
-            <xs:enumeration value="GParamSpecPointer"/>
-            <xs:enumeration value="GParamSpecString"/>
-            <xs:enumeration value="GParamSpecUChar"/>
-            <xs:enumeration value="GParamSpecUInt"/>
-            <xs:enumeration value="GParamSpecUInt64"/>
-            <xs:enumeration value="GParamSpecULong"/>
-            <xs:enumeration value="GParamSpecUnichar"/>
-            <xs:enumeration value="GParamSpecValueArray"/>
-            <xs:enumeration value="GParamSpecVariant"/>
-            <xs:enumeration value="GPermission"/>
-            <xs:enumeration value="GPollableInputStream"/>
-            <xs:enumeration value="GPollableOutputStream"/>
-            <xs:enumeration value="GPowerProfileMonitor"/>
-            <xs:enumeration value="GPropertyAction"/>
-            <xs:enumeration value="GProxy"/>
-            <xs:enumeration value="GProxyAddress"/>
-            <xs:enumeration value="GProxyAddressEnumerator"/>
-            <xs:enumeration value="GProxyResolver"/>
-            <xs:enumeration value="GRemoteActionGroup"/>
-            <xs:enumeration value="GResolver"/>
-            <xs:enumeration value="GSeekable"/>
-            <xs:enumeration value="GSettings"/>
-            <xs:enumeration value="GSettingsBackend"/>
-            <xs:enumeration value="GSignalGroup"/>
-            <xs:enumeration value="GSimpleAction"/>
-            <xs:enumeration value="GSimpleActionGroup"/>
-            <xs:enumeration value="GSimpleAsyncResult"/>
-            <xs:enumeration value="GSimpleIOStream"/>
-            <xs:enumeration value="GSimplePermission"/>
-            <xs:enumeration value="GSimpleProxyResolver"/>
-            <xs:enumeration value="GSocket"/>
-            <xs:enumeration value="GSocketAddress"/>
-            <xs:enumeration value="GSocketAddressEnumerator"/>
-            <xs:enumeration value="GSocketClient"/>
-            <xs:enumeration value="GSocketConnectable"/>
-            <xs:enumeration value="GSocketConnection"/>
-            <xs:enumeration value="GSocketControlMessage"/>
-            <xs:enumeration value="GSocketListener"/>
-            <xs:enumeration value="GSocketService"/>
-            <xs:enumeration value="GSubprocess"/>
-            <xs:enumeration value="GSubprocessLauncher"/>
-            <xs:enumeration value="GTask"/>
-            <xs:enumeration value="GTcpConnection"/>
-            <xs:enumeration value="GTcpWrapperConnection"/>
-            <xs:enumeration value="GTestDBus"/>
-            <xs:enumeration value="GThemedIcon"/>
-            <xs:enumeration value="GThreadedResolver"/>
-            <xs:enumeration value="GThreadedSocketService"/>
-            <xs:enumeration value="GTlsBackend"/>
-            <xs:enumeration value="GTlsCertificate"/>
-            <xs:enumeration value="GTlsClientConnection"/>
-            <xs:enumeration value="GTlsConnection"/>
-            <xs:enumeration value="GTlsDatabase"/>
-            <xs:enumeration value="GTlsFileDatabase"/>
-            <xs:enumeration value="GTlsInteraction"/>
-            <xs:enumeration value="GTlsPassword"/>
-            <xs:enumeration value="GTlsServerConnection"/>
-            <xs:enumeration value="GTypeModule"/>
-            <xs:enumeration value="GTypePlugin"/>
-            <xs:enumeration value="GUnixConnection"/>
-            <xs:enumeration value="GUnixCredentialsMessage"/>
-            <xs:enumeration value="GUnixFDList"/>
-            <xs:enumeration value="GUnixSocketAddress"/>
-            <xs:enumeration value="GVfs"/>
-            <xs:enumeration value="GVolume"/>
-            <xs:enumeration value="GVolumeMonitor"/>
-            <xs:enumeration value="GZlibCompressor"/>
-            <xs:enumeration value="GZlibDecompressor"/>
-            <xs:enumeration value="GtkATContext"/>
-            <xs:enumeration value="GtkAboutDialog"/>
-            <xs:enumeration value="GtkAccessible"/>
-            <xs:enumeration value="GtkAccessibleHyperlink"/>
-            <xs:enumeration value="GtkAccessibleHypertext"/>
-            <xs:enumeration value="GtkAccessibleRange"/>
-            <xs:enumeration value="GtkAccessibleText"/>
-            <xs:enumeration value="GtkActionBar"/>
-            <xs:enumeration value="GtkActionable"/>
-            <xs:enumeration value="GtkActivateAction"/>
-            <xs:enumeration value="GtkAdjustment"/>
-            <xs:enumeration value="GtkAlertDialog"/>
-            <xs:enumeration value="GtkAlternativeTrigger"/>
-            <xs:enumeration value="GtkAnyFilter"/>
-            <xs:enumeration value="GtkAppChooser"/>
-            <xs:enumeration value="GtkAppChooserButton"/>
-            <xs:enumeration value="GtkAppChooserDialog"/>
-            <xs:enumeration value="GtkAppChooserWidget"/>
-            <xs:enumeration value="GtkApplication"/>
-            <xs:enumeration value="GtkApplicationWindow"/>
-            <xs:enumeration value="GtkAspectFrame"/>
-            <xs:enumeration value="GtkAssistant"/>
-            <xs:enumeration value="GtkAssistantPage"/>
-            <xs:enumeration value="GtkBinLayout"/>
-            <xs:enumeration value="GtkBookmarkList"/>
-            <xs:enumeration value="GtkBoolFilter"/>
-            <xs:enumeration value="GtkBox"/>
-            <xs:enumeration value="GtkBoxLayout"/>
-            <xs:enumeration value="GtkBuildable"/>
-            <xs:enumeration value="GtkBuilder"/>
-            <xs:enumeration value="GtkBuilderCScope"/>
-            <xs:enumeration value="GtkBuilderListItemFactory"/>
-            <xs:enumeration value="GtkBuilderScope"/>
-            <xs:enumeration value="GtkButton"/>
-            <xs:enumeration value="GtkCClosureExpression"/>
-            <xs:enumeration value="GtkCalendar"/>
-            <xs:enumeration value="GtkCallbackAction"/>
-            <xs:enumeration value="GtkCellArea"/>
-            <xs:enumeration value="GtkCellAreaBox"/>
-            <xs:enumeration value="GtkCellAreaContext"/>
-            <xs:enumeration value="GtkCellEditable"/>
-            <xs:enumeration value="GtkCellLayout"/>
-            <xs:enumeration value="GtkCellRenderer"/>
-            <xs:enumeration value="GtkCellRendererAccel"/>
-            <xs:enumeration value="GtkCellRendererCombo"/>
-            <xs:enumeration value="GtkCellRendererPixbuf"/>
-            <xs:enumeration value="GtkCellRendererProgress"/>
-            <xs:enumeration value="GtkCellRendererSpin"/>
-            <xs:enumeration value="GtkCellRendererSpinner"/>
-            <xs:enumeration value="GtkCellRendererText"/>
-            <xs:enumeration value="GtkCellRendererToggle"/>
-            <xs:enumeration value="GtkCellView"/>
-            <xs:enumeration value="GtkCenterBox"/>
-            <xs:enumeration value="GtkCenterLayout"/>
-            <xs:enumeration value="GtkCheckButton"/>
-            <xs:enumeration value="GtkClosureExpression"/>
-            <xs:enumeration value="GtkColorButton"/>
-            <xs:enumeration value="GtkColorChooser"/>
-            <xs:enumeration value="GtkColorChooserDialog"/>
-            <xs:enumeration value="GtkColorChooserWidget"/>
-            <xs:enumeration value="GtkColorDialog"/>
-            <xs:enumeration value="GtkColorDialogButton"/>
-            <xs:enumeration value="GtkColumnView"/>
-            <xs:enumeration value="GtkColumnViewCell"/>
-            <xs:enumeration value="GtkColumnViewColumn"/>
-            <xs:enumeration value="GtkColumnViewRow"/>
-            <xs:enumeration value="GtkColumnViewSorter"/>
-            <xs:enumeration value="GtkComboBox"/>
-            <xs:enumeration value="GtkComboBoxText"/>
-            <xs:enumeration value="GtkConstantExpression"/>
-            <xs:enumeration value="GtkConstraint"/>
-            <xs:enumeration value="GtkConstraintGuide"/>
-            <xs:enumeration value="GtkConstraintLayout"/>
-            <xs:enumeration value="GtkConstraintLayoutChild"/>
-            <xs:enumeration value="GtkConstraintTarget"/>
-            <xs:enumeration value="GtkCssProvider"/>
-            <xs:enumeration value="GtkCustomFilter"/>
-            <xs:enumeration value="GtkCustomLayout"/>
-            <xs:enumeration value="GtkCustomSorter"/>
-            <xs:enumeration value="GtkDialog"/>
-            <xs:enumeration value="GtkDirectoryList"/>
-            <xs:enumeration value="GtkDragIcon"/>
-            <xs:enumeration value="GtkDragSource"/>
-            <xs:enumeration value="GtkDrawingArea"/>
-            <xs:enumeration value="GtkDropControllerMotion"/>
-            <xs:enumeration value="GtkDropDown"/>
-            <xs:enumeration value="GtkDropTarget"/>
-            <xs:enumeration value="GtkDropTargetAsync"/>
-            <xs:enumeration value="GtkEditable"/>
-            <xs:enumeration value="GtkEditableLabel"/>
-            <xs:enumeration value="GtkEmojiChooser"/>
-            <xs:enumeration value="GtkEntry"/>
-            <xs:enumeration value="GtkEntryBuffer"/>
-            <xs:enumeration value="GtkEntryCompletion"/>
-            <xs:enumeration value="GtkEventController"/>
-            <xs:enumeration value="GtkEventControllerFocus"/>
-            <xs:enumeration value="GtkEventControllerKey"/>
-            <xs:enumeration value="GtkEventControllerLegacy"/>
-            <xs:enumeration value="GtkEventControllerMotion"/>
-            <xs:enumeration value="GtkEventControllerScroll"/>
-            <xs:enumeration value="GtkEveryFilter"/>
-            <xs:enumeration value="GtkExpander"/>
-            <xs:enumeration value="GtkExpression"/>
-            <xs:enumeration value="GtkFileChooser"/>
-            <xs:enumeration value="GtkFileChooserDialog"/>
-            <xs:enumeration value="GtkFileChooserNative"/>
-            <xs:enumeration value="GtkFileChooserWidget"/>
-            <xs:enumeration value="GtkFileDialog"/>
-            <xs:enumeration value="GtkFileFilter"/>
-            <xs:enumeration value="GtkFileLauncher"/>
-            <xs:enumeration value="GtkFilter"/>
-            <xs:enumeration value="GtkFilterListModel"/>
-            <xs:enumeration value="GtkFixed"/>
-            <xs:enumeration value="GtkFixedLayout"/>
-            <xs:enumeration value="GtkFixedLayoutChild"/>
-            <xs:enumeration value="GtkFlattenListModel"/>
-            <xs:enumeration value="GtkFlowBox"/>
-            <xs:enumeration value="GtkFlowBoxChild"/>
-            <xs:enumeration value="GtkFontButton"/>
-            <xs:enumeration value="GtkFontChooser"/>
-            <xs:enumeration value="GtkFontChooserDialog"/>
-            <xs:enumeration value="GtkFontChooserWidget"/>
-            <xs:enumeration value="GtkFontDialog"/>
-            <xs:enumeration value="GtkFontDialogButton"/>
-            <xs:enumeration value="GtkFrame"/>
-            <xs:enumeration value="GtkGLArea"/>
-            <xs:enumeration value="GtkGesture"/>
-            <xs:enumeration value="GtkGestureClick"/>
-            <xs:enumeration value="GtkGestureDrag"/>
-            <xs:enumeration value="GtkGestureLongPress"/>
-            <xs:enumeration value="GtkGesturePan"/>
-            <xs:enumeration value="GtkGestureRotate"/>
-            <xs:enumeration value="GtkGestureSingle"/>
-            <xs:enumeration value="GtkGestureStylus"/>
-            <xs:enumeration value="GtkGestureSwipe"/>
-            <xs:enumeration value="GtkGestureZoom"/>
-            <xs:enumeration value="GtkGraphicsOffload"/>
-            <xs:enumeration value="GtkGrid"/>
-            <xs:enumeration value="GtkGridLayout"/>
-            <xs:enumeration value="GtkGridLayoutChild"/>
-            <xs:enumeration value="GtkGridView"/>
-            <xs:enumeration value="GtkHeaderBar"/>
-            <xs:enumeration value="GtkIMContext"/>
-            <xs:enumeration value="GtkIMContextSimple"/>
-            <xs:enumeration value="GtkIMMulticontext"/>
-            <xs:enumeration value="GtkIconPaintable"/>
-            <xs:enumeration value="GtkIconTheme"/>
-            <xs:enumeration value="GtkIconView"/>
-            <xs:enumeration value="GtkImage"/>
-            <xs:enumeration value="GtkInfoBar"/>
-            <xs:enumeration value="GtkInscription"/>
-            <xs:enumeration value="GtkKeyvalTrigger"/>
-            <xs:enumeration value="GtkLabel"/>
-            <xs:enumeration value="GtkLayoutChild"/>
-            <xs:enumeration value="GtkLayoutManager"/>
-            <xs:enumeration value="GtkLevelBar"/>
-            <xs:enumeration value="GtkLinkButton"/>
-            <xs:enumeration value="GtkListBase"/>
-            <xs:enumeration value="GtkListBox"/>
-            <xs:enumeration value="GtkListBoxRow"/>
-            <xs:enumeration value="GtkListHeader"/>
-            <xs:enumeration value="GtkListItem"/>
-            <xs:enumeration value="GtkListItemFactory"/>
-            <xs:enumeration value="GtkListStore"/>
-            <xs:enumeration value="GtkListView"/>
-            <xs:enumeration value="GtkLockButton"/>
-            <xs:enumeration value="GtkMapListModel"/>
-            <xs:enumeration value="GtkMediaControls"/>
-            <xs:enumeration value="GtkMediaFile"/>
-            <xs:enumeration value="GtkMediaStream"/>
-            <xs:enumeration value="GtkMenuButton"/>
-            <xs:enumeration value="GtkMessageDialog"/>
-            <xs:enumeration value="GtkMnemonicAction"/>
-            <xs:enumeration value="GtkMnemonicTrigger"/>
-            <xs:enumeration value="GtkMountOperation"/>
-            <xs:enumeration value="GtkMultiFilter"/>
-            <xs:enumeration value="GtkMultiSelection"/>
-            <xs:enumeration value="GtkMultiSorter"/>
-            <xs:enumeration value="GtkNamedAction"/>
-            <xs:enumeration value="GtkNative"/>
-            <xs:enumeration value="GtkNativeDialog"/>
-            <xs:enumeration value="GtkNeverTrigger"/>
-            <xs:enumeration value="GtkNoSelection"/>
-            <xs:enumeration value="GtkNotebook"/>
-            <xs:enumeration value="GtkNotebookPage"/>
-            <xs:enumeration value="GtkNothingAction"/>
-            <xs:enumeration value="GtkNumericSorter"/>
-            <xs:enumeration value="GtkObjectExpression"/>
-            <xs:enumeration value="GtkOrientable"/>
-            <xs:enumeration value="GtkOverlay"/>
-            <xs:enumeration value="GtkOverlayLayout"/>
-            <xs:enumeration value="GtkOverlayLayoutChild"/>
-            <xs:enumeration value="GtkPadController"/>
-            <xs:enumeration value="GtkPageSetup"/>
-            <xs:enumeration value="GtkPageSetupUnixDialog"/>
-            <xs:enumeration value="GtkPaned"/>
-            <xs:enumeration value="GtkParamSpecExpression"/>
-            <xs:enumeration value="GtkPasswordEntry"/>
-            <xs:enumeration value="GtkPasswordEntryBuffer"/>
-            <xs:enumeration value="GtkPicture"/>
-            <xs:enumeration value="GtkPopover"/>
-            <xs:enumeration value="GtkPopoverBin"/>
-            <xs:enumeration value="GtkPopoverMenu"/>
-            <xs:enumeration value="GtkPopoverMenuBar"/>
-            <xs:enumeration value="GtkPrintContext"/>
-            <xs:enumeration value="GtkPrintDialog"/>
-            <xs:enumeration value="GtkPrintJob"/>
-            <xs:enumeration value="GtkPrintOperation"/>
-            <xs:enumeration value="GtkPrintOperationPreview"/>
-            <xs:enumeration value="GtkPrintSettings"/>
-            <xs:enumeration value="GtkPrintUnixDialog"/>
-            <xs:enumeration value="GtkPrinter"/>
-            <xs:enumeration value="GtkProgressBar"/>
-            <xs:enumeration value="GtkPropertyExpression"/>
-            <xs:enumeration value="GtkRange"/>
-            <xs:enumeration value="GtkRecentManager"/>
-            <xs:enumeration value="GtkRevealer"/>
-            <xs:enumeration value="GtkRoot"/>
-            <xs:enumeration value="GtkScale"/>
-            <xs:enumeration value="GtkScaleButton"/>
-            <xs:enumeration value="GtkScrollable"/>
-            <xs:enumeration value="GtkScrollbar"/>
-            <xs:enumeration value="GtkScrolledWindow"/>
-            <xs:enumeration value="GtkSearchBar"/>
-            <xs:enumeration value="GtkSearchEntry"/>
-            <xs:enumeration value="GtkSectionModel"/>
-            <xs:enumeration value="GtkSelectionFilterModel"/>
-            <xs:enumeration value="GtkSelectionModel"/>
-            <xs:enumeration value="GtkSeparator"/>
-            <xs:enumeration value="GtkSettings"/>
-            <xs:enumeration value="GtkShortcut"/>
-            <xs:enumeration value="GtkShortcutAction"/>
-            <xs:enumeration value="GtkShortcutController"/>
-            <xs:enumeration value="GtkShortcutLabel"/>
-            <xs:enumeration value="GtkShortcutManager"/>
-            <xs:enumeration value="GtkShortcutTrigger"/>
-            <xs:enumeration value="GtkShortcutsGroup"/>
-            <xs:enumeration value="GtkShortcutsSection"/>
-            <xs:enumeration value="GtkShortcutsShortcut"/>
-            <xs:enumeration value="GtkShortcutsWindow"/>
-            <xs:enumeration value="GtkSignalAction"/>
-            <xs:enumeration value="GtkSignalListItemFactory"/>
-            <xs:enumeration value="GtkSingleSelection"/>
-            <xs:enumeration value="GtkSizeGroup"/>
-            <xs:enumeration value="GtkSliceListModel"/>
-            <xs:enumeration value="GtkSnapshot"/>
-            <xs:enumeration value="GtkSortListModel"/>
-            <xs:enumeration value="GtkSorter"/>
-            <xs:enumeration value="GtkSpinButton"/>
-            <xs:enumeration value="GtkSpinner"/>
-            <xs:enumeration value="GtkStack"/>
-            <xs:enumeration value="GtkStackPage"/>
-            <xs:enumeration value="GtkStackSidebar"/>
-            <xs:enumeration value="GtkStackSwitcher"/>
-            <xs:enumeration value="GtkStatusbar"/>
-            <xs:enumeration value="GtkStringFilter"/>
-            <xs:enumeration value="GtkStringList"/>
-            <xs:enumeration value="GtkStringObject"/>
-            <xs:enumeration value="GtkStringSorter"/>
-            <xs:enumeration value="GtkStyleContext"/>
-            <xs:enumeration value="GtkStyleProvider"/>
-            <xs:enumeration value="GtkSvg"/>
-            <xs:enumeration value="GtkSwitch"/>
-            <xs:enumeration value="GtkSymbolicPaintable"/>
-            <xs:enumeration value="GtkText"/>
-            <xs:enumeration value="GtkTextBuffer"/>
-            <xs:enumeration value="GtkTextChildAnchor"/>
-            <xs:enumeration value="GtkTextMark"/>
-            <xs:enumeration value="GtkTextTag"/>
-            <xs:enumeration value="GtkTextTagTable"/>
-            <xs:enumeration value="GtkTextView"/>
-            <xs:enumeration value="GtkToggleButton"/>
-            <xs:enumeration value="GtkTooltip"/>
-            <xs:enumeration value="GtkTreeDragDest"/>
-            <xs:enumeration value="GtkTreeDragSource"/>
-            <xs:enumeration value="GtkTreeExpander"/>
-            <xs:enumeration value="GtkTreeListModel"/>
-            <xs:enumeration value="GtkTreeListRow"/>
-            <xs:enumeration value="GtkTreeListRowSorter"/>
-            <xs:enumeration value="GtkTreeModel"/>
-            <xs:enumeration value="GtkTreeModelFilter"/>
-            <xs:enumeration value="GtkTreeModelSort"/>
-            <xs:enumeration value="GtkTreeSelection"/>
-            <xs:enumeration value="GtkTreeSortable"/>
-            <xs:enumeration value="GtkTreeStore"/>
-            <xs:enumeration value="GtkTreeView"/>
-            <xs:enumeration value="GtkTreeViewColumn"/>
-            <xs:enumeration value="GtkTryExpression"/>
-            <xs:enumeration value="GtkUriLauncher"/>
-            <xs:enumeration value="GtkVideo"/>
-            <xs:enumeration value="GtkViewport"/>
-            <xs:enumeration value="GtkVolumeButton"/>
-            <xs:enumeration value="GtkWidget"/>
-            <xs:enumeration value="GtkWidgetPaintable"/>
-            <xs:enumeration value="GtkWindow"/>
-            <xs:enumeration value="GtkWindowControls"/>
-            <xs:enumeration value="GtkWindowGroup"/>
-            <xs:enumeration value="GtkWindowHandle"/>
-          </xs:restriction>
-        </xs:simpleType>
-      </xs:attribute>
+      <xs:attribute name="parent" type="className" use="required"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="layout">
@@ -2809,6 +2255,15 @@
   <xs:element name="relation">
     <xs:complexType mixed="true">
       <xs:attribute name="target" type="xs:string"/>
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="condition">
+    <xs:complexType mixed="true"/>
+  </xs:element>
+  <xs:element name="setter">
+    <xs:complexType mixed="true">
+      <xs:attribute name="object" type="xs:string"/>
+      <xs:attribute name="property" type="xs:string" use="required"/>
     </xs:complexType>
   </xs:element>
   <xs:element name="style">
@@ -2868,9 +2323,28 @@
       </xs:sequence>
     </xs:complexType>
   </xs:element>
+  <xs:element name="attributes">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element ref="attribute" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:complexType>
+  </xs:element>
   <xs:element name="attribute">
     <xs:complexType mixed="true">
       <xs:attribute name="name" type="xs:string" use="required"/>
+      <xs:attribute name="value" type="xs:string"/>
+      <xs:attribute name="translatable">
+        <xs:simpleType>
+          <xs:restriction base="xs:string">
+            <xs:enumeration value="yes"/>
+            <xs:enumeration value="no"/>
+            <xs:enumeration value="true"/>
+            <xs:enumeration value="false"/>
+          </xs:restriction>
+        </xs:simpleType>
+      </xs:attribute>
+      <xs:attribute name="context" type="xs:string"/>
     </xs:complexType>
   </xs:element>
 </xs:schema>

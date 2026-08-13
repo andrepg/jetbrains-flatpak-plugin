@@ -244,8 +244,17 @@ object GirSchemaExtractor {
         "items" to obj(
             "allOf" to arr(
                 ref("#/\$defs/objectCommon"),
-                obj("anyOf" to Js.Arr(variants)),
+                obj("anyOf" to Js.Arr(variants + genericClassVariant())),
             ),
+        ),
+    )
+
+    private fun genericClassVariant() = obj(
+        "type" to str("object"),
+        "properties" to obj(
+            "class" to obj("type" to str("string")),
+            "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
+            "signal" to obj("type" to str("array"), "items" to ref("#/\$defs/signal")),
         ),
     )
 
@@ -259,6 +268,31 @@ object GirSchemaExtractor {
             "packing" to ref("#/\$defs/packing"),
             "accessibility" to ref("#/\$defs/accessibility"),
             "style" to ref("#/\$defs/style"),
+            "attributes" to obj(
+                "type" to str("array"),
+                "items" to obj(
+                    "type" to str("object"),
+                    "properties" to obj(
+                        "name" to obj("type" to str("string")),
+                        "value" to obj("type" to str("string")),
+                    ),
+                ),
+            ),
+            "condition" to obj(
+                "type" to str("array"),
+                "items" to obj("type" to str("string"), "$" to obj("type" to str("string"))),
+            ),
+            "setter" to obj(
+                "type" to str("array"),
+                "items" to obj(
+                    "type" to str("object"),
+                    "properties" to obj(
+                        "object" to obj("type" to str("string")),
+                        "property" to obj("type" to str("string")),
+                        "$" to obj("type" to str("string")),
+                    ),
+                ),
+            ),
         ),
     )
 
@@ -283,6 +317,7 @@ object GirSchemaExtractor {
                 "translatable" to yesNoEnum(),
                 "context" to obj("type" to str("string")),
                 "comments" to obj("type" to str("string")),
+                "object" to ref("#/\$defs/object"),
             ),
         ),
     )
@@ -309,6 +344,7 @@ object GirSchemaExtractor {
             "translatable" to yesNoEnum(),
             "context" to obj("type" to str("string")),
             "comments" to obj("type" to str("string")),
+            "object" to ref("#/\$defs/object"),
         ),
     )
 
@@ -365,7 +401,10 @@ object GirSchemaExtractor {
         "type" to str("object"),
         "properties" to obj(
             "name" to obj("type" to str("string")),
+            "value" to obj("type" to str("string")),
             "$" to obj("type" to str("string")),
+            "translatable" to yesNoEnum(),
+            "context" to obj("type" to str("string")),
         ),
     )
 
@@ -525,12 +564,12 @@ object GirSchemaExtractor {
 
         sb.appendLine("  <xs:element name=\"interface\">")
         sb.appendLine("    <xs:complexType>")
-        sb.appendLine("      <xs:sequence>")
-        sb.appendLine("        <xs:element ref=\"requires\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("        <xs:element ref=\"object\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("        <xs:element ref=\"template\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("        <xs:element ref=\"menu\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("      </xs:sequence>")
+        sb.appendLine("      <xs:choice minOccurs=\"0\" maxOccurs=\"unbounded\">")
+        sb.appendLine("        <xs:element ref=\"requires\"/>")
+        sb.appendLine("        <xs:element ref=\"object\"/>")
+        sb.appendLine("        <xs:element ref=\"template\"/>")
+        sb.appendLine("        <xs:element ref=\"menu\"/>")
+        sb.appendLine("      </xs:choice>")
         sb.appendLine("    </xs:complexType>")
         sb.appendLine("  </xs:element>")
 
@@ -543,27 +582,39 @@ object GirSchemaExtractor {
 
         sb.appendLine("  <xs:element name=\"object\" type=\"objectType\"/>")
         sb.appendLine()
-        sb.appendLine("  <xs:complexType name=\"objectType\">")
-        sb.appendLine("    <xs:sequence>")
-        sb.appendLine("      <xs:element ref=\"property\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("      <xs:element ref=\"signal\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("      <xs:element ref=\"child\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("      <xs:element ref=\"layout\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("      <xs:element ref=\"packing\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("      <xs:element ref=\"accessibility\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("      <xs:element ref=\"style\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
-        sb.appendLine("    </xs:sequence>")
-        sb.appendLine("    <xs:attribute name=\"class\" use=\"required\">")
+        sb.appendLine("  <xs:simpleType name=\"className\">")
+        sb.appendLine("    <xs:union>")
         sb.appendLine("      <xs:simpleType>")
         sb.appendLine("        <xs:restriction base=\"xs:string\">")
         allClassNames.forEach { sb.appendLine("          <xs:enumeration value=\"${xmlEscape(it)}\"/>") }
         sb.appendLine("        </xs:restriction>")
         sb.appendLine("      </xs:simpleType>")
-        sb.appendLine("    </xs:attribute>")
+        sb.appendLine("      <xs:simpleType>")
+        sb.appendLine("        <xs:restriction base=\"xs:string\">")
+        sb.appendLine("          <xs:pattern value=\"[A-Za-z_][A-Za-z0-9_.]*\"/>")
+        sb.appendLine("        </xs:restriction>")
+        sb.appendLine("      </xs:simpleType>")
+        sb.appendLine("    </xs:union>")
+        sb.appendLine("  </xs:simpleType>")
+
+        sb.appendLine("  <xs:complexType name=\"objectType\">")
+        sb.appendLine("    <xs:choice minOccurs=\"0\" maxOccurs=\"unbounded\">")
+        sb.appendLine("      <xs:element ref=\"condition\"/>")
+        sb.appendLine("      <xs:element ref=\"setter\"/>")
+        sb.appendLine("      <xs:element ref=\"property\"/>")
+        sb.appendLine("      <xs:element ref=\"signal\"/>")
+        sb.appendLine("      <xs:element ref=\"child\"/>")
+        sb.appendLine("      <xs:element ref=\"layout\"/>")
+        sb.appendLine("      <xs:element ref=\"packing\"/>")
+        sb.appendLine("      <xs:element ref=\"accessibility\"/>")
+        sb.appendLine("      <xs:element ref=\"style\"/>")
+        sb.appendLine("      <xs:element ref=\"attributes\"/>")
+        sb.appendLine("    </xs:choice>")
+        sb.appendLine("    <xs:attribute name=\"class\" type=\"className\" use=\"required\"/>")
         sb.appendLine("    <xs:attribute name=\"id\" type=\"xs:string\"/>")
         sb.appendLine("  </xs:complexType>")
 
-        appendElementWithNameEnum(sb, "property", allPropertyNames, extraAttributes = true)
+        appendElementWithNameEnum(sb, "property", allPropertyNames, extraAttributes = true, allowChildObject = true)
         appendElementWithNameEnum(sb, "signal", allSignalNames, extraAttributes = false)
 
         sb.appendLine("  <xs:element name=\"child\">")
@@ -585,13 +636,7 @@ object GirSchemaExtractor {
         sb.appendLine("        <xs:element ref=\"child\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
         sb.appendLine("      </xs:sequence>")
         sb.appendLine("      <xs:attribute name=\"class\" type=\"xs:string\" use=\"required\"/>")
-        sb.appendLine("      <xs:attribute name=\"parent\" use=\"required\">")
-        sb.appendLine("        <xs:simpleType>")
-        sb.appendLine("          <xs:restriction base=\"xs:string\">")
-        allClassNames.forEach { sb.appendLine("            <xs:enumeration value=\"${xmlEscape(it)}\"/>") }
-        sb.appendLine("          </xs:restriction>")
-        sb.appendLine("        </xs:simpleType>")
-        sb.appendLine("      </xs:attribute>")
+        sb.appendLine("      <xs:attribute name=\"parent\" type=\"className\" use=\"required\"/>")
         sb.appendLine("    </xs:complexType>")
         sb.appendLine("  </xs:element>")
 
@@ -623,6 +668,17 @@ object GirSchemaExtractor {
         sb.appendLine("  <xs:element name=\"relation\">")
         sb.appendLine("    <xs:complexType mixed=\"true\">")
         sb.appendLine("      <xs:attribute name=\"target\" type=\"xs:string\"/>")
+        sb.appendLine("    </xs:complexType>")
+        sb.appendLine("  </xs:element>")
+
+        sb.appendLine("  <xs:element name=\"condition\">")
+        sb.appendLine("    <xs:complexType mixed=\"true\"/>")
+        sb.appendLine("  </xs:element>")
+
+        sb.appendLine("  <xs:element name=\"setter\">")
+        sb.appendLine("    <xs:complexType mixed=\"true\">")
+        sb.appendLine("      <xs:attribute name=\"object\" type=\"xs:string\"/>")
+        sb.appendLine("      <xs:attribute name=\"property\" type=\"xs:string\" use=\"required\"/>")
         sb.appendLine("    </xs:complexType>")
         sb.appendLine("  </xs:element>")
 
@@ -690,9 +746,29 @@ object GirSchemaExtractor {
         sb.appendLine("    </xs:complexType>")
         sb.appendLine("  </xs:element>")
 
+        sb.appendLine("  <xs:element name=\"attributes\">")
+        sb.appendLine("    <xs:complexType>")
+        sb.appendLine("      <xs:sequence>")
+        sb.appendLine("        <xs:element ref=\"attribute\" minOccurs=\"0\" maxOccurs=\"unbounded\"/>")
+        sb.appendLine("      </xs:sequence>")
+        sb.appendLine("    </xs:complexType>")
+        sb.appendLine("  </xs:element>")
+
         sb.appendLine("  <xs:element name=\"attribute\">")
         sb.appendLine("    <xs:complexType mixed=\"true\">")
         sb.appendLine("      <xs:attribute name=\"name\" type=\"xs:string\" use=\"required\"/>")
+        sb.appendLine("      <xs:attribute name=\"value\" type=\"xs:string\"/>")
+        sb.appendLine("      <xs:attribute name=\"translatable\">")
+        sb.appendLine("        <xs:simpleType>")
+        sb.appendLine("          <xs:restriction base=\"xs:string\">")
+        sb.appendLine("            <xs:enumeration value=\"yes\"/>")
+        sb.appendLine("            <xs:enumeration value=\"no\"/>")
+        sb.appendLine("            <xs:enumeration value=\"true\"/>")
+        sb.appendLine("            <xs:enumeration value=\"false\"/>")
+        sb.appendLine("          </xs:restriction>")
+        sb.appendLine("        </xs:simpleType>")
+        sb.appendLine("      </xs:attribute>")
+        sb.appendLine("      <xs:attribute name=\"context\" type=\"xs:string\"/>")
         sb.appendLine("    </xs:complexType>")
         sb.appendLine("  </xs:element>")
 
@@ -705,9 +781,15 @@ object GirSchemaExtractor {
         elementName: String,
         names: List<String>,
         extraAttributes: Boolean,
+        allowChildObject: Boolean = false,
     ) {
         sb.appendLine("  <xs:element name=\"$elementName\">")
         sb.appendLine("    <xs:complexType mixed=\"true\">")
+        if (allowChildObject) {
+            sb.appendLine("      <xs:sequence minOccurs=\"0\" maxOccurs=\"1\">")
+            sb.appendLine("        <xs:element ref=\"object\"/>")
+            sb.appendLine("      </xs:sequence>")
+        }
         sb.appendLine("      <xs:attribute name=\"name\" use=\"required\">")
         sb.appendLine("        <xs:simpleType>")
         sb.appendLine("          <xs:restriction base=\"xs:string\">")
