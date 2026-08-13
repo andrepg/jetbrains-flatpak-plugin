@@ -10,13 +10,25 @@
     >André Paul Grandsire</vendor>
 
     <description><![CDATA[
-        Integrate Flatpak builder into any JetBrains IDE. The core features are:
+        Build, run, and validate Flatpak applications from your JetBrains IDE. <b>Flatpak DevTools</b> turns
+        <code>flatpak-builder</code> into a first-class workflow with dedicated Run Configurations and schema-aware
+        editing — so you can develop and package sandboxed Linux apps without leaving your IDE.
 
-        <h2>Flatpak features</h2>
-
+        <h2>Flatpak</h2>
         <ul>
-            <li>Flatpak Build integrated with your IDE</li>
-            <li>WIP: Flatpak Schema autocompletion and validation</li>
+            <li><b>Automatic manifest detection</b> — <code>manifest.json</code>, <code>flatpak.json</code>, <code>flatpak-manifest.json</code> and app-id style files (<code>org.example.App.json</code>/<code>.yaml</code>/<code>.yml</code>) are bound to the official Flatpak schema automatically</li>
+            <li><b>Code completion &amp; validation</b> — schema-driven completion and inline validation for <code>app-id</code>, <code>runtime</code>, <code>sdk</code>, <code>modules</code>, <code>finish-args</code>, <code>command</code> and every other manifest field</li>
+            <li><b>One-click Flatpak actions</b> — a dedicated Flatpak Run Configuration with <i>Build</i>, <i>Run</i>, <i>Export</i>, <i>Clean</i> and <i>Custom</i> commands</li>
+            <li><b>Smart run</b> — the application id is resolved automatically from your manifest for the <i>Run</i> command</li>
+            <li><b>Flatpak Builder SDK integration</b> — commands execute through the official <code>org.flatpak.Builder</code> SDK, with output streamed to the Run console</li>
+            <li><b>Configurable binaries</b> — custom <code>flatpak</code>/<code>flatpak-builder</code> paths with on-input validation and <code>PATH</code> fallback</li>
+        </ul>
+
+        <h2>GTK/Adwaita <em>(in progress)</em></h2>
+        <ul>
+            <li><em>WIP</em> — GTK/Adwaita <code>.ui</code> interface editing with code completion</li>
+            <li><em>WIP</em> — GResource awareness, notifying you when a UI file is not declared in your GResource manifest</li>
+            <li><em>WIP</em> — GNOME SDK autodetection</li>
         </ul>
     ]]></description>
 
