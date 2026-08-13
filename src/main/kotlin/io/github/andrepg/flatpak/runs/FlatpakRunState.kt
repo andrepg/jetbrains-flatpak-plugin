@@ -5,6 +5,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.execution.ui.ConsoleViewContentType
 
 class FlatpakRunState(
     environment: ExecutionEnvironment,
@@ -19,24 +20,24 @@ class FlatpakRunState(
             config.buildDir
         )
 
-        val commandLine = GeneralCommandLine(cmd)
-            .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
-            .withWorkDirectory(environment.project.basePath)
-
+        val commandLine = composeCommandLine(cmd)
         val handler = OSProcessHandler(commandLine)
 
-        handler.startNotify()
-
-        TextConsoleBuilderFactory.getInstance()
-            .createBuilder(environment.project)
-            .console
-            .attachToProcess(handler)
+        attachOutputConsole(handler)
 
         return handler
     }
 
-    fun callFlatpakBinary() {
-        // This method can be used to directly call the flatpak binary
-        // Implementation can be added if needed for specific use cases
+    private fun attachOutputConsole(handler: OSProcessHandler) {
+        val console = TextConsoleBuilderFactory.getInstance()
+            .createBuilder(environment.project)
+            .console
+
+        console.print(handler.commandLine, ConsoleViewContentType.NORMAL_OUTPUT)
+        console.attachToProcess(handler)
     }
+
+    fun composeCommandLine(cmd: List<String>) = GeneralCommandLine(cmd)
+        .withParentEnvironmentType(GeneralCommandLine.ParentEnvironmentType.CONSOLE)
+        .withWorkDirectory(environment.project.basePath)
 }

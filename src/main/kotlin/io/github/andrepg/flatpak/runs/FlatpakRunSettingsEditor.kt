@@ -17,6 +17,20 @@ class FlatpakRunSettingsEditor : SettingsEditor<FlatpakRunConfiguration>() {
     private val manifestField = JBTextField()
     private val buildDirField = JBTextField()
 
+    override fun createEditor(): JComponent = panel
+
+    override fun resetEditorFrom(config: FlatpakRunConfiguration) {
+        commandComboBox.selectedItem = config.command
+        manifestField.text = config.manifestPath
+        buildDirField.text = config.buildDir
+    }
+
+    override fun applyEditorTo(config: FlatpakRunConfiguration) {
+        config.command = commandComboBox.selectedItem as FlatpakCommand
+        config.manifestPath = manifestField.text
+        config.buildDir = buildDirField.text
+    }
+
     init {
         val gbc = createGridBagConstraints()
 
@@ -58,19 +72,5 @@ class FlatpakRunSettingsEditor : SettingsEditor<FlatpakRunConfiguration>() {
         constraints.insets = Insets(2, 2, 2, 2)
         constraints.weightx = 0.0
         return constraints
-    }
-
-    override fun createEditor(): JComponent = panel
-
-    override fun resetEditorFrom(config: FlatpakRunConfiguration) {
-        commandComboBox.selectedItem = config.command
-        manifestField.text = config.manifestPath
-        buildDirField.text = config.buildDir
-    }
-
-    override fun applyEditorTo(config: FlatpakRunConfiguration) {
-        config.command = commandComboBox.selectedItem as FlatpakCommand
-        config.manifestPath = manifestField.text
-        config.buildDir = buildDirField.text
     }
 }
