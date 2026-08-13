@@ -12,6 +12,7 @@ Develop and package sandboxed Linux applications without leaving your IDE.
 
 - **Automatic manifest detection** — files named `manifest.json`, `flatpak.json`, `flatpak-manifest.json`, or app-id style files such as `org.example.App.json` (JSON/YAML) are recognized automatically and bound to the official Flatpak manifest schema.
 - **Code completion & live validation** — edit `app-id`, `runtime`, `sdk`, `command`, `modules`, `finish-args`, and every other manifest field with schema-driven completion and inline validation, powered by the community-maintained [SchemaStore](https://www.schemastore.org/) schema (JSON Schema draft-07).
+- **Smart project detection** — Flatpak manifests are detected when a project opens: a one-time balloon (*"Flatpak project detected"*) offers an opt-in **Create Run Configurations** action, and right-clicking any manifest suggests **Run 'Build `<app-id>`'** directly from the context menu. The Flatpak configuration type is hidden in **Edit Configurations** for projects without manifests.
 - **One-click Flatpak actions** — a dedicated **Flatpak** Run Configuration type exposes the full build lifecycle as runnable configurations:
 
   | Command  | Description                                                                   |
@@ -64,11 +65,12 @@ Develop and package sandboxed Linux applications without leaving your IDE.
 
 - [x] Flatpak Run Configurations (build / run / export / clean / custom)
 - [x] Flatpak manifest schema autodetection with completion & validation
-- [x] Configurable Flatpak binaries with validation
+- [x] Flatpak project detection with run-configuration suggestions
+- [x] Configurable Flatpak binaries
 - [ ] Manifest validation command
-- [ ] GTK/Adwaita `.ui` file editing with code completion
+- [x] GTK/Adwaita `.ui` file editing with code completion
 - [ ] GResource integration and undeclared-file notifications
-- [ ] GNOME SDK autodetection
+- [x] GNOME SDK autodetection
 
 ## Support
 
