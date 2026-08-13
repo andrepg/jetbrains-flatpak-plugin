@@ -82,5 +82,8 @@
     <extensions defaultExtensionNs="JavaScript">
         <JsonSchema.ProviderFactory
                 implementation="io.github.andrepg.flatpak.schemas.factories.FlatpakSchemaProviderFactory"/>
+            <toolWindow id="gtk-preview" anchor="right" icon="/icons/gtk-preview.svg" factoryClass="io.github.andrepg.gtk.preview.ui.GtkPreviewToolWindowFactory"/>
+        <editorNotificationProvider implementation="io.github.andrepg.gtk.preview.ui.GtkPreviewEditorNotificationProvider"/>
+        <projectService serviceImplementation="io.github.andrepg.gtk.preview.ui.GtkPreviewService"/>
     </extensions>
 </idea-plugin>

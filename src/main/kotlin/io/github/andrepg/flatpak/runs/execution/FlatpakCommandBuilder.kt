@@ -68,10 +68,10 @@ class FlatpakCommandBuilder {
         FlatpakCommand.CLEAN -> listOf("rm", "-rf", buildDir)
 
         FlatpakCommand.BUILD -> basicCommand()
-            .plus(listOf(buildDir, manifestPath))
+            .plus(listOf("--force-clean", buildDir, manifestPath))
 
         FlatpakCommand.RUN -> basicCommand()
-            .plus(listOf("--run", buildDir, manifestPath, getAppId()))
+            .plus(listOf("--run", "--force-clean", buildDir, manifestPath, getAppId()))
 
         FlatpakCommand.EXPORT -> basicCommand()
             .plus(listOf("--repo=repo-build", "--force-clean", buildDir, manifestPath))

@@ -87,10 +87,11 @@ object GirSchemaExtractor {
             val byCType = LinkedHashMap<String, TypeEntry>()
             for (entry in byKey.values) {
                 val previous = byCType[entry.cType]
-                byCType[entry.cType] = if (previous == null) entry else previous.copy(
+                byCType[entry.cType] = previous?.copy(
                     properties = previous.properties + entry.properties,
                     signals = previous.signals + entry.signals,
                 )
+                    ?: entry
             }
             return byCType.values.sortedBy { it.cType }
         }
