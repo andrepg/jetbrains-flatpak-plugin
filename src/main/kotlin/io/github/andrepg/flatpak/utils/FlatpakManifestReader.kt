@@ -40,7 +40,7 @@ object FlatpakManifestReader {
      * @return The application ID if found, or null if parsing fails
      */
     private fun parseAppId(content: String, extension: String?): String? {
-        val isJson = extension?.equals("json", ignoreCase = true)
+        val isJson = extension?.equals("json", ignoreCase = true) == true
                 || content.trimStart().startsWith("{")
         return if (isJson) parseJsonAppId(content) else parseYamlAppId(content)
     }
