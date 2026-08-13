@@ -1,0 +1,25 @@
+{
+  "app-id": "org.example.MyApp",
+  "runtime": "org.freedesktop.Platform",
+  "runtime-version": "22.08",
+  "sdk": "org.freedesktop.Sdk",
+  "command": "myapp",
+  "finish-args": [
+    "--share=ipc",
+    "--socket=x11",
+    "--filesystem=host"
+  ],
+  "modules": [
+    {
+      "name": "myapp",
+      "buildsystem": "meson",
+      "sources": [
+        {
+          "type": "git",
+          "url": "https://github.com/example/myapp.git",
+          "branch": "main"
+        }
+      ]
+    }
+  ]
+}
