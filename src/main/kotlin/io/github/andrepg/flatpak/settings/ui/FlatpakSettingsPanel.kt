@@ -1,11 +1,13 @@
 package io.github.andrepg.flatpak.settings.ui
 
+import com.intellij.openapi.project.ProjectManager
 import com.intellij.openapi.ui.DialogPanel
 import com.intellij.ui.dsl.builder.bindText
 import com.intellij.ui.dsl.builder.panel
 import io.github.andrepg.flatpak.settings.DefaultFlatpakPaths
-import io.github.andrepg.flatpak.utils.FlatpakPathValidator
 import io.github.andrepg.shared.Localization
+import io.github.andrepg.shared.UiRows.browseTextFieldRow
+import io.github.andrepg.shared.UiRows.textFieldRow
 
 /**
  * The [FlatpakSettingsPanel] builds the entire Settings window under
@@ -25,41 +27,26 @@ class FlatpakSettingsPanel {
     /** The settings component to display. */
     val component: DialogPanel = panel {
         group(Localization.message("settings.flatpak.binaries.title")) {
-            row(Localization.message("settings.flatpak.binaries.flatpak.label")) {
-                rowComment(Localization.message("settings.flatpak.binaries.flatpak.description"))
-                textField().bindText(::flatpakBinaryPath)
-                    .validationOnInput {
-                        when {
-                            !FlatpakPathValidator.validateBinaryPath(flatpakBinaryPath) ->
-                                error(Localization.message("settings.flatpak.binaries.flatpak.error"))
-                            !flatpakBinaryPath.startsWith("/") ->
-                                error(Localization.message("settings.flatpak.binaries.flatpak.error"))
-                            else -> null
-                        }
-                    }
-            }
+            browseTextFieldRow(
+                label = Localization.message("settings.flatpak.binaries.flatpak.label"),
+                project = ProjectManager.getInstance().defaultProject,
+                comment = Localization.message("settings.flatpak.binaries.flatpak.description"),
+                fileChosen = { chosenFile -> chosenFile.path },
+            )
+                .bindText(::flatpakBinaryPath)
 
-            row(Localization.message("settings.flatpak.binaries.flatpak-builder.label")) {
-                rowComment(Localization.message("settings.flatpak.binaries.flatpak-builder.description"))
-                textField().bindText(::flatpakBuilderBinaryPath)
-                    .validationOnInput {
-                        when {
-                            !FlatpakPathValidator.validateBinaryPath(flatpakBuilderBinaryPath) ->
-                                error(Localization.message("settings.flatpak.binaries.flatpak-builder.error"))
-                            !flatpakBuilderBinaryPath.startsWith("/") ->
-                                error(Localization.message("settings.flatpak.binaries.flatpak-builder.error"))
-                            else -> null
-                        }
-                    }
-            }
+            textFieldRow(
+                label = Localization.message("settings.flatpak.binaries.flatpak-builder.label"),
+                comment = Localization.message("settings.flatpak.binaries.flatpak-builder.description"),
+            )
+                .bindText(::flatpakBuilderBinaryPath)
         }
     }
 
     /**
      * @return true if any setting differs from its default value
      */
-    fun isModified(): Boolean =
-        flatpakBinaryPath != DefaultFlatpakPaths.MAIN_BINARY ||
+    fun isModified(): Boolean = flatpakBinaryPath != DefaultFlatpakPaths.MAIN_BINARY ||
             flatpakBuilderBinaryPath != DefaultFlatpakPaths.BUILDER_BINARY
 
     /**
