@@ -1,15 +1,12 @@
 package io.github.andrepg.flatpak.runs.execution
 
 import com.intellij.execution.configurations.CommandLineState
-import com.intellij.execution.filters.TextConsoleBuilderFactory
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.execution.ui.ConsoleViewContentType
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.shared.log.Log
-import java.io.File
 
 /**
  * Run state that executes the configured Flatpak command.
@@ -35,9 +32,9 @@ class FlatpakRunner(
     override fun startProcess(): ProcessHandler {
         log.info(
             "Flatpak run started: command=${config.command}, manifest=${config.manifestPath}, " +
-                "buildDir=${config.buildDir}, forceClean=${config.enableForceClean}, " +
-                "deepClean=${config.enableDeepClean}, portals=${config.enablePortals}, " +
-                "themes=${config.enableThemes}, audio=${config.enableAudio}, wayland=${config.enableWayland}"
+                    "buildDir=${config.buildDir}, forceClean=${config.enableForceClean}, " +
+                    "deepClean=${config.enableDeepClean}, portals=${config.enablePortals}, " +
+                    "themes=${config.enableThemes}, audio=${config.enableAudio}, wayland=${config.enableWayland}"
         )
 
         val plan = CommandSelectionStrategy().plan(config)
@@ -46,35 +43,24 @@ class FlatpakRunner(
         val cleanupCommandLines = plan.preSteps.map { engine.buildCommand(it, config) }
         val mainCommandLine = engine.buildCommand(plan.main, config)
 
-        val handler = if (cleanupCommandLines.isEmpty()) {
-            engine.executeCommandSequence(mainCommandLine)
-        } else {
-            CleanupThenProcessHandler(
+        val handler = when (cleanupCommandLines.isEmpty()) {
+            true -> engine.executeCommandSequence(mainCommandLine)
+            false -> CleanupThenProcessHandler(
                 cleanupCommandLines = cleanupCommandLines,
                 mainCommandLine = engine.toGeneralCommandLine(mainCommandLine),
-                workDir = environment.project.basePath?.let(::File),
+                workDir = environment.project.workspaceFile
             )
         }
 
         handler.addProcessListener(object : ProcessListener {
             override fun processTerminated(event: ProcessEvent) {
+                event.processHandler.detachProcess()
                 log.info("Flatpak command terminated with exit code ${event.exitCode}")
             }
         })
 
-        attachOutputConsole(handler, mainCommandLine)
-
         handler.startNotify()
 
         return handler
-    }
-
-    private fun attachOutputConsole(handler: ProcessHandler, printedCommandLine: List<String>) {
-        val console = TextConsoleBuilderFactory.getInstance()
-            .createBuilder(environment.project)
-            .console
-
-        console.print(printedCommandLine.joinToString(" "), ConsoleViewContentType.NORMAL_OUTPUT)
-        console.attachToProcess(handler)
     }
 }

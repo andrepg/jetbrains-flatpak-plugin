@@ -9,6 +9,7 @@ import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
+import com.intellij.openapi.vfs.VirtualFile
 import io.github.andrepg.shared.log.Log
 import java.io.File
 import java.io.IOException
@@ -28,7 +29,7 @@ import java.util.concurrent.TimeUnit
 class CleanupThenProcessHandler(
     private val cleanupCommandLines: List<List<String>>,
     private val mainCommandLine: GeneralCommandLine,
-    private val workDir: File?,
+    private val workDir: VirtualFile?,
 ) : ProcessHandler() {
 
     private val log = Log.getInstance(CleanupThenProcessHandler::class.java)
@@ -141,14 +142,22 @@ class CleanupThenProcessHandler(
 
     override fun destroyProcessImpl() {
         cancelled = true
-        activeProcess?.destroy()
-        activeHandler?.destroyProcess()
+        try {
+            activeProcess?.destroyForcibly()?.also { activeProcess = null }
+            activeHandler?.destroyProcess()?.also { activeHandler = null }
+        } catch (e: Exception) {
+            log.warn("Error during process cleanup", e)
+        }
     }
 
     override fun detachProcessImpl() {
         cancelled = true
-        activeProcess?.destroy()
-        activeHandler?.detachProcess()
+        try {
+            activeProcess?.destroyForcibly()?.also { activeProcess = null }
+            activeHandler?.detachProcess()?.also { activeHandler = null }
+        } catch (e: Exception) {
+            log.warn("Error during process detach", e)
+        }
     }
 
     override fun detachIsDefault(): Boolean = false

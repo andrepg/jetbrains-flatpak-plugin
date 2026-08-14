@@ -9,11 +9,15 @@
 ## Key files
 - **Entry point**: `src/main/resources/META-INF/plugin.xml`
 - **Flatpak runs**: `src/main/kotlin/io/github/andrepg/flatpak/runs/`
-  - `FlatpakCommand.kt`: Command enum (BUILD, CLEAN, EXPORT, RUN, VALIDATE, CUSTOM)
-  - `configuration/`: Run configuration machinery (type, configuration, factory, configurator, manifest producer, project opener, settings defaults)
-  - `execution/FlatpakCommandBuilder.kt`: Maps commands to flatpak-builder/flatpak CLI calls
-  - `execution/FlatpakRunState.kt`: Executes commands via IntelliJ's RunConfiguration
-  - `ui/FlatpakRunSettingsEditor.kt`: Settings editor form for the run configuration
+  - `FlatpakCommand.kt`: Command enums (`InternalCommand`: BUILD, CLEAN, DEEP_CLEAN, EXPORT, RUN, VALIDATE, CUSTOM; `UserVisibleCommand`)
+  - `configuration/`: Run configuration machinery (type, configuration, factory, generator, manifest producer, project opener, settings defaults)
+  - `execution/CommandSelectionStrategy.kt`: Picks commands from config flags (cleanup prepends for build-like commands)
+  - `execution/CommandExecutionEngine.kt`: Maps one command to a flatpak-builder/flatpak CLI line; `toGeneralCommandLine` for the IDE process API; `buildSandboxOptions` for portal/theme/audio/wayland flags (Run only)
+  - `execution/CleanupThenProcessHandler.kt`: `ProcessHandler` that runs cleanup pre-steps (CLEAN/DEEP_CLEAN) as raw OS processes on a pooled thread (never the EDT — `OSProcessHandler.checkEdtAndReadAction` forbids blocking `runProcess` from `CommandLineState.startProcess`), then starts the main `OSProcessHandler` and relays its output/termination
+  - `execution/FlatpakRunner.kt`: `CommandLineState` that picks the command list, routes cleanup steps through `CleanupThenProcessHandler`, and attaches the console
+  - `ui/RunConfigurationSettingsPanel.kt`: Settings editor form for the run configuration
+- **GTK preview**: `src/main/kotlin/io/github/andrepg/gtk/preview/` (JDK-only `GtkBuilderToolRunner` + `AdwShimManager`; IDE glue `ui/GtkPreviewService`, `GtkPreviewPanel`, `GtkPreviewToolWindowFactory`, `GtkPreviewEditorNotificationProvider`)
+- **Billing/licensing**: `src/main/kotlin/io/github/andrepg/shared/license/` (`LicenseCheck` = Kotlin port of JetBrains' `CheckLicense`, verifies `LicensingFacade` stamps; `PremiumFeatureGate` = the single premium/paid-feature decision point). Freemium plugin: `<product-descriptor code="PFLATPAKDEV" ... optional="true"/>` in `plugin.xml`, product versioned `2026.1.x` (calendar scheme). Premium = GTK Preview only; the gate also honors the dev system property `flatpak.devtools.development` (set automatically by `runIde`) so development is never locked out. See `BILLING.md`.
 
 ## Commands
 
@@ -21,6 +25,12 @@
 ```bash
 ./gradlew runIde              # Launch sandbox IDE with plugin loaded
 ./gradlew build              # Build plugin ZIP in build/distributions/
+```
+
+**Do NOT run `verifyPlugin` or `runPluginVerifier` unless explicitly asked.**
+
+### Compatibility checks (only when asked)
+```bash
 ./gradlew verifyPlugin       # Check plugin compatibility
 ./gradlew runPluginVerifier  # Run IntelliJ Plugin Verifier (if configured)
 ```
@@ -37,7 +47,7 @@
 
 ## Flatpak integration notes
 - Commands execute via `flatpak-builder` and `flatpak` CLI
-- `FlatpakCommand.RUN` derives the app ID from the manifest via `FlatpakManifestReader`, falling back to the manifest filename
+- `FlatpakCommand.RUN` executes the manifest's `command` field via `FlatpakManifestReader.readCommand`, falling back to the app-id; cleanup (CLEAN/DEEP_CLEAN) pre-steps run synchronously as separate processes before the main command
 - Configuration requires:
   - `manifestPath`: Path to flatpak manifest file
   - `BUILD_DIR`: Build directory for flatpak-builder
@@ -68,8 +78,10 @@
 - Core (`gtk/schema/`, `gtk/schema/gir/`, `gtk/schema/locator/`) is **JDK-only** (no IntelliJ/Flatpak imports) so it can run from the `extractGtkSchema` Gradle task and from inside the IDE. `gtk/schema/providers/` is IDE glue and the composition root: it computes the `SdkHint` from `FlatpakManifestReader.readSdk()`/`readRuntime()` via `FlatpakProjectDetector.findManifests()`, then delegates to `GtkSchemaManager`.
 - `GtkSchemaManager` resolves the project SDK's GIR dir via `GirSdkLocator` (flatpak CLI first, install-root glob fallback), generates `gtk-ui-<key>.xsd` into the plugin config dir (idempotent, background `executeOnPooledThread`), and falls back to the bundled classpath `/schemas/gtk-ui.xsd`.
 - Regenerate bundled artifacts (JSON + XSD, incl. GtkSource-5) with `./gradlew extractGtkSchema`; the extractor auto-detects the installed GNOME SDK or takes `-PgirDir=`/`-PschemaOut=`.
+- The GTK snapshot preview renders `.ui` files via `gtk4-builder-tool` inside the GNOME SDK: `GtkBuilderToolRunner` (validate/render, JDK-only) + `AdwShimManager` (per-branch `adw_init()` constructor shim compiled with `cc`/`pkg-config`, cached in the config dir). Host `/tmp` is masked inside the flatpak sandbox, so test/preview files must live under `$HOME` (exposed via `--filesystem=host`).
 
 ## Next steps for full implementation
 1. Implement LSP for XML files
 2. Add proper configuration validation
 3. Implement full SettingsEditor UI with command selection dropdown
+4. GResource integration and undeclared-file notifications

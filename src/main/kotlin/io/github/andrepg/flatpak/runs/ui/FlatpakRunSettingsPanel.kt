@@ -130,6 +130,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
 
     init {
         wireChangeListeners()
+        updateForceCleanEnablement()
     }
 
     /**
@@ -137,13 +138,28 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
      * soon as any field changes.
      */
     private fun wireChangeListeners() {
-        commandComboBox.addActionListener { fireEditorStateChanged() }
+        commandComboBox.addActionListener {
+            fireEditorStateChanged()
+            updateForceCleanEnablement()
+        }
 
         checkboxes.forEach { it.addChangeListener { fireEditorStateChanged() } }
 
         textFields
             .plus(textWithButtons.map { it.textField })
             .forEach { it.document.addDocumentListener(notifyingDocumentListener()) }
+    }
+
+    /**
+     * Updates the enabled state of forceCleanCheck based on the selected command.
+     * Disables it for non-BUILD/EXPORT commands.
+     */
+    private fun updateForceCleanEnablement() {
+        val isBuildOrExport = commandComboBox.item in setOf(UserVisibleCommand.BUILD, UserVisibleCommand.EXPORT)
+        forceCleanCheck.isEnabled = isBuildOrExport
+        if (!isBuildOrExport) {
+            forceCleanCheck.isSelected = false
+        }
     }
 
     private fun notifyingDocumentListener() = object : DocumentListener {

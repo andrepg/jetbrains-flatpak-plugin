@@ -5,6 +5,7 @@ import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.project.Project
 import io.github.andrepg.flatpak.runs.InternalCommand
+import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.flatpak.settings.FlatpakSettings
 import io.github.andrepg.flatpak.utils.FlatpakManifestReader
@@ -37,7 +38,6 @@ class CommandExecutionEngine(private val project: Project) {
     ): List<String> {
         val commandLine = when (command) {
             InternalCommand.CUSTOM -> buildCustomCommand(config)
-            InternalCommand.CLEAN -> buildCleanCommand(config)
             InternalCommand.DEEP_CLEAN -> buildDeepCleanCommand(config)
             InternalCommand.BUILD -> buildBuildCommand(config)
             InternalCommand.RUN -> buildRunCommand(config)
@@ -56,8 +56,6 @@ class CommandExecutionEngine(private val project: Project) {
         return basicFlatpakBuilderCommand().plus(extraArguments)
     }
 
-    private fun buildCleanCommand(config: FlatpakRunSettings): List<String> = listOf("rm", "-rf", config.buildDir)
-
     private fun buildDeepCleanCommand(config: FlatpakRunSettings): List<String> {
         val args = mutableListOf("rm", "-rf", config.buildDir)
         flatpakBuilderCacheDir()?.let { args += it }
@@ -71,10 +69,12 @@ class CommandExecutionEngine(private val project: Project) {
 
     private fun buildBuildCommand(config: FlatpakRunSettings): List<String> = basicFlatpakBuilderCommand()
         .plus(
-            listOf(
-                when (config.enableForceClean) {
-                    true -> "--force-clean"
-                    false -> ""
+            listOfNotNull(
+                // Only add --force-clean flag for BUILD command when enabled
+                if (config.enableForceClean && config.command == UserVisibleCommand.BUILD) {
+                    "--force-clean"
+                } else {
+                    null
                 },
                 config.buildDir,
                 config.manifestPath
@@ -123,7 +123,15 @@ class CommandExecutionEngine(private val project: Project) {
     }
 
     private fun buildExportCommand(config: FlatpakRunSettings): List<String> {
-        val arguments = listOf("--repo=repo-build", "--force-clean")
+        val arguments = listOfNotNull(
+            "--repo=repo-build",
+            // Only add --force-clean flag for EXPORT command when enabled
+            if (config.enableForceClean && config.command == UserVisibleCommand.EXPORT) {
+                "--force-clean"
+            } else {
+                null
+            }
+        )
         val parameters = listOf(config.buildDir, config.manifestPath)
 
         return basicFlatpakBuilderCommand().plus(arguments).plus(parameters)

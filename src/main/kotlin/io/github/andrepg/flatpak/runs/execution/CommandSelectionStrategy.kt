@@ -12,14 +12,6 @@ import io.github.andrepg.shared.log.Log
 class CommandSelectionStrategy {
     private val log = Log.getInstance(CommandSelectionStrategy::class.java)
 
-    companion object {
-        private val CLEANABLE_COMMANDS = setOf(
-            InternalCommand.BUILD,
-            InternalCommand.RUN,
-            InternalCommand.EXPORT
-        )
-    }
-
     /**
      * Builds the execution plan for the configuration: the main command plus
      * any cleanup pre-steps, in the order they must run.
@@ -31,13 +23,9 @@ class CommandSelectionStrategy {
         val main = mapUserCommandToInternal(config.command)
         val preSteps = mutableListOf<InternalCommand>()
 
-        if (main in CLEANABLE_COMMANDS) {
-            if (config.enableForceClean) {
-                preSteps += InternalCommand.CLEAN
-            }
-            if (config.enableDeepClean) {
-                preSteps += InternalCommand.DEEP_CLEAN
-            }
+        // DEEP_CLEAN handles both folder deletions when enabled
+        if (config.enableDeepClean) {
+            preSteps += InternalCommand.DEEP_CLEAN
         }
 
         val plan = CommandPlan(main, preSteps)
@@ -51,10 +39,9 @@ class CommandSelectionStrategy {
      * @param userCommand The user-visible command
      * @return The corresponding internal command
      */
-    private fun mapUserCommandToInternal(userCommand: UserVisibleCommand): InternalCommand {
+    fun mapUserCommandToInternal(userCommand: UserVisibleCommand): InternalCommand {
         return when (userCommand) {
             UserVisibleCommand.BUILD -> InternalCommand.BUILD
-            UserVisibleCommand.CLEAN -> InternalCommand.CLEAN
             UserVisibleCommand.EXPORT -> InternalCommand.EXPORT
             UserVisibleCommand.RUN -> InternalCommand.RUN
             UserVisibleCommand.VALIDATE -> InternalCommand.VALIDATE
