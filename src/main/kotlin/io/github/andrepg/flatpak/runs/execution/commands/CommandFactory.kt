@@ -1,0 +1,44 @@
+package io.github.andrepg.flatpak.runs.execution.commands
+
+import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
+import io.github.andrepg.flatpak.runs.execution.CommandExecutionArguments
+import io.github.andrepg.flatpak.settings.FlatpakSettings
+
+abstract class CommandFactory {
+    /**
+     * Builds the main Flatpak Builder command, to invoke the
+     * Flatpak Builder bundle inside the sandbox. Usually this
+     * command/function translates to `/usr/bin/flatpak run org.flatpak.Builder run`
+     */
+    protected fun getFlatpakCommand(): List<String> = listOf(
+        FlatpakSettings.flatpakBinary,
+        "run",
+        FlatpakSettings.builderBinary
+    )
+
+    /**
+     * Invokes the Command builder creation and returns the
+     * actual Flatpak command line to run inside the IDE
+     *
+     * Each class should implement its own based on the
+     * purpose and job to do. One command per builder.
+     */
+    abstract fun create(settings: FlatpakRunSettings): List<String>
+
+    /**
+     * Sandbox options injected into the Run command so the app sees the requested
+     * GNOME/portal integration. flatpak-builder's `--run` mode accepts the flatpak
+     * context options (`--socket`, `--talk-name`, `--filesystem`, `--device`, `--env`),
+     * which must be placed before the `DIRECTORY MANIFEST COMMAND` positional args.
+     */
+    protected fun buildSandboxOptions(config: FlatpakRunSettings): List<String> {
+        val options = listOf<String>().also {
+            if (config.enablePortals) it.plus(CommandExecutionArguments.ENABLE_PORTALS)
+            if (config.enableThemes) it.plus(CommandExecutionArguments.ENABLE_THEMES)
+            if (config.enableAudio) it.plus(CommandExecutionArguments.ENABLE_AUDIO)
+            if (config.enableWayland) it.plus(CommandExecutionArguments.ENABLE_WAYLAND)
+        }
+
+        return options
+    }
+}
