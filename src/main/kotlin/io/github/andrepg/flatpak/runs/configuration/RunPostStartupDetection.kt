@@ -1,9 +1,9 @@
 package io.github.andrepg.flatpak.runs.configuration
 
+import com.intellij.ide.util.PropertiesComponent
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
-import com.intellij.ide.util.PropertiesComponent
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity
@@ -17,7 +17,7 @@ import kotlinx.coroutines.withContext
  * Project-open glue: detects Flatpak manifests in the background and offers to create run
  * configurations. Shown at most once per project ("shown once" flag in [PropertiesComponent]).
  */
-class FlatpakProjectOpener : ProjectActivity {
+class RunPostStartupDetection : ProjectActivity {
 
     override suspend fun execute(project: Project) {
         if (project.isDisposed) return
@@ -47,7 +47,7 @@ class FlatpakProjectOpener : ProjectActivity {
         notification.addAction(
             NotificationAction.createSimple(Localization.message("detection.notification.action.create")) {
                 manifests.forEach { (file, appId) ->
-                    FlatpakRunConfigurator.createForManifest(project, file, appId)
+                    FlatpakRunGenerator.createForManifest(project, file, appId)
                 }
                 notification.expire()
             }

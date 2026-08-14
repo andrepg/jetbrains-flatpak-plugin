@@ -1,8 +1,8 @@
 package io.github.andrepg.gtk.preview
 
+import io.github.andrepg.shared.process.CommandRunner
+import io.github.andrepg.shared.process.DefaultProcessRunner
 import java.io.File
-import java.io.IOException
-import java.util.concurrent.TimeUnit
 
 /**
  * Manages the Adwaita shim compilation and caching.
@@ -13,6 +13,7 @@ import java.util.concurrent.TimeUnit
 class AdwShimManager(
     private val workDir: File,
     private val flatpakBinary: String,
+    private val runner: CommandRunner = DefaultProcessRunner,
 ) {
     /** The shim source code. */
     private val shimSource = """
@@ -40,12 +41,18 @@ static void adw_shim_init(void) {
         val shim = shimFile(branch)
         if (shim.isFile) return shim
 
+        if (!workDir.exists() && !workDir.mkdirs()) {
+            return null
+        }
+
         val source = shimSourceFile(branch).apply { writeText(shimSource) }
-        val cflags = runProcess(listOf(flatpakBinary, "run", "--command=pkg-config", "--filesystem=host", "$sdkAppId//$branch", "--cflags", "libadwaita-1"))
+        val cflags = runner.run(listOf(flatpakBinary, "run", "--command=pkg-config", "--filesystem=host", "$sdkAppId//$branch", "--cflags", "libadwaita-1"), 120_000)
             ?.stdout
+            ?.trim()
             ?: return null
-        val libs = runProcess(listOf(flatpakBinary, "run", "--command=pkg-config", "--filesystem=host", "$sdkAppId//$branch", "--libs", "libadwaita-1"))
+        val libs = runner.run(listOf(flatpakBinary, "run", "--command=pkg-config", "--filesystem=host", "$sdkAppId//$branch", "--libs", "libadwaita-1"), 120_000)
             ?.stdout
+            ?.trim()
             ?: return null
 
         val command = listOf(
@@ -63,39 +70,7 @@ static void adw_shim_init(void) {
             *libs.split(" ").toTypedArray(),
         )
 
-        val result = runProcess(command)
+        val result = runner.run(command, 120_000)
         return if (result?.exitCode == 0 && shim.isFile) shim else null
     }
-
-    /** Runs a process and captures stdout/stderr separately. */
-    private fun runProcess(command: List<String>, timeoutMs: Long = 120_000L): ProcessResult? {
-        val process = try {
-            ProcessBuilder(command).start()
-        } catch (e: IOException) {
-            return null
-        }
-
-        val stdoutReader = process.inputStream.bufferedReader()
-        val stderrReader = process.errorStream.bufferedReader()
-        val stdout = Thread { stdoutReader.readText() }.also { it.isDaemon = true; it.start() }
-        val stderr = Thread { stderrReader.readText() }.also { it.isDaemon = true; it.start() }
-
-        return try {
-            if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) {
-                process.destroyForcibly()
-                null
-            } else {
-                ProcessResult(process.exitValue(), stdout.join().toString(), stderr.join().toString())
-            }
-        } catch (_: Exception) {
-            null
-        }
-    }
-
-    /** Result of a process execution. */
-    private data class ProcessResult(
-        val exitCode: Int,
-        val stdout: String,
-        val stderr: String,
-    )
 }

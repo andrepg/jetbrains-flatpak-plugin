@@ -1,5 +1,6 @@
 package io.github.andrepg.gtk.schema
 
+import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
@@ -64,6 +65,33 @@ class GtkSchemaManagerTest {
         withTempDirs { configDir, baseDir ->
             val manager = GtkSchemaManager(configDir, listOf(baseDir))
             assertNull(manager.generateSchema(null, "/nonexistent/flatpak"))
+        }
+    }
+
+    @Test
+    fun `generateSchema reports locating and caching progress steps`() {
+        withTempDirs { configDir, baseDir ->
+            val girDir = baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
+            copyFixture(girDir)
+
+            val manager = GtkSchemaManager(configDir, listOf(baseDir))
+            val steps = mutableListOf<GtkSchemaStep>()
+            assertNotNull(manager.generateSchema(hint, "/nonexistent/flatpak") { steps += it; true })
+
+            assertEquals(GtkSchemaStep.Locating, steps.first())
+            assertTrue(GtkSchemaStep.Caching in steps)
+        }
+    }
+
+    @Test
+    fun `generateSchema aborts on cancellation and keeps the bundled fallback`() {
+        withTempDirs { configDir, baseDir ->
+            val girDir = baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
+            copyFixture(girDir)
+
+            val manager = GtkSchemaManager(configDir, listOf(baseDir))
+            assertNull(manager.generateSchema(hint, "/nonexistent/flatpak") { it is GtkSchemaStep.Parsing })
+            assertFalse(configDir.resolve("gtk-ui-org.gnome.Sdk-50.xsd").exists())
         }
     }
 

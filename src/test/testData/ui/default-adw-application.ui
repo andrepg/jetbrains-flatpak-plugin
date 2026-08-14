@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  <object class="AdwApplicationWindow" id="mainWindow">
+    <property name="default-width">360</property>
+    <property name="default-height">240</property>
+    <child>
+      <object class="GtkBox" id="rootBox">
+        <property name="orientation">vertical</property>
+        <child>
+          <object class="AdwHeaderBar" id="headerBar">
+            <child type="title">
+              <object class="AdwWindowTitle" id="windowTitle">
+                <property name="title">Hello Adwaita</property>
+              </object>
+            </child>
+          </object>
+        </child>
+        <child>
+          <object class="GtkBox" id="contentBox">
+            <property name="orientation">vertical</property>
+            <property name="valign">center</property>
+            <property name="halign">center</property>
+            <property name="spacing">12</property>
+            <child>
+              <object class="GtkLabel" id="messageLabel">
+                <property name="label">This window uses both GTK and Adwaita widgets.</property>
+                <property name="wrap">True</property>
+                <property name="margin-top">24</property>
+                <property name="margin-bottom">24</property>
+                <property name="margin-start">24</property>
+                <property name="margin-end">24</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkButton" id="actionButton">
+                <property name="child">
+                  <object class="AdwButtonContent" id="buttonContent">
+                    <property name="icon-name">applications-games-symbolic</property>
+                    <property name="label">Run</property>
+                  </object>
+                </property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

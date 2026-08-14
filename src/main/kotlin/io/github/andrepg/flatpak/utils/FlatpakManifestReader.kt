@@ -2,7 +2,7 @@ package io.github.andrepg.flatpak.utils
 
 import com.google.gson.Gson
 import com.google.gson.JsonObject
-import com.intellij.openapi.diagnostic.Logger
+import io.github.andrepg.shared.log.Log
 import org.yaml.snakeyaml.Yaml
 import java.io.File
 
@@ -13,7 +13,7 @@ import java.io.File
  * `runtime` fields in both JSON and YAML manifests.
  */
 object FlatpakManifestReader {
-    private val logger = Logger.getInstance(FlatpakManifestReader::class.java)
+    private val log = Log.getInstance(FlatpakManifestReader::class.java)
 
     /**
      * Reads the application ID from a Flatpak manifest file.
@@ -21,8 +21,10 @@ object FlatpakManifestReader {
      * @param manifestPath The path to the Flatpak manifest file
      * @return The application ID if found, or null if the file cannot be read or parsed
      */
-    fun readAppId(manifestPath: String): String? =
-        readField(manifestPath, "app-id") ?: readField(manifestPath, "id")
+    fun readAppId(manifestPath: String): String? {
+        val fields = readFields(manifestPath, "app-id", "id")
+        return fields["app-id"] ?: fields["id"]
+    }
 
     /**
      * Reads the `sdk` field from a Flatpak manifest file (e.g. `org.gnome.Sdk`).
@@ -30,7 +32,7 @@ object FlatpakManifestReader {
      * @param manifestPath The path to the Flatpak manifest file
      * @return The SDK app-id if found, or null if the file cannot be read or parsed
      */
-    fun readSdk(manifestPath: String): String? = readField(manifestPath, "sdk")
+    fun readSdk(manifestPath: String): String? = readFields(manifestPath, "sdk")["sdk"]
 
     /**
      * Reads the `runtime` field from a Flatpak manifest file (e.g. `org.gnome.Platform`).
@@ -38,30 +40,41 @@ object FlatpakManifestReader {
      * @param manifestPath The path to the Flatpak manifest file
      * @return The runtime app-id if found, or null if the file cannot be read or parsed
      */
-    fun readRuntime(manifestPath: String): String? = readField(manifestPath, "runtime")
+    fun readRuntime(manifestPath: String): String? = readFields(manifestPath, "runtime")["runtime"]
 
-    private fun readField(manifestPath: String, key: String): String? {
+    /**
+     * Reads the `command` field from a Flatpak manifest file (e.g. `com.example.App`).
+     *
+     * @param manifestPath The path to the Flatpak manifest file
+     * @return The command run inside the sandbox if found, or null if the file cannot be read or parsed
+     */
+    fun readCommand(manifestPath: String): String? = readFields(manifestPath, "command")["command"]
+
+    /**
+     * Reads several fields from a Flatpak manifest file in a single file read/parse.
+     *
+     * @param manifestPath The path to the Flatpak manifest file
+     * @param keys The manifest field names to extract
+     * @return A map of key to field value; missing keys map to null
+     */
+    fun readFields(manifestPath: String, vararg keys: String): Map<String, String?> {
         val file = File(manifestPath)
-        if (!file.exists() || file.isDirectory) return null
+        if (!file.exists() || file.isDirectory) return emptyMap()
         return try {
             val content = file.readText()
-            if (isJson(content, file.extension)) jsonField(content, key) else yamlField(content, key)
+            if (isJson(content, file.extension)) {
+                val json = Gson().fromJson(content, JsonObject::class.java)
+                keys.associateWith { json.get(it)?.asString }
+            } else {
+                val yaml = Yaml().load<Map<String, Any>>(content)
+                keys.associateWith { yaml[it]?.toString() }
+            }
         } catch (e: Exception) {
-            logger.warn("Could not read Flatpak manifest: $manifestPath", e)
-            null
+            log.warn("Could not read Flatpak manifest: $manifestPath", e)
+            emptyMap()
         }
     }
 
     private fun isJson(content: String, extension: String?): Boolean =
         extension?.equals("json", ignoreCase = true) == true || content.trimStart().startsWith("{")
-
-    private fun jsonField(content: String, key: String): String? {
-        val json = Gson().fromJson(content, JsonObject::class.java)
-        return json.get(key)?.asString
-    }
-
-    private fun yamlField(content: String, key: String): String? {
-        val yaml = Yaml().load<Map<String, Any>>(content)
-        return yaml[key]?.toString()
-    }
 }

@@ -1,7 +1,8 @@
 package io.github.andrepg.gtk.schema.locator
 
+import io.github.andrepg.shared.log.Log
+import io.github.andrepg.shared.process.ProcessRunner
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 /**
  * Locates the GObject Introspection (GIR) directory of a GNOME SDK installed
@@ -14,6 +15,7 @@ import java.util.concurrent.TimeUnit
  * falling back to the standard runtime paths. JDK-only, no IntelliJ imports.
  */
 object GirSdkLocator {
+    private val log = Log.getInstance(GirSdkLocator::class.java)
 
     /** One row of `flatpak list --runtime --columns=application,branch,installation`. */
     data class RuntimeRow(
@@ -47,9 +49,13 @@ object GirSdkLocator {
         if (stdout != null) {
             val branch = pickBranch(parseRuntimeRows(stdout), sdkAppId, branchHint)
             if (branch != null) {
+                log.info("Resolved ${sdkAppId}@$branch via flatpak CLI")
                 return cliGirDir(sdkAppId, branch, flatpakBinary)
                     ?: globFallback(baseDirs, sdkAppId, branch)
             }
+            log.debug("No installed runtime for $sdkAppId; probing install roots directly")
+        } else {
+            log.debug("flatpak CLI unavailable; probing install roots directly")
         }
 
         // CLI unavailable (missing binary, no runtimes) or SDK not installed:
@@ -136,17 +142,8 @@ object GirSdkLocator {
 
     private fun numericBranch(branch: String): Int = branch.toIntOrNull() ?: -1
 
-    private fun runProcess(command: List<String>): String? = try {
-        val process = ProcessBuilder(command).redirectErrorStream(true).start()
-        if (!process.waitFor(TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
-            process.destroyForcibly()
-            null
-        } else {
-            process.inputStream.bufferedReader().readText()
-        }
-    } catch (e: Exception) {
-        null
-    }
+    private fun runProcess(command: List<String>): String? =
+        ProcessRunner.run(command, timeoutMs = TIMEOUT_MS)?.stdout
 
     private const val TIMEOUT_MS = 10_000L
 }

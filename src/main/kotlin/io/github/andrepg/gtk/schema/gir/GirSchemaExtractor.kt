@@ -1,8 +1,10 @@
 package io.github.andrepg.gtk.schema.gir
 
 import io.github.andrepg.gtk.schema.locator.GirSdkLocator
+import io.github.andrepg.shared.text.EscapeTables
 import org.w3c.dom.Element
 import java.io.File
+import java.util.concurrent.CancellationException
 import javax.xml.parsers.DocumentBuilderFactory
 import kotlin.system.exitProcess
 
@@ -156,18 +158,7 @@ object GirSchemaExtractor {
 
         private fun writeString(sb: StringBuilder, value: String) {
             sb.append('"')
-            for (ch in value) {
-                when (ch) {
-                    '"' -> sb.append("\\\"")
-                    '\\' -> sb.append("\\\\")
-                    '\n' -> sb.append("\\n")
-                    '\r' -> sb.append("\\r")
-                    '\t' -> sb.append("\\t")
-                    '\b' -> sb.append("\\b")
-                    '\u000C' -> sb.append("\\f")
-                    else -> if (ch.code < 0x20) sb.append("\\u%04x".format(ch.code)) else sb.append(ch)
-                }
-            }
+            sb.append(EscapeTables.json(value))
             sb.append('"')
         }
     }
@@ -514,13 +505,16 @@ object GirSchemaExtractor {
      * Parses every present GIR file in [girDir] into a [Registry]. Missing
      * optional files (e.g. `GtkSource-5.gir`) are skipped with a warning.
      */
-    internal fun parseAll(girDir: File): Registry {
-        val entries = GIR_FILE_NAMES.flatMap { name ->
+    internal fun parseAll(girDir: File, onProgress: GtkSchemaProgress? = null): Registry {
+        val entries = GIR_FILE_NAMES.flatMapIndexed { index, name ->
             val file = File(girDir, name)
             if (!file.isFile) {
                 System.err.println("WARNING: $name not found in $girDir; skipping")
                 emptyList()
             } else {
+                if (onProgress?.report(GtkSchemaStep.Parsing(name, index + 1, GIR_FILE_NAMES.size)) == false) {
+                    throw CancellationException("GtkBuilder schema generation cancelled")
+                }
                 parseGir(file)
             }
         }
@@ -549,11 +543,17 @@ object GirSchemaExtractor {
      * Generates the patched GtkBuilder XSD string from the GIR files under
      * [girDir]. The dir is resolved through [resolveGirDir]; fails fast when no
      * `Gtk-4.0.gir` is present.
+     *
+     * @param onProgress optional progress reporter; returning `false` aborts
+     *   generation with a [CancellationException]
      */
-    internal fun generateXsd(girDir: File): String {
+    internal fun generateXsd(girDir: File, onProgress: GtkSchemaProgress? = null): String {
         val resolved = resolveGirDir(girDir)
             ?: error("No Gtk-4.0.gir found under $girDir. Pass the gir-1.0 dir or the GNOME SDK runtime base dir, or override with -PgirDir=")
-        val registry = parseAll(resolved)
+        val registry = parseAll(resolved, onProgress)
+        if (onProgress?.report(GtkSchemaStep.Rendering) == false) {
+            throw CancellationException("GtkBuilder schema generation cancelled")
+        }
         return renderXsd(registry, buildEnums(registry))
     }
 

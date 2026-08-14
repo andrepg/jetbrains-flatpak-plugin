@@ -2,6 +2,7 @@
 <idea-plugin>
     <id>io.github.andrepg.flatpak-support</id>
     <name>Flatpak DevTools</name>
+    <product-descriptor code="PFLATPAKDEV" release-date="20260814" release-version="20261" optional="true"/>
     <version>${pluginVersion}</version>
 
     <vendor
@@ -21,7 +22,7 @@
             <li><b>Code completion &amp; validation</b> — schema-driven completion and inline validation for <code>app-id</code>, <code>runtime</code>, <code>sdk</code>, <code>modules</code>, <code>finish-args</code>, <code>command</code> and every other manifest field</li>
             <li><b>One-click Flatpak actions</b> — a dedicated Flatpak Run Configuration with <i>Build</i>, <i>Run</i>, <i>Export</i>, <i>Clean</i>, <i>Validate</i> and <i>Custom</i> commands</li>
             <li><b>Smart project detection</b> — Flatpak manifests are detected on project open with a one-time balloon offering to create run configurations; right-click any manifest to run <i>Build &lt;app-id&gt;</i></li>
-            <li><b>Smart run</b> — the application id is resolved automatically from your manifest for the <i>Run</i> command</li>
+            <li><b>Smart run</b> — the <i>Run</i> command launches the built app inside the sandbox, executing the manifest's <code>command</code> (falling back to the app-id), with optional cleanup and portal sandbox flags</li>
             <li><b>Flatpak Builder SDK integration</b> — commands execute through the official <code>org.flatpak.Builder</code> SDK, with output streamed to the Run console</li>
             <li><b>Configurable binaries</b> — custom <code>flatpak</code>/<code>flatpak-builder</code> binaries, picked with a file chooser or typed directly in Settings</li>
         </ul>
@@ -31,6 +32,13 @@
             <li>Code completion and validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
             <li><b>GNOME SDK autodetection</b> — the schema branch follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest, falling back to a bundled schema when no SDK is recognized</li>
             <li><code>.xml</code> files whose root element is <code>&lt;interface&gt;</code> are also supported once a Flatpak project is recognized</li>
+            <li><b>GTK snapshot preview</b> — render the active <code>.ui</code> file to an image inside the GNOME SDK, with an editor notification and a dedicated preview tool window (Adwaita types render via a compatibility shim)</li>
+        </ul>
+
+        <h2>Known Issues</h2>
+        <ul>
+            <li><b>GTK Preview</b> — Adwaita interfaces are not yet rendered correctly</li>
+            <li><b>RUN Command</b> — The build output path is incorrect and the app does not run after building</li>
         </ul>
 
         <h2>GResource awareness <em>(in progress)</em></h2>
@@ -46,17 +54,34 @@
 
     <resource-bundle>messages.Messages</resource-bundle>
 
+    <!-- Runner extensions-->
     <extensions defaultExtensionNs="com.intellij">
-        <configurationType implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakRunConfigurationType"/>
+        <configurationType implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettingsType"/>
+        <runConfigurationProducer implementation="io.github.andrepg.flatpak.runs.configuration.RunManifestProducer"/>
 
+        <postStartupActivity implementation="io.github.andrepg.flatpak.runs.configuration.RunPostStartupDetection"/>
+
+        <!--  Flatpak binaries settings (Settings / Language) -->
+        <projectConfigurable
+                parentId="language"
+                id="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+                instance="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+                bundle="messages.Messages"
+                key="settings.flatpak.binaries.title"/>
+
+        <!-- GTK XML Bindings and schemas -->
         <fileType name="XML" extensions="ui;glade"/>
 
-        <xml.schemaProvider
-                implementation="io.github.andrepg.gtk.schema.providers.GtkInterfaceXmlSchemaProvider"
-                id="flatpak-gtk-interface"/>
+        <standardResource
+                url="urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"
+                path="schemas/gtk-ui.xsd"
+                version="1"/>
 
-        <runConfigurationProducer
-                implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakManifestProducer"/>
+        <xml.schemaProvider
+                id="flatpak-gtk-interface"
+                implementation="io.github.andrepg.gtk.schema.providers.GtkInterfaceXmlSchemaProvider"/>
+
+        <!-- Notifications -->
 
         <notificationGroup
                 displayType="BALLOON"
@@ -64,26 +89,28 @@
                 bundle="messages.Messages"
                 key="detection.notification.title"/>
 
-        <postStartupActivity implementation="io.github.andrepg.flatpak.runs.configuration.FlatpakProjectOpener"/>
-
-        <projectConfigurable
-                parentId="language"
-                id="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
-                instance="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+        <notificationGroup
+                displayType="BALLOON"
+                id="io.github.andrepg.flatpak.schema"
                 bundle="messages.Messages"
-                key="settings.flatpak.binaries.title" />
+                key="gtk.schema.generation.title"/>
 
-        <standardResource
-                url="urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"
-                path="schemas/gtk-ui.xsd"
-                version="1"/>
+        <!-- GTK Previewer -->
+        <with>
+            <property name="flatpak.gtk.preview.enabled" value="true"/>
+            <toolWindow id="gtk-preview"
+                        anchor="right"
+                        icon="/icons/gtk-preview.svg"
+                        factoryClass="io.github.andrepg.gtk.preview.ui.GtkPreviewToolWindowFactory"/>
+
+            <editorNotificationProvider
+                    implementation="io.github.andrepg.gtk.preview.ui.GtkPreviewEditorNotificationProvider"/>
+        </with>
     </extensions>
 
+    <!-- Flatpak JSON Schema Provider -->
     <extensions defaultExtensionNs="JavaScript">
         <JsonSchema.ProviderFactory
                 implementation="io.github.andrepg.flatpak.schemas.factories.FlatpakSchemaProviderFactory"/>
-            <toolWindow id="gtk-preview" anchor="right" icon="/icons/gtk-preview.svg" factoryClass="io.github.andrepg.gtk.preview.ui.GtkPreviewToolWindowFactory"/>
-        <editorNotificationProvider implementation="io.github.andrepg.gtk.preview.ui.GtkPreviewEditorNotificationProvider"/>
-        <projectService serviceImplementation="io.github.andrepg.gtk.preview.ui.GtkPreviewService"/>
     </extensions>
 </idea-plugin>

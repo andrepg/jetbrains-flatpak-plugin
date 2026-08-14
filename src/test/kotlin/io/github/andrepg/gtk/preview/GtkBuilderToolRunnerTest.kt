@@ -54,17 +54,40 @@ class GtkBuilderToolRunnerTest {
     @Test
     fun `validate fails gate for Adw file without shim`() {
         withTempDir { dir ->
-            val uiFile = File(dir, "adw.ui").apply { writeText("<interface><object class='AdwApplicationWindow'/></interface>") }
+            val uiFile = copyTestAsset(dir, "adw.ui")
             val result = GtkBuilderToolRunner.validate(uiFile, "org.gnome.Sdk", "50", "/usr/bin/flatpak")
             assertFalse(result.passesGate)
-            assertTrue(result.stderr.contains("Invalid object type 'AdwApplicationWindow'"))
+            assertTrue(result.stderr.contains("Invalid object type"))
+        }
+    }
+
+    @Test
+    fun `validate passes gate for Adw file with shim`() {
+        withTempDir { dir ->
+            val uiFile = copyTestAsset(dir, "adw.ui")
+            val shim = AdwShimManager(dir, "/usr/bin/flatpak").ensureShim("org.gnome.Sdk", "50")!!
+            val result = GtkBuilderToolRunner.validate(uiFile, "org.gnome.Sdk", "50", "/usr/bin/flatpak", shim.absolutePath)
+            assertTrue("Validation must pass once libadwaita is registered", result.passesGate)
+            assertTrue(result.stderr.isBlank())
         }
     }
 
     @Test
     fun `render produces PNG file`() {
         withTempDir { dir ->
-            val uiFile = File(dir, "window.ui").apply { writeText("<interface/>") }
+            val uiFile = File(dir, "window.ui").apply {
+                writeText(
+                    """
+                    <interface>
+                        <object class="GtkWindow" id="win">
+                            <child>
+                                <object class="GtkLabel"><property name="label">hello</property></object>
+                            </child>
+                        </object>
+                    </interface>
+                    """.trimIndent()
+                )
+            }
             val outPng = File(dir, "out.png")
             val result = GtkBuilderToolRunner.render(uiFile, outPng, "org.gnome.Sdk", "50", "/usr/bin/flatpak")
             assertTrue(result.ok)
@@ -72,8 +95,16 @@ class GtkBuilderToolRunnerTest {
         }
     }
 
+    /** Copies the shared default Adw/Gtk UI test asset into [dir]. */
+    private fun copyTestAsset(dir: File, name: String): File {
+        val source = File("src/test/testData/ui/default-adw-application.ui")
+        return File(dir, name).apply { writeText(source.readText()) }
+    }
+
     private inline fun withTempDir(block: (File) -> Unit) {
-        val dir = createTempDir()
+        // The flatpak sandbox masks host /tmp, so use a path under $HOME
+        // (exposed through --filesystem=host) for the test files.
+        val dir = File(System.getProperty("user.home"), "flatpak-preview-test-${System.nanoTime()}").apply { mkdirs() }
         try {
             block(dir)
         } finally {

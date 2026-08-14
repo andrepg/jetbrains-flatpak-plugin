@@ -5,11 +5,16 @@ package io.github.andrepg.flatpak.runs
  *
  * @property BUILD Builds the Flatpak application
  * @property CLEAN Cleans the build directory
+ * @property DEEP_CLEAN Performs deep cleanup including flatpak-builder cache
  * @property EXPORT Exports the Flatpak application to a bundle
  * @property RUN Runs the Flatpak application
  * @property VALIDATE Validates the Flatpak manifest
  * @property CUSTOM Executes a custom Flatpak command with user-provided arguments
  */
-enum class FlatpakCommand {
+enum class UserVisibleCommand {
     BUILD, CLEAN, EXPORT, RUN, VALIDATE, CUSTOM
+}
+
+enum class InternalCommand {
+    BUILD, CLEAN, DEEP_CLEAN, EXPORT, RUN, VALIDATE, CUSTOM
 }

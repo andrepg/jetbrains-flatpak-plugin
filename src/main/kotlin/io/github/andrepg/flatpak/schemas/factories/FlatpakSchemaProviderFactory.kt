@@ -1,10 +1,10 @@
 package io.github.andrepg.flatpak.schemas.factories
 
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
 import com.jetbrains.jsonSchema.extension.JsonSchemaProviderFactory
 import io.github.andrepg.flatpak.schemas.providers.FlatpakJsonSchemaProvider
+import io.github.andrepg.shared.log.Log
 
 /**
  * Registers the Flatpak JSON schema provider with the IDE.
@@ -13,7 +13,7 @@ import io.github.andrepg.flatpak.schemas.providers.FlatpakJsonSchemaProvider
  * so that Flatpak manifest files receive schema-based completion and validation.
  */
 class FlatpakSchemaProviderFactory : JsonSchemaProviderFactory {
-    private val logger = Logger.getInstance(FlatpakSchemaProviderFactory::class.java)
+    private val log = Log.getInstance(FlatpakSchemaProviderFactory::class.java)
 
     /**
      * Creates the list of JSON schema providers for the given project.
@@ -22,7 +22,7 @@ class FlatpakSchemaProviderFactory : JsonSchemaProviderFactory {
      * @return a list containing a single [FlatpakJsonSchemaProvider]
      */
     override fun getProviders(project: Project): List<JsonSchemaFileProvider> {
-        logger.info("Flatpak JSON Schema provider factory loaded, registering FlatpakJsonSchemaProvider")
+        log.info("Flatpak JSON Schema provider factory loaded, registering FlatpakJsonSchemaProvider")
         return listOf(FlatpakJsonSchemaProvider(project))
     }
 }

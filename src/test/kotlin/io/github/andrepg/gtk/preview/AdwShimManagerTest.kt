@@ -4,6 +4,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
 
@@ -40,7 +41,9 @@ class AdwShimManagerTest {
     }
 
     private inline fun withTempDir(block: (File) -> Unit) {
-        val dir = createTempDir()
+        // The flatpak sandbox masks host /tmp, so use a path under $HOME
+        // (exposed through --filesystem=host) for the test files.
+        val dir = File(System.getProperty("user.home"), "flatpak-preview-test-${System.nanoTime()}").apply { mkdirs() }
         try {
             block(dir)
         } finally {

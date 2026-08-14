@@ -1,57 +1,63 @@
 package io.github.andrepg.flatpak.settings.ui
 
-import com.intellij.openapi.options.SearchableConfigurable
-import com.intellij.openapi.util.NlsContexts
+import com.intellij.openapi.components.service
+import com.intellij.openapi.options.Configurable
+import com.intellij.openapi.project.ProjectManager
+import com.intellij.openapi.ui.TextFieldWithBrowseButton
+import com.intellij.ui.components.JBTextField
+import com.intellij.ui.dsl.builder.panel
+import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
+import io.github.andrepg.shared.Localization
+import io.github.andrepg.shared.UiRows.browseTextFieldRow
+import io.github.andrepg.shared.UiRows.textFieldRow
 import javax.swing.JComponent
 
 /**
- * Settings page for configuring the Flatpak binaries used by the plugin.
+ * Settings page for the Flatpak binary paths.
  *
- * Registered as a project configurable in `plugin.xml` under the Language group, letting users
- * set the `flatpak` and `flatpak-builder` binary paths with input validation. The UI and its
- * state live in [FlatpakSettingsPanel]; this configurable only delegates the lifecycle calls.
+ * Backed by the persisted [FlatpakGlobalSettingsState] application service:
+ * [reset] loads the current values, [apply] writes them back.
  */
-class FlatpakSettingsConfigurable : SearchableConfigurable {
+class FlatpakSettingsConfigurable : Configurable {
 
-    private val settingsPanel = FlatpakSettingsPanel()
+    private val settings = service<FlatpakGlobalSettingsState>()
 
-    /**
-     * @return the name shown in the settings tree
-     */
-    @NlsContexts.ConfigurableName
+    private lateinit var flatpakField: TextFieldWithBrowseButton
+    private lateinit var builderField: JBTextField
+
     override fun getDisplayName(): String = "Flatpak"
 
-    /**
-     * @return the unique identifier of this configurable
-     */
-    override fun getId(): String = "io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+    override fun createComponent(): JComponent = panel {
+        group(Localization.message("settings.flatpak.binaries.title")) {
+            flatpakField = browseTextFieldRow(
+                label = Localization.message("settings.flatpak.binaries.flatpak.label"),
+                project = ProjectManager.getInstance().defaultProject,
+                comment = Localization.message("settings.flatpak.binaries.flatpak.description"),
+                fileChosen = { chosenFile -> chosenFile.path },
+            ).component
 
-    /**
-     * @return the settings component to display
-     */
-    override fun createComponent(): JComponent = settingsPanel.component
-
-    /**
-     * @return true if any setting differs from its default value
-     */
-    override fun isModified(): Boolean = settingsPanel.isModified()
-
-    /**
-     * Persists the current setting values.
-     */
-    override fun apply() {
-        // Values are already bound to the panel fields; nothing further to persist.
+            builderField = textFieldRow(
+                label = Localization.message("settings.flatpak.binaries.flatpak-builder.label"),
+                comment = Localization.message("settings.flatpak.binaries.flatpak-builder.description"),
+            ).component
+        }
     }
 
-    /**
-     * Restores the settings to their default values.
-     */
-    override fun reset() = settingsPanel.reset()
+    override fun isModified(): Boolean =
+        flatpakField.text.orEmpty() != settings.flatpakBinaryPath.orEmpty() ||
+            builderField.text.orEmpty() != settings.flatpakBuilderBinaryPath.orEmpty()
 
-    /**
-     * Releases resources held by this configurable.
-     */
+    override fun apply() {
+        settings.flatpakBinaryPath = flatpakField.text.orEmpty()
+        settings.flatpakBuilderBinaryPath = builderField.text.orEmpty()
+    }
+
+    override fun reset() {
+        flatpakField.text = settings.flatpakBinaryPath.orEmpty()
+        builderField.text = settings.flatpakBuilderBinaryPath.orEmpty()
+    }
+
     override fun disposeUIResources() {
-        // Cleanup if needed
+        // No-op
     }
 }

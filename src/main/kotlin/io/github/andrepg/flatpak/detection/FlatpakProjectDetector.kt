@@ -64,8 +64,15 @@ object FlatpakProjectDetector {
      * Recursively walks the project content roots, skipping excluded directories, and returns
      * every manifest found as a (file, app-id) pair. File content is only read after the
      * filename heuristic matches.
+     *
+     * Results are cached per project by [FlatpakManifestCacheService] and invalidated on VFS
+     * changes, so repeated calls (per schema request, per editor) do not re-walk the tree.
      */
-    fun findManifests(project: Project): List<Pair<VirtualFile, String>> {
+    fun findManifests(project: Project): List<Pair<VirtualFile, String>> =
+        project.getService(FlatpakManifestCacheService::class.java).findManifests()
+
+    /** Uncached walk; used by [FlatpakManifestCacheService] to populate the cache. */
+    internal fun findManifestsUncached(project: Project): List<Pair<VirtualFile, String>> {
         val manifests = mutableListOf<Pair<VirtualFile, String>>()
         for (projectRootRecord in ProjectRootManager.getInstance(project).contentRoots) {
             VfsUtilCore.visitChildrenRecursively(

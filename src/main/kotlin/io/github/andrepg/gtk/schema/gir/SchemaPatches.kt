@@ -1,6 +1,7 @@
 package io.github.andrepg.gtk.schema.gir
 
 import io.github.andrepg.gtk.schema.gir.GirSchemaExtractor.Js
+import io.github.andrepg.shared.text.EscapeTables
 import java.util.regex.Matcher.quoteReplacement
 
 /**
@@ -158,18 +159,7 @@ internal object SchemaPatches {
     private fun enumLines(names: List<String>, indent: Int): String =
         names.joinToString("\n") { " ".repeat(indent) + "<xs:enumeration value=\"${xmlEscape(it)}\"/>" }
 
-    private fun xmlEscape(value: String): String = buildString {
-        for (ch in value) {
-            when (ch) {
-                '&' -> append("&amp;")
-                '<' -> append("&lt;")
-                '>' -> append("&gt;")
-                '"' -> append("&quot;")
-                '\'' -> append("&apos;")
-                else -> append(ch)
-            }
-        }
-    }
+    private fun xmlEscape(value: String): String = EscapeTables.xml(value)
 
     // ---------------------------------------------------------------- JSON
 

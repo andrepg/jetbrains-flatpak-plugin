@@ -1,6 +1,5 @@
 package io.github.andrepg.flatpak.schemas.providers
 
-import com.intellij.openapi.diagnostic.Logger
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
@@ -8,6 +7,7 @@ import com.jetbrains.jsonSchema.extension.SchemaType
 import com.jetbrains.jsonSchema.impl.JsonSchemaVersion
 import com.jetbrains.jsonSchema.remote.JsonFileResolver
 import io.github.andrepg.shared.Localization
+import io.github.andrepg.shared.log.Log
 
 /**
  * Remote location of the Flatpak manifest JSON schema, hosted by SchemaStore.
@@ -21,7 +21,7 @@ const val FLATPAK_MANIFEST_PATH = "https://www.schemastore.org/flatpak-manifest.
  * for files that look like Flatpak manifests.
  */
 class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFileProvider {
-    private val logger = Logger.getInstance(FlatpakJsonSchemaProvider::class.java)
+    private val log = Log.getInstance(FlatpakJsonSchemaProvider::class.java)
 
     private val manifestCommonFileNames = setOf(
         "manifest.json",
@@ -61,12 +61,12 @@ class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFilePr
     override fun getSchemaFile(): VirtualFile? {
         val file = JsonFileResolver.urlToFile(FLATPAK_MANIFEST_PATH)
 
-        logger.info("Resolving Flatpak schema from $FLATPAK_MANIFEST_PATH -> ${file?.url}")
+        log.info("Resolving Flatpak schema from $FLATPAK_MANIFEST_PATH -> ${file?.url}")
 
-        file?.let { if (!it.isValid) logger.warn("Flatpak schema file is invalid: ${it.url}") }
+        file?.let { if (!it.isValid) log.warn("Flatpak schema file is invalid: ${it.url}") }
 
         if (!JsonFileResolver.isRemoteEnabled(project)) {
-            logger.warn("Remote JSON schema downloads are disabled in IDE settings; Flatpak schema will not load")
+            log.warn("Remote JSON schema downloads are disabled in IDE settings; Flatpak schema will not load")
         }
 
         return file

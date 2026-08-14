@@ -5,6 +5,7 @@ import com.intellij.openapi.ui.ComboBox
 import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.ui.components.JBTextField
+import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.ui.dsl.builder.Cell
 import com.intellij.ui.dsl.builder.Panel
 import com.intellij.ui.dsl.builder.RowLayout
@@ -12,8 +13,8 @@ import com.intellij.ui.dsl.builder.RowLayout
 /**
  * Shared JetBrains UI DSL building blocks used by the plugin's forms.
  *
- * Both the Settings page ([FlatpakSettingsPanel]) and the run configuration editor
- * ([FlatpakRunSettingsEditor]) build their forms with these rows, keeping the
+ * Both the Settings pages ([FlatpakSettingsConfigurable]) and the run configuration editor
+ * ([RunConfigurationSettingsPanel]) build their forms with these rows, keeping the
  * label + optional comment + input layout consistent across the plugin.
  */
 object UiRows {
@@ -54,6 +55,26 @@ object UiRows {
         row.layout(RowLayout.LABEL_ALIGNED)
         if (comment != null) row.rowComment(comment)
         return row.textFieldWithBrowseButton(project, fileChosen)
+    }
+
+    /**
+     * A label row with a multiline-capable text field where each line is a separate value.
+     *
+     * @param label the field label
+     * @param comment an optional description rendered under the label
+     * @return the expandable text field cell
+     */
+    fun Panel.expandableTextFieldRow(
+        label: String,
+        comment: String? = null,
+    ): Cell<ExpandableTextField> {
+        val row = row(label) {}
+        row.layout(RowLayout.LABEL_ALIGNED)
+        if (comment != null) row.rowComment(comment)
+        return row.expandableTextField(
+            { text: String -> text.lines().map(String::trim).filter(String::isNotBlank).toMutableList() },
+            { values: List<String> -> values.joinToString("\n") },
+        )
     }
 
     /**

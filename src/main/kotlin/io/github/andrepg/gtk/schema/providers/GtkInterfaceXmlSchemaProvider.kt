@@ -1,21 +1,24 @@
 package io.github.andrepg.gtk.schema.providers
 
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.module.Module
+import com.intellij.openapi.progress.ProgressIndicator
+import com.intellij.openapi.progress.ProgressManager
+import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
 import com.intellij.psi.xml.XmlFile
-import com.intellij.psi.xml.XmlTag
 import com.intellij.xml.XmlSchemaProvider
-import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
-import io.github.andrepg.flatpak.settings.DefaultFlatpakPaths
-import io.github.andrepg.flatpak.utils.FlatpakManifestReader
+import io.github.andrepg.flatpak.settings.FlatpakSettings
 import io.github.andrepg.gtk.schema.GtkSchemaManager
 import io.github.andrepg.gtk.schema.SdkHint
+import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
+import io.github.andrepg.shared.Localization
 import java.io.File
 
 /**
@@ -66,11 +69,11 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
         if (!isAvailable(xmlFile)) return null
         val project = xmlFile.project
 
-        val hint = sdkHint(project)
+        val hint = GtkSdkHintResolver.resolve(project)
         if (xmlFile.name.matches(xmlFileRegex) && hint == null) return null
         val generated = schemaManager.cachedSchema(hint)
         if (generated == null && hint != null && schemaManager.markRequested(hint)) {
-            scheduleGeneration(hint)
+            scheduleGeneration(project, hint)
         }
 
         val schemaUrl = generated?.toURI()?.toString()
@@ -92,41 +95,82 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
     override fun isDumbAware(): Boolean = true
 
     /**
-     * Derives the SDK hint from the project's Flatpak manifests: the first
-     * manifest declaring a GNOME `sdk`/`runtime` (e.g. `org.gnome.Sdk//50`)
-     * drives the schema branch; non-GNOME or manifest-less projects get null.
+     * Schedules schema generation as a cancellable background task with a
+     * determinate progress bar, notifying via balloon on success/failure.
+     *
+     * Safe to call from any thread ([Task.Backgroundable] routes non-EDT starts
+     * through `invokeLater`), which covers [getSchema] being invoked during
+     * highlighting and background analysis.
      */
-    private fun sdkHint(project: Project): SdkHint? {
-        for ((file, _) in FlatpakProjectDetector.findManifests(project)) {
-            val candidate = FlatpakManifestReader.readSdk(file.path)
-                ?: FlatpakManifestReader.readRuntime(file.path)
-                ?: continue
-            val (appId, branch) = splitBranch(candidate)
-            if (appId.startsWith("org.gnome.")) {
-                return SdkHint(appId, branch)
+    private fun scheduleGeneration(project: Project, hint: SdkHint) {
+        if (project.isDisposed) return
+        val generation = object : Task.Backgroundable(
+            project,
+            Localization.message("gtk.schema.generation.title", hint.key),
+            true,
+        ) {
+            private var outcome = GenerationOutcome.CANCELLED
+
+            override fun run(indicator: ProgressIndicator) {
+                indicator.isIndeterminate = false
+                val generated = schemaManager.generateSchema(hint, FlatpakSettings.flatpakBinary) { step ->
+                    indicator.text = progressText(step, hint)
+                    indicator.fraction = progressFraction(step)
+                    !indicator.isCanceled()
+                }
+                outcome = when {
+                    indicator.isCanceled() -> GenerationOutcome.CANCELLED
+                    generated != null -> GenerationOutcome.SUCCESS
+                    else -> GenerationOutcome.FAILED
+                }
+            }
+
+            override fun onFinished() {
+                if (project.isDisposed) return
+                when (outcome) {
+                    GenerationOutcome.SUCCESS -> notifyGeneration(project, hint, success = true)
+                    GenerationOutcome.FAILED -> notifyGeneration(project, hint, success = false)
+                    GenerationOutcome.CANCELLED -> {}
+                }
             }
         }
-        return null
+        ProgressManager.getInstance().run(generation)
     }
 
-    private fun scheduleGeneration(hint: SdkHint) {
-        ApplicationManager.getApplication().executeOnPooledThread {
-            schemaManager.generateSchema(hint, DefaultFlatpakPaths.MAIN_BINARY)
-        }
+    private fun progressText(step: GtkSchemaStep, hint: SdkHint): String = when (step) {
+        GtkSchemaStep.Locating -> Localization.message("gtk.schema.generation.step.locating", hint.key)
+        is GtkSchemaStep.Parsing ->
+            Localization.message("gtk.schema.generation.step.parsing", step.fileName, step.index, step.total)
+        GtkSchemaStep.Rendering -> Localization.message("gtk.schema.generation.step.rendering")
+        GtkSchemaStep.Caching -> Localization.message("gtk.schema.generation.step.caching")
     }
 
-    private fun splitBranch(value: String): Pair<String, String?> {
-        val index = value.indexOf("//")
-        return if (index >= 0) {
-            value.substring(0, index) to value.substring(index + 2).takeIf { it.isNotEmpty() }
-        } else {
-            value to null
-        }
+    private fun progressFraction(step: GtkSchemaStep): Double = when (step) {
+        GtkSchemaStep.Locating -> 0.05
+        is GtkSchemaStep.Parsing -> 0.1 + 0.8 * (step.index.toDouble() / step.total)
+        GtkSchemaStep.Rendering -> 0.95
+        GtkSchemaStep.Caching -> 1.0
+    }
+
+    private fun notifyGeneration(project: Project, hint: SdkHint, success: Boolean) {
+        val key = if (success) "gtk.schema.generation.notification.success" else "gtk.schema.generation.notification.failure"
+        val type = if (success) NotificationType.INFORMATION else NotificationType.WARNING
+        NotificationGroupManager.getInstance()
+            .getNotificationGroup(NOTIFICATION_GROUP_ID)
+            .createNotification(
+                Localization.message("gtk.schema.generation.title", hint.key),
+                Localization.message(key, hint.key),
+                type,
+            )
+            .notify(project)
     }
 
     private companion object {
         const val GTK_UI_XSD_PATH = "/schemas/gtk-ui.xsd"
         const val GTK_INTERFACE_NAMESPACE = "urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"
         const val GTK_INTERFACE_ROOT = "interface"
+        const val NOTIFICATION_GROUP_ID = "io.github.andrepg.flatpak.schema"
     }
+
+    private enum class GenerationOutcome { SUCCESS, FAILED, CANCELLED }
 }

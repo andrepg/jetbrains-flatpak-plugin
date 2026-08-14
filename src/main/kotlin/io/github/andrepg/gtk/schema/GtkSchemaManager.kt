@@ -1,7 +1,10 @@
 package io.github.andrepg.gtk.schema
 
 import io.github.andrepg.gtk.schema.gir.GirSchemaExtractor
+import io.github.andrepg.gtk.schema.gir.GtkSchemaProgress
+import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
 import io.github.andrepg.gtk.schema.locator.GirSdkLocator
+import io.github.andrepg.shared.log.Log
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
@@ -26,6 +29,7 @@ class GtkSchemaManager(
 ) {
 
     private val requested = ConcurrentHashMap<String, Boolean>()
+    private val log = Log.getInstance(GtkSchemaManager::class.java)
 
     /**
      * @return the cached generated XSD for [hint]'s key, or null when absent.
@@ -42,19 +46,35 @@ class GtkSchemaManager(
      *
      * @param hint the desired GNOME SDK
      * @param flatpakBinary path of the flatpak CLI binary used for discovery
+     * @param onProgress optional progress reporter; returning `false` aborts
+     *   the attempt (the bundled schema keeps serving)
      */
-    fun generateSchema(hint: SdkHint?, flatpakBinary: String): File? {
+    fun generateSchema(hint: SdkHint?, flatpakBinary: String, onProgress: GtkSchemaProgress? = null): File? {
         if (hint == null) return null
-        cachedSchema(hint)?.let { return it }
-        val girDir = GirSdkLocator.locate(hint.sdkAppId, hint.branch, flatpakBinary, baseDirs) ?: return null
-        val xsd = try {
-            GirSchemaExtractor.generateXsd(girDir)
-        } catch (e: Exception) {
+
+        cachedSchema(hint)?.let {
+            log.info("Using cached generated GTK schema: ${it.absolutePath}")
+            return it
+        }
+
+        if (onProgress?.report(GtkSchemaStep.Locating) == false) return null
+        val girDir = GirSdkLocator.locate(hint.sdkAppId, hint.branch, flatpakBinary, baseDirs)
+        if (girDir == null) {
+            log.warn("Could not locate GIR dir for ${hint.sdkAppId}@${hint.branch}; falling back to bundled schema")
             return null
         }
+        log.info("Locating GIR dir for ${hint.sdkAppId}@${hint.branch}: ${girDir.absolutePath}")
+        val xsd = try {
+            GirSchemaExtractor.generateXsd(girDir, onProgress)
+        } catch (e: Exception) {
+            log.warn("Failed to generate GTK schema from $girDir; falling back to bundled schema", e)
+            return null
+        }
+        if (onProgress?.report(GtkSchemaStep.Caching) == false) return null
         configDir.mkdirs()
         val target = File(configDir, "gtk-ui-${hint.key}.xsd")
         target.writeText(xsd)
+        log.info("Generated and cached GTK schema: ${target.absolutePath}")
         return target
     }
 

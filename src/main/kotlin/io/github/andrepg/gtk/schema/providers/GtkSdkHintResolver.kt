@@ -1,6 +1,7 @@
 package io.github.andrepg.gtk.schema.providers
 
 import com.intellij.openapi.project.Project
+import com.intellij.openapi.vfs.VirtualFile
 import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
 import io.github.andrepg.flatpak.utils.FlatpakManifestReader
 import io.github.andrepg.gtk.schema.SdkHint
@@ -16,11 +17,17 @@ object GtkSdkHintResolver {
      * manifest declaring a GNOME `sdk`/`runtime` (e.g. `org.gnome.Sdk//50`)
      * drives the schema branch; non-GNOME or manifest-less projects get null.
      */
-    fun resolve(project: Project): SdkHint? {
-        for ((file, _) in FlatpakProjectDetector.findManifests(project)) {
-            val candidate = FlatpakManifestReader.readSdk(file.path)
-                ?: FlatpakManifestReader.readRuntime(file.path)
-                ?: continue
+    fun resolve(project: Project): SdkHint? =
+        resolveFromManifests(FlatpakProjectDetector.findManifests(project))
+
+    /**
+     * Pure logic shared by [resolve]; takes the manifest list so the decision
+     * can be tested without a running IDE project.
+     */
+    internal fun resolveFromManifests(manifests: List<Pair<VirtualFile, String>>): SdkHint? {
+        for ((file, _) in manifests) {
+            val fields = FlatpakManifestReader.readFields(file.path, "sdk", "runtime")
+            val candidate = fields["sdk"] ?: fields["runtime"] ?: continue
             val (appId, branch) = splitBranch(candidate)
             if (appId.startsWith("org.gnome.")) {
                 return SdkHint(appId, branch)

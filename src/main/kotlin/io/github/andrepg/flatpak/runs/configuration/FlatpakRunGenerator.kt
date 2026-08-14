@@ -5,22 +5,22 @@ import com.intellij.execution.RunnerAndConfigurationSettings
 import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
-import io.github.andrepg.flatpak.runs.FlatpakCommand
+import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.shared.Localization
 
 /**
  * Programmatic creation and deduplication of Flatpak run configurations.
  */
-class FlatpakRunConfigurator {
+class FlatpakRunGenerator {
 
     companion object {
 
         /**
-         * @return the registered [FlatpakConfigurationFactory] for this configuration type
+         * @return the registered [FlatpakRunSettingsType] for this configuration type
          */
-        fun factory(): FlatpakConfigurationFactory {
-            val type = ConfigurationTypeUtil.findConfigurationType(FlatpakRunConfigurationType::class.java)
-            return type.configurationFactories.first() as FlatpakConfigurationFactory
+        fun factory(): FlatpakRunSettingsFactory {
+            val type = ConfigurationTypeUtil.findConfigurationType(FlatpakRunSettingsType::class.java)
+            return type.configurationFactories.first() as FlatpakRunSettingsFactory
         }
 
         /**
@@ -41,10 +41,10 @@ class FlatpakRunConfigurator {
                 Localization.message("runs.configuration.build.name", appId),
                 factory()
             )
-            val configuration = settings.configuration as FlatpakRunConfiguration
-            configuration.command = FlatpakCommand.BUILD
+            val configuration = settings.configuration as FlatpakRunSettings
+            configuration.command = UserVisibleCommand.BUILD
             configuration.manifestPath = file.path
-            configuration.buildDir = FlatpakRunSettings.DEFAULT_OUTPUT
+            configuration.buildDir = FlatpakRunSettingsAttributes().buildDir ?: "build"
             runManager.addConfiguration(settings)
             return settings
         }
@@ -54,8 +54,8 @@ class FlatpakRunConfigurator {
          */
         fun findExisting(project: Project, file: VirtualFile): RunnerAndConfigurationSettings? =
             RunManager.getInstance(project).allSettings.firstOrNull { settings ->
-                settings.type is FlatpakRunConfigurationType &&
-                    (settings.configuration as? FlatpakRunConfiguration)?.manifestPath == file.path
+                settings.type is FlatpakRunSettingsType &&
+                    (settings.configuration as? FlatpakRunSettings)?.manifestPath == file.path
             }
     }
 }
