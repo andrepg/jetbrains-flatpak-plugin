@@ -4,6 +4,12 @@
 
 ## Unreleased
 
+## 2026.1.2 - 2026-08-15
+
+- We have included a new plugin icon to identify better our project against others in Markeplace
+- There is an entire new README and cool screenshots to see at our marketplace page
+- New plugin description and feature presentation
+
 ## 2026.1.1 - 2026-08-15
 
 ### 🎉 First release
