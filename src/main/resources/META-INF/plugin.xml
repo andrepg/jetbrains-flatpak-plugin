@@ -35,10 +35,19 @@
             <li><b>GTK snapshot preview</b> — render the active <code>.ui</code> file to an image inside the GNOME SDK, with an editor notification and a dedicated preview tool window (Adwaita types render via a compatibility shim)</li>
         </ul>
 
+        <h2>Qt/KDE support <em>(planned, phase 3)</em></h2>
+        <ul>
+            <li>Schema-aware editing for Qt <code>.ui</code> files with completion and validation</li>
+            <li><b>Qt SDK autodetection</b> — resolves the project's Qt runtime from the manifest</li>
+            <li><b>Qt snapshot preview</b> — renders Qt <code>.ui</code> files to an image inside the Qt SDK</li>
+            <li>Qt resource system integration and undeclared-file notifications</li>
+        </ul>
+
         <h2>Known Issues</h2>
         <ul>
-            <li><b>GTK Preview</b> — Adwaita interfaces are not yet rendered correctly</li>
+            <li><b>GTK Preview</b> — Adwaita interfaces are not yet rendered correctly (phase 2)</li>
             <li><b>Validate command in the JetBrains test sandbox</b> — may report missing <code>pip3</code>/<code>pipx</code>; this is an artifact of the bare sandbox SDK, not of the command</li>
+            <li><b>Qt/KDE support</b> — not yet implemented (planned for phase 3)</li>
         </ul>
 
         <h2>GResource awareness <em>(in progress)</em></h2>
@@ -82,7 +91,6 @@
                 implementation="io.github.andrepg.gtk.schema.providers.GtkInterfaceXmlSchemaProvider"/>
 
         <!-- Notifications -->
-
         <notificationGroup
                 displayType="BALLOON"
                 id="io.github.andrepg.flatpak.detection"
@@ -95,17 +103,17 @@
                 bundle="messages.Messages"
                 key="gtk.schema.generation.title"/>
 
-        <!-- GTK Previewer -->
-        <with>
-            <property name="flatpak.gtk.preview.enabled" value="true"/>
-            <toolWindow id="gtk-preview"
-                        anchor="right"
-                        icon="/icons/gtk-preview.svg"
-                        factoryClass="io.github.andrepg.gtk.preview.ui.GtkPreviewToolWindowFactory"/>
+<!--        &lt;!&ndash; GTK Previewer &ndash;&gt;-->
+<!--        <with>-->
+<!--            <property name="flatpak.gtk.preview.enabled" value="true"/>-->
+<!--            <toolWindow id="gtk-preview"-->
+<!--                        anchor="right"-->
+<!--                        icon="/icons/gtk-preview.svg"-->
+<!--                        factoryClass="io.github.andrepg.gtk.preview.ui.GtkPreviewToolWindowFactory"/>-->
 
-            <editorNotificationProvider
-                    implementation="io.github.andrepg.gtk.preview.ui.GtkPreviewEditorNotificationProvider"/>
-        </with>
+<!--            <editorNotificationProvider-->
+<!--                    implementation="io.github.andrepg.gtk.preview.ui.GtkPreviewEditorNotificationProvider"/>-->
+<!--        </with>-->
     </extensions>
 
     <!-- Flatpak JSON Schema Provider -->

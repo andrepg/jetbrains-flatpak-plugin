@@ -44,6 +44,12 @@ dependencies {
 }
 
 intellijPlatform {
+    pluginConfiguration {
+        ideaVersion {
+            sinceBuild = "256.*"
+            untilBuild = "262.*"
+        }
+    }
     publishing {
         token = providers.environmentVariable("PUBLISH_TOKEN")
         channels = listOf("stable")
