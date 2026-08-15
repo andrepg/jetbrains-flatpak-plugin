@@ -46,8 +46,7 @@ dependencies {
 intellijPlatform {
     pluginConfiguration {
         ideaVersion {
-            sinceBuild = "256.*"
-            untilBuild = "262.*"
+            untilBuild = "253.*"
         }
     }
     publishing {

@@ -6,8 +6,6 @@
 
 Develop and package sandboxed Linux applications without leaving your IDE.
 
-> **v1.0** stabilizes the **Flatpak module** (run configurations, command execution, detection, settings). The **GTK/Adwaita schema + preview** work is feature-flagged and tracked as phase 2.
-
 ## Features
 
 ### Flatpak (v1.0 core)
@@ -40,7 +38,6 @@ Develop and package sandboxed Linux applications without leaving your IDE.
 - Schema-aware editing for `.ui`/`.glade` GtkBuilder files, generated from the project's GNOME SDK GIR data (falls back to the bundled schema) — completion, highlighting and validation, including Adwaita and GtkSource widgets
 - **GNOME SDK autodetection** — the SDK and runtime are resolved from your manifest via the Flatpak CLI (with an install-root glob fallback), so the schema always matches the SDK you build against
 - **GTK snapshot preview** — a *GTK Preview* tool window renders the active `.ui` file to an image inside the GNOME SDK (via `gtk4-builder-tool`); an editor notification offers a one-click preview, and an Adwaita compatibility shim (`LD_PRELOAD`) makes Adwaita types render without installing the runtime
-- **WIP** — GResource awareness: notifies you when a UI file is not declared in your GResource manifest
 
 > These features are gated behind the premium feature flag `flatpak.gtk.preview.enabled` (part of a paid subscription). See [Free & Premium](#free--premium).
 
@@ -50,8 +47,6 @@ Develop and package sandboxed Linux applications without leaving your IDE.
 - **Qt SDK autodetection** — resolves the project's Qt runtime from the manifest
 - **Qt snapshot preview** — renders Qt `.ui` files to an image inside the Qt SDK
 - Qt resource system integration and undeclared-file notifications
-
-> These features are planned for future development. See [Roadmap](#roadmap) for details.
 
 ## Requirements
 
@@ -116,71 +111,33 @@ inputs with `-PgirDir=<dir>` / `-PschemaOut=<file>` (see AGENTS.md).
 
 ## Roadmap
 
-### ✅ v1.0 — Flatpak module (released)
-- [x] Flatpak Run Configurations (build / run / export / clean / custom / validate)
-- [x] Flatpak manifest schema autodetection with completion & validation
-- [x] Flatpak project detection with run-configuration suggestions (`[build] <app-id>`)
-- [x] Configurable Flatpak binaries
-- [x] Cleanup options (force/deep clean), D-Bus sockets and portal sandbox flags on Run
+### Phase 2 — GTK/Adwaita
+- GTK/Adwaita `.ui` file editing with code completion
+- GNOME SDK autodetection
+- GTK snapshot preview tool window
+- GResource integration and undeclared-file notifications
+- LSP for XML files
+- Adwaita rendering correctness
 
-### 🎯 Phase 2 — GTK/Adwaita (feature-flagged, in progress)
-- [x] GTK/Adwaita `.ui` file editing with code completion
-- [x] GNOME SDK autodetection
-- [x] GTK snapshot preview tool window
-- [ ] GResource integration and undeclared-file notifications
-- [ ] LSP for XML files
-- [ ] Adwaita rendering correctness
+### Phase 3 — Qt/KDE
+- Qt `.ui` file editing with code completion and validation
+- Qt SDK autodetection from manifest
+- Qt snapshot preview tool window
+- Qt resource system integration
+- Qt Creator project support
 
-### 📅 Phase 3 — Qt/KDE (planned)
-- [ ] Qt `.ui` file editing with code completion and validation
-- [ ] Qt SDK autodetection from manifest
-- [ ] Qt snapshot preview tool window
-- [ ] Qt resource system integration
-- [ ] Qt Creator project support
-
-### 🚀 Future
-- [ ] Rust/Cargo integration for Flatpak manifests
-- [ ] Python/Pip integration
-- [ ] Node.js/npm integration
-- [ ] Mobile/embedded platform support
-- [ ] CI/CD pipeline integration
-- [ ] Team collaboration features
+### Future
+- Rust/Cargo integration for Flatpak manifests
+- Python/Pip integration
+- Node.js/npm integration
+- Mobile/embedded platform support
+- CI/CD pipeline integration
+- Team collaboration features
 
 ## Known Issues
 
-- **GTK Preview**: Adwaita interfaces are not yet rendered correctly (phase 2, tracked in `GTK_BUILDING_PLAN.md`).
-- **Validate/Export command in the JetBrains test sandbox**: running `Validate` or `Export` inside the plugin-development sandbox IDE can report missing `pip3`/`pipx` (via `flatpak-node-generator`). This is an artifact of the bare sandbox SDK (which lacks the full Flatpak Builder runtime), not of the command itself — it works on a normal IDE.
-- **Custom arguments**: the *Custom arguments* field is shown in the run-configuration editor only when the **Custom** command is selected.
-- **Qt/KDE support**: Not yet implemented (planned for phase 3).
-
-## Visual Testable Features Checklist
-
-### Flatpak Run Configurations
-- [ ] **Build**: Runs `flatpak-builder` and completes without errors.
-- [ ] **Run**: Launches the built app inside the sandbox and displays output in the Run console.
-- [ ] **Export**: Exports the app to a repository/bundle without errors.
-- [ ] **Clean**: Removes the build directory and clears the cache.
-- [ ] **Validate**: Shows the effective manifest without errors.
-- [ ] **Custom**: Runs Flatpak with custom arguments.
-
-### Portal Sandbox Flags (Run Command)
-- [ ] **D-Bus**: `--socket=session-bus`, `--socket=system-bus` are applied when `/run/flatpak/bus` exists.
-- [ ] **Portals**: `--talk-name=org.freedesktop.portal.*` is applied.
-- [ ] **Themes & Icons**: `--filesystem=xdg-config/gtk-3.0:ro`, `xdg-data/icons:ro`, `xdg-data/themes:ro`, `xdg-config/glib-2.0` are applied.
-- [ ] **Audio**: `--socket=pulseaudio` is applied.
-- [ ] **Wayland**: `--socket=wayland` is applied.
-
-### Cleanup Options
-- [ ] **Force Clean**: Prepends a `clean` step before build/run/export.
-- [ ] **Deep Clean**: Also removes the `flatpak-builder` cache.
-
-### GTK/Adwaita UI Support (premium / feature-flagged)
-- [ ] **Schema Completion**: `.ui`/`.glade` files show schema-driven completion and validation.
-- [ ] **GTK Preview**: The *GTK Preview* tool window renders the active `.ui` file to an image.
-- [ ] **Editor Notification**: An in-editor notification offers a one-click preview.
-
-### Settings
-- [ ] **Custom Binaries**: The path to `flatpak` and `flatpak-builder` can be configured in Settings → Languages & Frameworks → Flatpak.
+- Validate/Export command in the JetBrains test sandbox may report missing `pip3`/`pipx`; this is an artifact of the bare sandbox SDK, not of the command itself — it works on a normal IDE.
+- Custom arguments field is shown in the run-configuration editor only when the Custom command is selected.
 
 ## Support
 
