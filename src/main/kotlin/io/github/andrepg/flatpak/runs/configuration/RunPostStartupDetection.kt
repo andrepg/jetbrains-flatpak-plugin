@@ -10,6 +10,7 @@ import com.intellij.openapi.startup.ProjectActivity
 import com.intellij.openapi.vfs.VirtualFile
 import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
 import io.github.andrepg.shared.Localization
+import io.github.andrepg.shared.log.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -19,15 +20,25 @@ import kotlinx.coroutines.withContext
  */
 class RunPostStartupDetection : ProjectActivity {
 
+    private val log = Log.getInstance(RunPostStartupDetection::class.java)
+
     override suspend fun execute(project: Project) {
         if (project.isDisposed) return
         val properties = PropertiesComponent.getInstance(project)
-        if (properties.getBoolean(FLAG_KEY, false)) return
+        if (properties.getBoolean(FLAG_KEY, false)) {
+            log.debug("Flatpak detection notification already shown for ${project.name}; skipping")
+            return
+        }
 
         val manifests = withContext(Dispatchers.Default) {
             FlatpakProjectDetector.findManifests(project)
         }
         if (project.isDisposed || manifests.isEmpty()) return
+
+        log.info(
+            "Offering run configurations for ${manifests.size} detected manifest(s) in ${project.name}: " +
+                manifests.joinToString(", ") { it.second }
+        )
 
         ApplicationManager.getApplication().invokeLater {
             if (project.isDisposed) return@invokeLater

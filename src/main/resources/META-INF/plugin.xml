@@ -113,4 +113,11 @@
         <JsonSchema.ProviderFactory
                 implementation="io.github.andrepg.flatpak.schemas.factories.FlatpakSchemaProviderFactory"/>
     </extensions>
+
+    <!-- App-level diagnostics: debug logging + opt-in Sentry error reporting -->
+    <applicationListeners>
+        <listener
+                class="io.github.andrepg.shared.diagnostics.DiagnosticsInitializer"
+                topic="com.intellij.ide.AppLifecycleListener"/>
+    </applicationListeners>
 </idea-plugin>

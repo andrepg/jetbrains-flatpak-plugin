@@ -8,6 +8,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import io.github.andrepg.flatpak.exception.FlatpakConfigurationException
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.shared.Localization
+import io.github.andrepg.shared.log.Log
 
 /**
  * Programmatic creation and deduplication of Flatpak run configurations.
@@ -15,6 +16,8 @@ import io.github.andrepg.shared.Localization
 class FlatpakRunGenerator {
 
     companion object {
+
+        private val log = Log.getInstance(FlatpakRunGenerator::class.java)
 
         /**
          * @return the registered [FlatpakRunSettingsType] for this configuration type
@@ -47,10 +50,14 @@ class FlatpakRunGenerator {
             appId: String
         ): RunnerAndConfigurationSettings {
             val runManager = RunManager.getInstance(project)
-            findExisting(project, file)?.let { return it }
+            findExisting(project, file)?.let { existing ->
+                log.debug("Reusing existing run configuration for ${file.path}: ${existing.name}")
+                return existing
+            }
 
+            val name = formatRunName(UserVisibleCommand.BUILD, appId)
             val settings = runManager.createConfiguration(
-                formatRunName(UserVisibleCommand.BUILD, appId),
+                name,
                 factory()
             )
             val configuration = settings.configuration as FlatpakRunSettings
@@ -58,6 +65,7 @@ class FlatpakRunGenerator {
             configuration.manifestPath = file.path
             configuration.buildDir = FlatpakRunSettingsAttributes().buildDir ?: "_build"
             runManager.addConfiguration(settings)
+            log.info("Created run configuration '$name' for ${file.path}")
             return settings
         }
 

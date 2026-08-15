@@ -6,6 +6,7 @@
 
 ### Added
 
+- Diagnostics infrastructure: opt-in **Sentry** error reporting (*Settings → Languages & Frameworks → Flatpak → Diagnostics*) wiring `Log` → `SentryLogBridge` (exceptions, plain errors, and warning breadcrumbs; self-hosted instance supported via `flatpak.sentry.dsn`/`SENTRY_DSN`, see AGENTS.md) and a **Debug logging** toggle (`-Dflatpak.debug=true` or the Diagnostics checkbox) that raises the `io.github.andrepg.*` log level to `FINE`
 - Flatpak v1.0 hardening pass:
   - Custom plugin exceptions (`FlatpakPluginException` + manifest/execution/configuration subtypes) wrapping command and process failures at the engine boundary
   - IDE-glue manifest reads go through the IntelliJ VFS (`FlatpakManifestVfsReader`); the pure-JDK `FlatpakManifestReader.parseFields(content, ...)` stays for tooling/hermetic tests

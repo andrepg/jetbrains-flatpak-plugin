@@ -11,11 +11,15 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
+import io.github.andrepg.shared.log.Log
 
 /**
  * Suggests a `Run '[build] <app-id>'` action when a Flatpak manifest is right-clicked.
  */
 class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), DumbAware {
+
+    private val log = Log.getInstance(RunManifestProducer::class.java)
+
     override fun setupConfigurationFromContext(
         configuration: FlatpakRunSettings,
         context: ConfigurationContext,
@@ -29,6 +33,7 @@ class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), 
         configuration.buildDir = FlatpakRunSettingsAttributes().buildDir ?: "_build"
         configuration.name = FlatpakRunGenerator.formatRunName(UserVisibleCommand.BUILD, appId)
 
+        log.debug("Produced '[build] $appId' configuration for ${file.path}")
         return true
     }
 

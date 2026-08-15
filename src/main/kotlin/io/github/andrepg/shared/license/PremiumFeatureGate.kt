@@ -1,5 +1,7 @@
 package io.github.andrepg.shared.license
 
+import io.github.andrepg.shared.log.Log
+
 /**
  * Single point that decides whether premium (paid) features are available and
  * triggers the JetBrains Marketplace license/registration dialog when they are
@@ -18,10 +20,16 @@ package io.github.andrepg.shared.license
  */
 object PremiumFeatureGate {
 
+    private val log = Log.getInstance(PremiumFeatureGate::class.java)
+
     const val DEV_OVERRIDE_PROPERTY = "flatpak.devtools.development"
 
-    fun isPremiumAvailable(): Boolean =
-        isDevelopmentBypass() || LicenseCheck.isLicensed() == true
+    fun isPremiumAvailable(): Boolean {
+        if (isDevelopmentBypass()) return true
+        val licensed = LicenseCheck.isLicensed() == true
+        log.debug("Premium gate (no development override): licensed=$licensed")
+        return licensed
+    }
 
     fun requestAccess(message: String) = LicenseCheck.requestLicense(message)
 

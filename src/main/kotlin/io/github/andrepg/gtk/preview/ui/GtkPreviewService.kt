@@ -11,6 +11,7 @@ import io.github.andrepg.gtk.schema.SdkHint
 import io.github.andrepg.gtk.schema.providers.GtkSdkHintResolver
 import io.github.andrepg.shared.FeatureFlags
 import io.github.andrepg.shared.Localization
+import io.github.andrepg.shared.log.Log
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
@@ -26,6 +27,7 @@ class GtkPreviewService(private val project: Project) {
     val flatpakBinary: String get() = FlatpakSettings.flatpakBinary
     private val shimManager by lazy { AdwShimManager(configDir, flatpakBinary) }
     private val cache = ConcurrentHashMap<String, ValidationResult>()
+    private val log = Log.getInstance(GtkPreviewService::class.java)
 
     companion object {
         private const val MAX_CACHE_ENTRIES = 50
@@ -74,6 +76,10 @@ class GtkPreviewService(private val project: Project) {
         val shim = shimManager.ensureShim(hint.sdkAppId, branch)
         val result = GtkBuilderToolRunner.validate(File(file.path), hint.sdkAppId, branch, flatpakBinary, shim?.absolutePath)
         val validation = ValidationResult(hint.sdkAppId, branch, result.ok, result.stderr, null, shim?.absolutePath)
+        log.debug(
+            "Validated ${file.path}: sdk=${hint.sdkAppId}//$branch, shim=${shim?.absolutePath ?: "none"}, " +
+                "ok=${result.ok}${if (!result.ok) " (${result.stderr.take(200)})" else ""}"
+        )
         return if (validation.gatePassed) cacheAndReturn(key, validation) else validation
     }
 
@@ -87,7 +93,11 @@ class GtkPreviewService(private val project: Project) {
             return GtkBuilderToolRunner.RenderResult(0, null)
         }
         val outPng = File(configDir, "preview-${branch}-${file.nameWithoutExtension}.png")
-        return GtkBuilderToolRunner.render(File(file.path), outPng, resolveSdk()?.sdkAppId ?: "org.gnome.Sdk", branch, flatpakBinary, ldPreload?.absolutePath)
+        val result = GtkBuilderToolRunner.render(
+            File(file.path), outPng, resolveSdk()?.sdkAppId ?: "org.gnome.Sdk", branch, flatpakBinary, ldPreload?.absolutePath
+        )
+        log.debug("Rendered ${file.path} to $outPng (exit=${result.exitCode}, png=${result.pngFile != null})")
+        return result
     }
 
     /**

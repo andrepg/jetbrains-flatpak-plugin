@@ -11,6 +11,7 @@ import com.intellij.openapi.actionSystem.impl.SimpleDataContext
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.ui.LicensingFacade
+import io.github.andrepg.shared.log.Log
 import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.security.Signature
@@ -46,6 +47,8 @@ object LicenseCheck {
 
     const val PRODUCT_CODE = "PFLATPAKDEV"
 
+    private val log = Log.getInstance(LicenseCheck::class.java)
+
     private const val KEY_PREFIX = "key:"
     private const val STAMP_PREFIX = "stamp:"
 
@@ -57,11 +60,13 @@ object LicenseCheck {
     fun isLicensed(): Boolean? {
         val facade = LicensingFacade.getInstance() ?: return null
         val stamp = facade.getConfirmationStamp(PRODUCT_CODE) ?: return false
-        return when {
+        val licensed = when {
             stamp.startsWith(KEY_PREFIX) -> isKeyValid(stamp.removePrefix(KEY_PREFIX))
             stamp.startsWith(STAMP_PREFIX) -> isLicenseServerStampValid(stamp.removePrefix(STAMP_PREFIX))
             else -> false
         }
+        log.debug("License check for $PRODUCT_CODE: ${if (licensed) "licensed" else "not licensed"}")
+        return licensed
     }
 
     /**

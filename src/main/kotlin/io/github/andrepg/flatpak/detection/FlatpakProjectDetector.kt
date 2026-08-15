@@ -7,6 +7,7 @@ import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileVisitor
 import io.github.andrepg.flatpak.utils.FlatpakManifestReader
 import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
+import io.github.andrepg.shared.log.Log
 
 /**
  * Pure service that detects Flatpak manifests in a project.
@@ -15,6 +16,8 @@ import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
  * domain (producer, configurator, project opener) consumes it for every detection concern.
  */
 object FlatpakProjectDetector {
+
+    private val log = Log.getInstance(FlatpakProjectDetector::class.java)
 
     /** Reverse-DNS names such as `org.example.app.json` (at least three segments). */
     private val reverseDnsNameRegex =
@@ -42,7 +45,11 @@ object FlatpakProjectDetector {
      */
     fun isFlatpakManifest(file: VirtualFile): String? {
         if (!isCandidateName(file.name)) return null
-        return FlatpakManifestVfsReader.readAppId(file)
+        val appId = FlatpakManifestVfsReader.readAppId(file)
+        if (appId == null) {
+            log.debug("Candidate '${file.name}' matched the naming heuristic but is not a Flatpak manifest")
+        }
+        return appId
     }
 
     /**
@@ -79,6 +86,7 @@ object FlatpakProjectDetector {
 
     /** Uncached walk; used by [FlatpakManifestCacheService] to populate the cache. */
     internal fun findManifestsUncached(project: Project): List<Pair<VirtualFile, String>> {
+        log.debug("Scanning content roots for Flatpak manifests in ${project.name}")
         val manifests = mutableListOf<Pair<VirtualFile, String>>()
         for (projectRootRecord in ProjectRootManager.getInstance(project).contentRoots) {
             VfsUtilCore.visitChildrenRecursively(
@@ -94,6 +102,10 @@ object FlatpakProjectDetector {
                 }
             )
         }
+        log.info(
+            "Found ${manifests.size} Flatpak manifest(s): " +
+                manifests.joinToString(", ") { "${it.first.path} (${it.second})" }
+        )
         return manifests
     }
 

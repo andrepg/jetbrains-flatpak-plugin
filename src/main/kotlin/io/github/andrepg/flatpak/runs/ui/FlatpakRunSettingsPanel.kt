@@ -17,11 +17,14 @@ import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.UiRows.browseTextFieldRow
 import io.github.andrepg.shared.UiRows.comboBoxRow
 import io.github.andrepg.shared.UiRows.textFieldRow
+import io.github.andrepg.shared.log.Log
 import javax.swing.JComponent
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
+
+    private val log = Log.getInstance(FlatpakRunSettingsPanel::class.java)
 
     private lateinit var commandComboBox: ComboBox<UserVisibleCommand>
     private lateinit var manifestField: TextFieldWithBrowseButton
@@ -196,6 +199,11 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         audioCheck.isSelected = configuration.enableAudio
         themesCheck.isSelected = configuration.enableThemes
         waylandCheck.isSelected = configuration.enableWayland
+
+        log.debug(
+            "Settings editor reset: command=${configuration.command}, manifest=${configuration.manifestPath}, " +
+                "buildDir=${configuration.buildDir}"
+        )
     }
 
     override fun applyEditorTo(configuration: FlatpakRunSettings) {

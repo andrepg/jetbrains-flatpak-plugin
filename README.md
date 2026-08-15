@@ -68,6 +68,23 @@ Develop and package sandboxed Linux applications without leaving your IDE.
 2. Confirm the paths to the `flatpak` and `flatpak-builder` binaries (defaults: `/usr/bin/flatpak` and `org.flatpak.Builder`).
 3. Create a **Flatpak** Run Configuration, pick your manifest, choose the command, and press Run.
 
+## Diagnostics & privacy
+
+The plugin can help you debug issues and (optionally) report them back to the team.
+
+- **Debug logging** — write verbose `io.github.andrepg.*` plugin logs to the IDE log
+  (`Help | Show Log`). Enable it in *Settings → Languages & Frameworks → Flatpak →
+  Diagnostics → Debug logging*, or launch the IDE with `-Dflatpak.debug=true`. Everything
+  is logged under the `io.github.andrepg.*` categories, so you can also scope it with
+  `Help | Diagnostic Tools | Debug Log Settings`.
+- **Anonymous error reporting (Sentry)** — **off by default**. When enabled
+  (*Settings → Flatpak → Diagnostics → Share anonymous error reports*, or
+  `-Dflatpak.sentry.enabled=true`), errors and uncaught exceptions are reported to the
+  plugin's Sentry instance. No code, manifest contents, or personal data is sent: the
+  hostname and user identity are stripped, and only `io.github.andrepg` stack frames are
+  kept as in-app. The DSN comes from the `flatpak.sentry.dsn` system property, the
+  `SENTRY_DSN` environment variable, or the embedded project DSN.
+
 ## Development
 
 ```bash
