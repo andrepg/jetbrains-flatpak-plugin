@@ -64,7 +64,7 @@ intellijPlatform {
 // Configure ktlint to use standard Kotlin style guide
 ktlint {
     android.set(false)
-    ignoreFailures.set(true)  // Set to false once formatting issues are resolved
+    ignoreFailures.set(true) // Set to false once formatting issues are resolved
     reporters {
         reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
         reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)

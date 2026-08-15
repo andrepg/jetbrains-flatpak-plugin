@@ -5,10 +5,8 @@ import com.intellij.testFramework.fixtures.BasePlatformTestCase
 import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.UIUtil
 import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
-import javax.swing.JComponent
 
 class FlatpakSettingsConfigurableTest : BasePlatformTestCase() {
-
     fun `test apply persists to the real service and reset restores`() {
         val settings = service<FlatpakGlobalSettingsState>()
         val previousFlatpak = settings.flatpakBinaryPath

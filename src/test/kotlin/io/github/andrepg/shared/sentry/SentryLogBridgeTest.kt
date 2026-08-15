@@ -7,12 +7,11 @@ import org.junit.Test
 import java.util.logging.Level
 
 class SentryLogBridgeTest {
-
     @Test
     fun `bridge is a no-op when the sentry client is not initialized`() {
         assumeFalse(
             "Sentry is already running in this JVM; this test only covers the uninitialized client",
-            Sentry.isEnabled()
+            Sentry.isEnabled(),
         )
 
         val bridge = SentryLogBridge()

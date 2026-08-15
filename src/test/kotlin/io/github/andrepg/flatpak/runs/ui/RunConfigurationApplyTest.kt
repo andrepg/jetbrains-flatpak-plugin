@@ -14,7 +14,6 @@ import java.awt.Component
 import javax.swing.JComponent
 
 class RunConfigurationApplyTest : BasePlatformTestCase() {
-
     fun `test options serialize into the configuration scheme`() {
         val factory = FlatpakRunSettingsFactory(FlatpakRunSettingsType())
         val configuration = factory.createTemplateConfiguration(project) as FlatpakRunSettings
@@ -55,7 +54,10 @@ class RunConfigurationApplyTest : BasePlatformTestCase() {
         }
     }
 
-    private fun findComponent(root: JComponent, predicate: (Component) -> Boolean): Component? {
+    private fun findComponent(
+        root: JComponent,
+        predicate: (Component) -> Boolean,
+    ): Component? {
         for (child in root.components) {
             if (predicate(child)) return child
             if (child is JComponent) {

@@ -1,16 +1,13 @@
 package io.github.andrepg.gtk.schema
 
+import com.intellij.util.io.delete
 import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
-import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
+import org.junit.Assert.*
 import org.junit.Test
 import java.io.File
+import kotlin.io.path.createTempDirectory
 
 class GtkSchemaManagerTest {
-
     private val hint = SdkHint(sdkAppId = "org.gnome.Sdk", branch = "50")
 
     @Test
@@ -25,7 +22,8 @@ class GtkSchemaManagerTest {
     @Test
     fun `generateSchema generates and caches the XSD for an installed SDK`() {
         withTempDirs { configDir, baseDir ->
-            val girDir = baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
+            val girDir =
+                baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
             copyFixture(girDir)
 
             val manager = GtkSchemaManager(configDir, listOf(baseDir))
@@ -71,12 +69,18 @@ class GtkSchemaManagerTest {
     @Test
     fun `generateSchema reports locating and caching progress steps`() {
         withTempDirs { configDir, baseDir ->
-            val girDir = baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
+            val girDir =
+                baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
             copyFixture(girDir)
 
             val manager = GtkSchemaManager(configDir, listOf(baseDir))
             val steps = mutableListOf<GtkSchemaStep>()
-            assertNotNull(manager.generateSchema(hint, "/nonexistent/flatpak") { steps += it; true })
+            assertNotNull(
+                manager.generateSchema(hint, "/nonexistent/flatpak") {
+                    steps += it
+                    true
+                },
+            )
 
             assertEquals(GtkSchemaStep.Locating, steps.first())
             assertTrue(GtkSchemaStep.Caching in steps)
@@ -86,7 +90,8 @@ class GtkSchemaManagerTest {
     @Test
     fun `generateSchema aborts on cancellation and keeps the bundled fallback`() {
         withTempDirs { configDir, baseDir ->
-            val girDir = baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
+            val girDir =
+                baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
             copyFixture(girDir)
 
             val manager = GtkSchemaManager(configDir, listOf(baseDir))
@@ -112,13 +117,14 @@ class GtkSchemaManagerTest {
     }
 
     private fun withTempDirs(block: (File, File) -> Unit) {
-        val configDir = createTempDir()
-        val baseDir = createTempDir()
+        val configDir = createTempDirectory()
+        val baseDir = createTempDirectory(configDir)
+
         try {
-            block(configDir, baseDir)
+            block(configDir.toFile(), baseDir.toFile())
         } finally {
-            configDir.deleteRecursively()
-            baseDir.deleteRecursively()
+            configDir.delete(true)
+            baseDir.delete(true)
         }
     }
 }

@@ -4,7 +4,6 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class LicenseCheckTest {
-
     @Test
     fun `product code matches JetBrains Marketplace format`() {
         val code = LicenseCheck.PRODUCT_CODE

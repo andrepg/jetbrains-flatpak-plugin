@@ -8,7 +8,6 @@ import org.junit.Test
 import java.io.File
 
 class FlatpakProjectDetectorTest {
-
     @Test
     fun `matches reverse-DNS manifest filenames`() {
         assertTrue(FlatpakProjectDetector.isCandidateName("org.example.app.json"))
@@ -41,28 +40,31 @@ class FlatpakProjectDetectorTest {
 
     @Test
     fun `reads app-id from a matching candidate file`() {
-        val appId = FlatpakProjectDetector.readAppIdFromCandidate(
-            "org.example.app.json",
-            File("test-data/valid-manifest.json").absolutePath
-        )
+        val appId =
+            FlatpakProjectDetector.readAppIdFromCandidate(
+                "org.example.app.json",
+                File("test-data/valid-manifest.json").absolutePath,
+            )
         assertEquals("org.example.MyApp", appId)
     }
 
     @Test
     fun `does not read content when the name does not match`() {
-        val appId = FlatpakProjectDetector.readAppIdFromCandidate(
-            "random.json",
-            File("test-data/valid-manifest.json").absolutePath
-        )
+        val appId =
+            FlatpakProjectDetector.readAppIdFromCandidate(
+                "random.json",
+                File("test-data/valid-manifest.json").absolutePath,
+            )
         assertNull(appId)
     }
 
     @Test
     fun `returns null when the manifest has no app-id`() {
-        val temp = File.createTempFile("manifest", ".json").apply {
-            writeText("""{"runtime":"org.freedesktop.Platform","sdk":"org.freedesktop.Sdk"}""")
-            deleteOnExit()
-        }
+        val temp =
+            File.createTempFile("manifest", ".json").apply {
+                writeText("""{"runtime":"org.freedesktop.Platform","sdk":"org.freedesktop.Sdk"}""")
+                deleteOnExit()
+            }
         val appId = FlatpakProjectDetector.readAppIdFromCandidate("org.example.app.json", temp.path)
         assertNull(appId)
     }

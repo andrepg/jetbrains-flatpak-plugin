@@ -6,12 +6,11 @@ import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettingsAttributes
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import org.mockito.Mockito.`when`
 import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
 import java.io.File
 
 class DeepCleanExecutorTest {
-
     private val project = mock(Project::class.java)
 
     private fun config(configure: FlatpakRunSettings.() -> Unit = {}): FlatpakRunSettings {

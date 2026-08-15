@@ -5,7 +5,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LogConfigurationTest {
-
     @Test
     fun `enabling debug raises the namespace level so debug records are loggable`() {
         try {

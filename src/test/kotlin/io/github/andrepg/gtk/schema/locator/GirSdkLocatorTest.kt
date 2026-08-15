@@ -1,18 +1,21 @@
 package io.github.andrepg.gtk.schema.locator
 
+import com.intellij.util.io.delete
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.io.File
+import kotlin.io.path.createTempDirectory
+import kotlin.io.path.deleteIfExists
 
 class GirSdkLocatorTest {
-
-    private val sampleOutput = """
+    private val sampleOutput =
+        """
         org.gnome.Sdk	50	user
         org.gnome.Platform	50	system
         org.freedesktop.Sdk	24.08	system
         org.gnome.Sdk	49	system
-    """.trimIndent()
+        """.trimIndent()
 
     @Test
     fun `parseRuntimeRows skips blanks and partial lines`() {
@@ -59,15 +62,19 @@ class GirSdkLocatorTest {
     @Test
     fun `locate uses the glob fallback when the flatpak CLI is unavailable`() {
         withTempDir { dir ->
-            dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
-                .resolve("Gtk-4.0.gir").writeText("<x/>")
+            dir
+                .resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0")
+                .apply { mkdirs() }
+                .resolve("Gtk-4.0.gir")
+                .writeText("<x/>")
 
-            val found = GirSdkLocator.locate(
-                sdkAppId = "org.gnome.Sdk",
-                branchHint = "50",
-                flatpakBinary = "/nonexistent/flatpak",
-                baseDirs = listOf(dir),
-            )
+            val found =
+                GirSdkLocator.locate(
+                    sdkAppId = "org.gnome.Sdk",
+                    branchHint = "50",
+                    flatpakBinary = "/nonexistent/flatpak",
+                    baseDirs = listOf(dir),
+                )
             assertEquals(
                 dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0"),
                 found,
@@ -78,17 +85,24 @@ class GirSdkLocatorTest {
     @Test
     fun `locate scans for the highest branch when no hint is given`() {
         withTempDir { dir ->
-            dir.resolve("runtime/org.gnome.Sdk/x86_64/49/active/files/share/gir-1.0").apply { mkdirs() }
-                .resolve("Gtk-4.0.gir").writeText("<x/>")
-            dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
-                .resolve("Gtk-4.0.gir").writeText("<x/>")
+            dir
+                .resolve("runtime/org.gnome.Sdk/x86_64/49/active/files/share/gir-1.0")
+                .apply { mkdirs() }
+                .resolve("Gtk-4.0.gir")
+                .writeText("<x/>")
+            dir
+                .resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0")
+                .apply { mkdirs() }
+                .resolve("Gtk-4.0.gir")
+                .writeText("<x/>")
 
-            val found = GirSdkLocator.locate(
-                sdkAppId = "org.gnome.Sdk",
-                branchHint = null,
-                flatpakBinary = "/nonexistent/flatpak",
-                baseDirs = listOf(dir),
-            )
+            val found =
+                GirSdkLocator.locate(
+                    sdkAppId = "org.gnome.Sdk",
+                    branchHint = null,
+                    flatpakBinary = "/nonexistent/flatpak",
+                    baseDirs = listOf(dir),
+                )
             assertEquals(
                 dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0"),
                 found,
@@ -112,11 +126,11 @@ class GirSdkLocatorTest {
     }
 
     private inline fun withTempDir(block: (File) -> Unit) {
-        val dir = createTempDir()
+        val dir = createTempDirectory()
         try {
-            block(dir)
+            block(dir.toFile())
         } finally {
-            dir.deleteRecursively()
+            dir.delete(true)
         }
     }
 }
