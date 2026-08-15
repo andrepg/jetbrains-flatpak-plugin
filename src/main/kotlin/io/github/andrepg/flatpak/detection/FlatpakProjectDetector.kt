@@ -6,6 +6,7 @@ import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileVisitor
 import io.github.andrepg.flatpak.utils.FlatpakManifestReader
+import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
 
 /**
  * Pure service that detects Flatpak manifests in a project.
@@ -37,17 +38,22 @@ object FlatpakProjectDetector {
      * Returns the app-id when [file] looks like a Flatpak manifest, null otherwise.
      *
      * The filename is matched before any content is read, so arbitrary files are never parsed.
+     * Content is read through the VFS ([FlatpakManifestVfsReader]).
      */
-    fun isFlatpakManifest(file: VirtualFile): String? =
-        readAppIdFromCandidate(file.name, file.path)
+    fun isFlatpakManifest(file: VirtualFile): String? {
+        if (!isCandidateName(file.name)) return null
+        return FlatpakManifestVfsReader.readAppId(file)
+    }
 
     /**
-     * Filename heuristic shared by [isFlatpakManifest] and the pure-JUnit tests.
+     * Filename heuristic shared by [isFlatpakManifest], the JSON schema provider
+     * and the pure-JUnit tests.
      *
      * Accepts reverse-DNS names such as `org.example.app.json` (at least three segments) and
      * generic names starting with `flatpak`/`manifest`, restricted to {json, yaml, yml} extensions.
+     * Matching is case-insensitive.
      */
-    internal fun isCandidateName(fileName: String): Boolean {
+    fun isCandidateName(fileName: String): Boolean {
         val name = fileName.lowercase()
         return name.matches(reverseDnsNameRegex) || name.matches(commonNameRegex)
     }

@@ -3,7 +3,7 @@ package io.github.andrepg.gtk.schema.providers
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
-import io.github.andrepg.flatpak.utils.FlatpakManifestReader
+import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
 import io.github.andrepg.gtk.schema.SdkHint
 
 /**
@@ -26,7 +26,7 @@ object GtkSdkHintResolver {
      */
     internal fun resolveFromManifests(manifests: List<Pair<VirtualFile, String>>): SdkHint? {
         for ((file, _) in manifests) {
-            val fields = FlatpakManifestReader.readFields(file.path, "sdk", "runtime")
+            val fields = FlatpakManifestVfsReader.readFields(file, "sdk", "runtime")
             val candidate = fields["sdk"] ?: fields["runtime"] ?: continue
             val (appId, branch) = splitBranch(candidate)
             if (appId.startsWith("org.gnome.")) {

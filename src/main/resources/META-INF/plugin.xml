@@ -27,7 +27,7 @@
             <li><b>Configurable binaries</b> — custom <code>flatpak</code>/<code>flatpak-builder</code> binaries, picked with a file chooser or typed directly in Settings</li>
         </ul>
 
-        <h2>GtkBuilder XML support</h2>
+        <h2>GtkBuilder XML support <em>(premium, feature-flagged)</em></h2>
         <ul>
             <li>Code completion and validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
             <li><b>GNOME SDK autodetection</b> — the schema branch follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest, falling back to a bundled schema when no SDK is recognized</li>
@@ -38,7 +38,7 @@
         <h2>Known Issues</h2>
         <ul>
             <li><b>GTK Preview</b> — Adwaita interfaces are not yet rendered correctly</li>
-            <li><b>RUN Command</b> — The build output path is incorrect and the app does not run after building</li>
+            <li><b>Validate command in the JetBrains test sandbox</b> — may report missing <code>pip3</code>/<code>pipx</code>; this is an artifact of the bare sandbox SDK, not of the command</li>
         </ul>
 
         <h2>GResource awareness <em>(in progress)</em></h2>

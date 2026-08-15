@@ -6,8 +6,8 @@ class ExportBundleCommandFactory : CommandFactory() {
     override fun create(settings: FlatpakRunSettings): List<String> = this.getFlatpakCommand().plus(
         listOf(
             "--repo=repo-build",
-            settings.buildDir,
-            settings.manifestPath,
+            settings.effectiveBuildDir(),
+            settings.effectiveManifestPath(),
         )
     )
 }

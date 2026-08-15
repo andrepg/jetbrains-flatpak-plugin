@@ -63,3 +63,19 @@ tasks.named("runIde") {
         systemProperty("flatpak.devtools.development", "true")
     }
 }
+
+// Regenerates the BUNDLED GTK/Adwaita schema artifacts
+// (src/main/resources/schemas/gtk-ui-schema.json + gtk-ui.xsd) from GIR data.
+// This provisions the bundled fallback (GNOME 50 basic support) shipped with the
+// plugin; the phase-2 runtime per-project schema generation (GtkSchemaManager) is
+// the primary path. Run it from CI pre-deploy (never during app lifecycle).
+//   ./gradlew generateBundledGtkSchema
+//   ./gradlew generateBundledGtkSchema -PgirDir=/path/to/gir-1.0 -PschemaOut=/tmp/gtk-ui-schema.json
+tasks.register<JavaExec>("generateBundledGtkSchema") {
+    description = "Regenerates the bundled GTK/Adwaita UI schema (gtk-ui-schema.json + gtk-ui.xsd) from GIR data"
+    group = "build"
+    mainClass.set("io.github.andrepg.gtk.schema.gir.GirSchemaExtractor")
+    classpath = sourceSets.main.get().runtimeClasspath
+    providers.gradleProperty("girDir").orNull?.let { args("--gir-dir", it) }
+    providers.gradleProperty("schemaOut").orNull?.let { args("--schema-out", it) }
+}

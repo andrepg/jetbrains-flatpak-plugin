@@ -4,9 +4,25 @@
 
 ## [Unreleased]
 
+### Added
+
+- Flatpak v1.0 hardening pass:
+  - Custom plugin exceptions (`FlatpakPluginException` + manifest/execution/configuration subtypes) wrapping command and process failures at the engine boundary
+  - IDE-glue manifest reads go through the IntelliJ VFS (`FlatpakManifestVfsReader`); the pure-JDK `FlatpakManifestReader.parseFields(content, ...)` stays for tooling/hermetic tests
+  - `DEFAULT_BUS` sandbox flags: the **Run** command always exposes the session and system D-Bus sockets
+  - `generateBundledGtkSchema` Gradle task (regenerated bundled GTK/Adwaita schema, provisioned in CI pre-publish)
+  - GitHub Actions: `ci.yml` (build + tests on PR/push) and `pre-publish.yml` (schema regeneration + `verifyPlugin` + `publishPlugin` on release)
+
+### Changed
+
+- Run configurations named `[build] <app-id>` (template `[{0}] {1}`) via `FlatpakRunGenerator.formatRunName`
+- Build directory/manifest path never blank on the command line (`effectiveBuildDir()`/`effectiveManifestPath()` default to `_build`/`flatpak.json`)
+- Manifest-name heuristics unified: `FlatpakProjectDetector.isCandidateName` now shared with the JSON schema provider
+- Feature flags consolidated: GTK gates all use `FeatureFlags`; the *Custom arguments* row in the run-configuration editor is hidden behind `flatpak.runs.show-custom-arguments` (default off)
+
 ### Known Issues
 - **GTK Preview**: Adwaita interfaces are not yet rendered correctly.
-- **RUN Command**: The build output path is incorrect, and the app does not run after building.
+- **VALIDATE**: requires `pip3`/`pipx` in the sandbox IDE (JetBrains test-IDE artifact; not reproducible on a normal IDE).
 
 ## [2026.1.1] - 2026-08-14
 

@@ -46,7 +46,11 @@ class CommandExecutionEngineTest {
             }
         )
         assertEquals(
-            listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "--run", "/tmp/build", sampleManifestPath, "my-app.sh"),
+            listOf(
+                "/usr/bin/flatpak", "run", "org.flatpak.Builder", "--run",
+                "--socket=session-bus", "--socket=system-bus",
+                "/tmp/build", sampleManifestPath, "my-app.sh"
+            ),
             line
         )
     }

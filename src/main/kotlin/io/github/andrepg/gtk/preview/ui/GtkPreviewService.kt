@@ -9,6 +9,7 @@ import io.github.andrepg.gtk.preview.AdwShimManager
 import io.github.andrepg.gtk.preview.GtkBuilderToolRunner
 import io.github.andrepg.gtk.schema.SdkHint
 import io.github.andrepg.gtk.schema.providers.GtkSdkHintResolver
+import io.github.andrepg.shared.FeatureFlags
 import io.github.andrepg.shared.Localization
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
@@ -40,9 +41,8 @@ class GtkPreviewService(private val project: Project) {
         return GtkSdkHintResolver.resolve(project)
     }
 
-    private fun isGtkPreviewEnabled(): Boolean {
-        return System.getProperty("flatpak.gtk.preview.enabled", "false").toBoolean()
-    }
+    private fun isGtkPreviewEnabled(): Boolean =
+        FeatureFlags.getBoolean(FeatureFlags.FEATURE_FLAG_ENABLE_GTK_PREVIEW)
 
     /**
      * Validates a .ui file with caching.

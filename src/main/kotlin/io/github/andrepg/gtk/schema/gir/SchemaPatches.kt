@@ -6,7 +6,7 @@ import java.util.regex.Matcher.quoteReplacement
 
 /**
  * Curated GtkBuilder grammar patches applied on top of the GIR-derived schema
- * data after every `extractGtkSchema` run.
+ * data after every `generateBundledGtkSchema` run.
  *
  * The GIR files describe classes, properties and signals, but GtkBuilder
  * syntax also contains constructs GIR can never express: free element

@@ -47,6 +47,8 @@ class GtkSdkHintResolverTest {
         file.deleteOnExit()
         val virtualFile = mock(VirtualFile::class.java)
         `when`(virtualFile.path).thenReturn(file.path)
+        `when`(virtualFile.name).thenReturn("manifest.json")
+        `when`(virtualFile.contentsToByteArray()).thenReturn(content.toByteArray(Charsets.UTF_8))
         return virtualFile to "org.example.App"
     }
 }

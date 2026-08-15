@@ -10,7 +10,7 @@ class BuildCommandFactory : CommandFactory() {
         if (settings.enableForceClean && settings.command == UserVisibleCommand.BUILD) {
             addAll(CommandExecutionArguments.FORCE_CLEAN)
         }
-        add(settings.buildDir)
-        add(settings.manifestPath)
+        add(settings.effectiveBuildDir())
+        add(settings.effectiveManifestPath())
     }
 }

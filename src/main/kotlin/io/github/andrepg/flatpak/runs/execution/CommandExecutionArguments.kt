@@ -22,6 +22,17 @@ data object CommandExecutionArguments {
         "--socket=wayland",
     )
 
+    /**
+     * D-Bus sockets always exposed to the app: without them a GNOME app has no
+     * session or system bus at all (flatpak-builder's `--run` starts with an
+     * empty context). Unconditional, added by [RunCommandFactory] before the
+     * opt-in flags.
+     */
+    val DEFAULT_BUS = setOf(
+        "--socket=session-bus",
+        "--socket=system-bus",
+    )
+
     val FORCE_CLEAN = setOf(
         "--force-clean",
     )

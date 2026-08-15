@@ -3,6 +3,8 @@ package io.github.andrepg.flatpak.runs.execution
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
 import com.intellij.openapi.project.Project
+import io.github.andrepg.flatpak.exception.FlatpakExecutionException
+import io.github.andrepg.flatpak.exception.FlatpakPluginException
 import io.github.andrepg.flatpak.runs.InternalCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.flatpak.runs.execution.commands.*
@@ -29,12 +31,21 @@ class CommandExecutionEngine(private val project: Project) {
         command: InternalCommand,
         config: FlatpakRunSettings
     ): List<String> {
-        val commandLine = when (command) {
-            InternalCommand.CUSTOM -> CustomCommandFactory().create(config)
-            InternalCommand.BUILD -> BuildCommandFactory().create(config)
-            InternalCommand.RUN -> RunCommandFactory().create(config)
-            InternalCommand.EXPORT -> ExportBundleCommandFactory().create(config)
-            InternalCommand.VALIDATE -> ValidateManifestCommandFactory().create(config)
+        val commandLine = try {
+            when (command) {
+                InternalCommand.CUSTOM -> CustomCommandFactory().create(config)
+                InternalCommand.BUILD -> BuildCommandFactory().create(config)
+                InternalCommand.RUN -> RunCommandFactory().create(config)
+                InternalCommand.EXPORT -> ExportBundleCommandFactory().create(config)
+                InternalCommand.VALIDATE -> ValidateManifestCommandFactory().create(config)
+            }
+        } catch (e: FlatpakPluginException) {
+            throw e
+        } catch (e: Exception) {
+            throw FlatpakExecutionException(
+                "Failed to build the ${command.name.lowercase()} command from the run configuration",
+                e
+            )
         }
 
         log.debug("Built $command command line: ${commandLine.joinToString(" ")}")
@@ -60,6 +71,13 @@ class CommandExecutionEngine(private val project: Project) {
      */
     fun executeCommand(commandLine: GeneralCommandLine): OSProcessHandler {
         log.info("Executing command: ${commandLine.commandLineString}")
-        return OSProcessHandler(commandLine)
+        return try {
+            OSProcessHandler(commandLine)
+        } catch (e: Exception) {
+            throw FlatpakExecutionException(
+                "Failed to start the flatpak process: ${commandLine.commandLineString}",
+                e
+            )
+        }
     }
 }

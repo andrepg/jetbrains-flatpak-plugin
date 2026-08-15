@@ -12,6 +12,7 @@ import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
+import io.github.andrepg.shared.FeatureFlags
 import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.UiRows.browseTextFieldRow
 import io.github.andrepg.shared.UiRows.comboBoxRow
@@ -27,7 +28,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
     private lateinit var manifestField: TextFieldWithBrowseButton
     private var cleanupGroupRow: Row? = null
 
-    private lateinit var customArgumentsField: ExpandableTextField
+    private var customArgumentsField: ExpandableTextField? = null
     private lateinit var buildDir: JBTextField
 
     private lateinit var forceCleanCheck: JBCheckBox
@@ -38,7 +39,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
     private lateinit var waylandCheck: JBCheckBox
 
     private val textFields by lazy {
-        listOf(
+        listOfNotNull(
             customArgumentsField,
             buildDir,
         )
@@ -123,10 +124,12 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
                 comment = Localization.message("runs.settings.build-output.description"),
             ).component
 
-            customArgumentsField = expandableTextFieldRow(
-                label = Localization.message("runs.settings.custom-arguments.label"),
-                comment = Localization.message("runs.settings.custom-arguments.description"),
-            ).component
+            if (FeatureFlags.getBoolean(FeatureFlags.FEATURE_FLAG_SHOW_CUSTOM_ARGUMENTS)) {
+                customArgumentsField = expandableTextFieldRow(
+                    label = Localization.message("runs.settings.custom-arguments.label"),
+                    comment = Localization.message("runs.settings.custom-arguments.description"),
+                ).component
+            }
         }
     }
 
@@ -164,8 +167,8 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         manifestField.text = configuration.manifestPath
         buildDir.text = configuration.buildDir
 
-        // Custom arguments passed to Flatpak
-        customArgumentsField.text = configuration.customArguments.joinToString("\n")
+        // Custom arguments passed to Flatpak (only when the row is visible)
+        customArgumentsField?.text = configuration.customArguments.joinToString("\n")
 
         // Build clean arguments
         forceCleanCheck.isSelected = configuration.enableForceClean
@@ -184,11 +187,13 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         manifestField.text.also { configuration.manifestPath = it }
         buildDir.text.also { configuration.buildDir = it }
 
-        // Custom Flatpak build arguments
-        configuration.customArguments = customArgumentsField.text
-            .lines()
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
+        // Custom Flatpak build arguments (kept as-is when the row is hidden)
+        customArgumentsField?.let { field ->
+            configuration.customArguments = field.text
+                .lines()
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
+        }
 
         // Build clean arguments
         forceCleanCheck.isSelected.also { configuration.enableForceClean = it }

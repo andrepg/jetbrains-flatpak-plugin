@@ -6,6 +6,7 @@ import com.jetbrains.jsonSchema.extension.JsonSchemaFileProvider
 import com.jetbrains.jsonSchema.extension.SchemaType
 import com.jetbrains.jsonSchema.impl.JsonSchemaVersion
 import com.jetbrains.jsonSchema.remote.JsonFileResolver
+import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
 import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.log.Log
 
@@ -22,15 +23,6 @@ const val FLATPAK_MANIFEST_PATH = "https://www.schemastore.org/flatpak-manifest.
  */
 class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFileProvider {
     private val log = Log.getInstance(FlatpakJsonSchemaProvider::class.java)
-
-    private val manifestCommonFileNames = setOf(
-        "manifest.json",
-        "flatpak.json",
-        "flatpak-manifest.json"
-    )
-
-    private val manifestAppIdRegex =
-        Regex("^[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+)+\\.(json|yaml|yml)$")
 
     /**
      * @return the display name shown in the IDE for this schema provider
@@ -75,13 +67,15 @@ class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFilePr
     /**
      * Checks whether the given file is eligible for Flatpak schema validation.
      *
-     * A file qualifies when its name matches a common manifest name (`manifest.json`,
-     * `flatpak.json`, `flatpak-manifest.json`) or an app-id style name such as
-     * `org.example.App.json`.
+     * Delegates to the shared [FlatpakProjectDetector.isCandidateName] predicate so
+     * completion/validation and manifest detection always agree on what a manifest
+     * is: common names (`manifest.json`, `flatpak.json`, `flatpak-manifest.json`)
+     * or reverse-DNS app-id names with at least three segments
+     * (`org.example.App.json`/`.yaml`/`.yml`), case-insensitive.
      *
      * @param file the file to check
      * @return true if the file looks like a Flatpak manifest
      */
     override fun isAvailable(file: VirtualFile): Boolean =
-        file.name in manifestCommonFileNames || file.name.matches(manifestAppIdRegex)
+        FlatpakProjectDetector.isCandidateName(file.name)
 }

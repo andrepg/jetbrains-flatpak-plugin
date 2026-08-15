@@ -8,6 +8,7 @@ import com.intellij.openapi.wm.ToolWindowManager
 import com.intellij.ui.EditorNotificationPanel
 import com.intellij.ui.EditorNotificationProvider
 import io.github.andrepg.gtk.schema.providers.GtkSdkHintResolver
+import io.github.andrepg.shared.FeatureFlags
 import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.license.PremiumFeatureGate
 import java.util.function.Function
@@ -44,9 +45,8 @@ class GtkPreviewEditorNotificationProvider : EditorNotificationProvider {
         }
     }
 
-    private fun isGtkPreviewEnabled(): Boolean {
-        return System.getProperty("flatpak.gtk.preview.enabled", "false").toBoolean()
-    }
+    private fun isGtkPreviewEnabled(): Boolean =
+        FeatureFlags.getBoolean(FeatureFlags.FEATURE_FLAG_ENABLE_GTK_PREVIEW)
 
     private fun updatePanel(panel: EditorNotificationPanel, validation: GtkPreviewService.ValidationResult, file: VirtualFile, project: Project) {
         panel.clear()

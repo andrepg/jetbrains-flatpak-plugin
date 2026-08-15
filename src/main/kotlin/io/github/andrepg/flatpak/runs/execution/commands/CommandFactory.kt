@@ -26,6 +26,18 @@ abstract class CommandFactory {
     abstract fun create(settings: FlatpakRunSettings): List<String>
 
     /**
+     * Build dir guaranteed non-blank (defaults to `_build`), so the positional
+     * `DIRECTORY` argument is never empty on the command line.
+     */
+    protected fun FlatpakRunSettings.effectiveBuildDir(): String = buildDir.ifBlank { "_build" }
+
+    /**
+     * Manifest path guaranteed non-blank (defaults to `flatpak.json`), so the
+     * positional `MANIFEST` argument is never empty on the command line.
+     */
+    protected fun FlatpakRunSettings.effectiveManifestPath(): String = manifestPath.ifBlank { "flatpak.json" }
+
+    /**
      * Sandbox options injected into the Run command so the app sees the requested
      * GNOME/portal integration. flatpak-builder's `--run` mode accepts the flatpak
      * context options (`--socket`, `--talk-name`, `--filesystem`, `--device`, `--env`),

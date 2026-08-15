@@ -10,9 +10,10 @@ import com.intellij.openapi.util.Ref
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
+import io.github.andrepg.flatpak.runs.UserVisibleCommand
 
 /**
- * Suggests a `Run 'Build <app-id>'` action when a Flatpak manifest is right-clicked.
+ * Suggests a `Run '[build] <app-id>'` action when a Flatpak manifest is right-clicked.
  */
 class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), DumbAware {
     override fun setupConfigurationFromContext(
@@ -23,7 +24,10 @@ class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), 
         val file = findManifestFile(context, sourceElement) ?: return false
         val appId = FlatpakProjectDetector.isFlatpakManifest(file) ?: return false
 
+        configuration.command = UserVisibleCommand.BUILD
         configuration.manifestPath = file.path
+        configuration.buildDir = FlatpakRunSettingsAttributes().buildDir ?: "_build"
+        configuration.name = FlatpakRunGenerator.formatRunName(UserVisibleCommand.BUILD, appId)
 
         return true
     }
