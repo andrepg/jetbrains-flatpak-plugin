@@ -12,27 +12,30 @@ import java.io.File
 class GtkSdkHintResolverTest {
     @Test
     fun `resolve returns hint for GNOME SDK manifest`() {
-        val manifests = listOf(
-            manifest("""{"app-id":"org.example.App","sdk":"org.gnome.Sdk//50"}"""),
-            manifest("""{"app-id":"org.example.App","runtime":"org.freedesktop.Platform"}"""),
-        )
+        val manifests =
+            listOf(
+                manifest("""{"app-id":"org.example.App","sdk":"org.gnome.Sdk//50"}"""),
+                manifest("""{"app-id":"org.example.App","runtime":"org.freedesktop.Platform"}"""),
+            )
         assertEquals(SdkHint("org.gnome.Sdk", "50"), GtkSdkHintResolver.resolveFromManifests(manifests))
     }
 
     @Test
     fun `resolve returns hint for GNOME runtime manifest`() {
-        val manifests = listOf(
-            manifest("""{"app-id":"org.example.App","runtime":"org.freedesktop.Platform"}"""),
-            manifest("""{"app-id":"org.example.App","runtime":"org.gnome.Platform//50"}"""),
-        )
+        val manifests =
+            listOf(
+                manifest("""{"app-id":"org.example.App","runtime":"org.freedesktop.Platform"}"""),
+                manifest("""{"app-id":"org.example.App","runtime":"org.gnome.Platform//50"}"""),
+            )
         assertEquals(SdkHint("org.gnome.Platform", "50"), GtkSdkHintResolver.resolveFromManifests(manifests))
     }
 
     @Test
     fun `resolve returns null for non-GNOME manifest`() {
-        val manifests = listOf(
-            manifest("""{"app-id":"org.example.App","runtime":"org.freedesktop.Platform"}"""),
-        )
+        val manifests =
+            listOf(
+                manifest("""{"app-id":"org.example.App","runtime":"org.freedesktop.Platform"}"""),
+            )
         assertNull(GtkSdkHintResolver.resolveFromManifests(manifests))
     }
 

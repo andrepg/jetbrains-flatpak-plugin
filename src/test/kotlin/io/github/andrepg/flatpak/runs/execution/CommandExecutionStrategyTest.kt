@@ -6,7 +6,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CommandExecutionStrategyTest {
-
     private val strategy = CommandExecutionStrategy()
 
     @Test

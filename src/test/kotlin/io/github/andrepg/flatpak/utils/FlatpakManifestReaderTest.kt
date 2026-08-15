@@ -20,10 +20,11 @@ class FlatpakManifestReaderTest {
             runtime-version: '22.08'
             sdk: org.freedesktop.Sdk
         """
-        val yamlFile = File.createTempFile("manifest", ".yaml").apply {
-            writeText(yamlContent)
-            deleteOnExit()
-        }
+        val yamlFile =
+            File.createTempFile("manifest", ".yaml").apply {
+                writeText(yamlContent)
+                deleteOnExit()
+            }
         val appId = FlatpakManifestReader.readAppId(yamlFile.path)
         assertEquals("org.example.MyApp", appId)
     }

@@ -8,7 +8,6 @@ import org.junit.Test
 import java.lang.reflect.Proxy
 
 class GtkInterfaceXmlSchemaProviderTest {
-
     private val provider = GtkInterfaceXmlSchemaProvider()
 
     @Test
@@ -39,18 +38,22 @@ class GtkInterfaceXmlSchemaProviderTest {
         assertFalse(provider.isAvailable(xmlFile("broken.xml")))
     }
 
-    private fun xmlFile(name: String, rootTag: String? = null): XmlFile {
-        val root = rootTag?.let { tag ->
-            Proxy.newProxyInstance(
-                XmlTag::class.java.classLoader,
-                arrayOf(XmlTag::class.java)
-            ) { _, method, _ ->
-                if (method.name == "getName") tag else null
-            } as XmlTag
-        }
+    private fun xmlFile(
+        name: String,
+        rootTag: String? = null,
+    ): XmlFile {
+        val root =
+            rootTag?.let { tag ->
+                Proxy.newProxyInstance(
+                    XmlTag::class.java.classLoader,
+                    arrayOf(XmlTag::class.java),
+                ) { _, method, _ ->
+                    if (method.name == "getName") tag else null
+                } as XmlTag
+            }
         return Proxy.newProxyInstance(
             XmlFile::class.java.classLoader,
-            arrayOf(XmlFile::class.java)
+            arrayOf(XmlFile::class.java),
         ) { _, method, _ ->
             when (method.name) {
                 "getName" -> name

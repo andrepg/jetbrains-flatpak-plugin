@@ -32,10 +32,19 @@
             <li>Code completion and validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
             <li><b>GNOME SDK autodetection</b> — the schema branch follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest, falling back to a bundled schema when no SDK is recognized</li>
             <li><code>.xml</code> files whose root element is <code>&lt;interface&gt;</code> are also supported once a Flatpak project is recognized</li>
-            <li><b>GTK snapshot preview</b> — render the active <code>.ui</code> file to an image inside the GNOME SDK, with an editor notification and a dedicated preview tool window (Adwaita types render via a compatibility shim)</li>
         </ul>
 
-        <h2>Qt/KDE support</h2>
+
+        <h3>GTK Support</h3>
+        <ul>
+            <li>Basic window/widget preview directly from the IDE</li>
+            <li>Better DX and autocompletion for interface and XML attributes</li>
+            <li>Autodetected unregistered files from GResource</li>
+            <li>Suggestion to register files into GResource</li>
+            <li>Blueprint format support</li>
+        </ul>
+
+        <h3>Qt/KDE support</h3>
         <ul>
             <li>Schema-aware editing for Qt <code>.ui</code> files with completion and validation</li>
             <li><b>Qt SDK autodetection</b> — resolves the project's Qt runtime from the manifest</li>
@@ -43,11 +52,13 @@
             <li>Qt resource system integration and undeclared-file notifications</li>
         </ul>
 
-        <h2>Roadmap</h2>
-        <ul>
-            <li><b>GTK Preview</b> — Adwaita rendering correctness and GResource integration</li>
-            <li><b>Qt/KDE support</b> — Schema-aware editing for Qt <code>.ui</code> files with completion and validation, Qt SDK autodetection, Qt snapshot preview, and Qt resource system integration</li>
-        </ul>
+
+        <h2>Basic privacy</h2>
+        <p>
+            This plugin contains a special opt-in section to enable Sentry reports under Settings | Languages & Frameworks | Flatpak Binaries.
+            We appreciate the use of this options, since it is the way we have to track bugs and problems. No personal
+            data or identification is collected.
+        </p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
@@ -90,24 +101,12 @@
                 id="io.github.andrepg.flatpak.detection"
                 bundle="messages.Messages"
                 key="detection.notification.title"/>
-
-        <notificationGroup
-                displayType="BALLOON"
-                id="io.github.andrepg.flatpak.schema"
-                bundle="messages.Messages"
-                key="gtk.schema.generation.title"/>
-
-<!--        &lt;!&ndash; GTK Previewer &ndash;&gt;-->
-<!--        <with>-->
-<!--            <property name="flatpak.gtk.preview.enabled" value="true"/>-->
-<!--            <toolWindow id="gtk-preview"-->
-<!--                        anchor="right"-->
-<!--                        icon="/icons/gtk-preview.svg"-->
-<!--                        factoryClass="io.github.andrepg.gtk.preview.ui.GtkPreviewToolWindowFactory"/>-->
-
-<!--            <editorNotificationProvider-->
-<!--                    implementation="io.github.andrepg.gtk.preview.ui.GtkPreviewEditorNotificationProvider"/>-->
-<!--        </with>-->
+         <notificationGroup
+                 displayType="BALLOON"
+                 id="io.github.andrepg.flatpak.schema"
+                 bundle="messages.Messages"
+                 key="gtk.schema.generation.title"/>
+    
     </extensions>
 
     <!-- Flatpak JSON Schema Provider -->
