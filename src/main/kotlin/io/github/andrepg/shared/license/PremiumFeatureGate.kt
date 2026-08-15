@@ -16,7 +16,7 @@ import io.github.andrepg.shared.log.Log
  * IDE), premium features are unlocked without a license. Release builds never
  * set it; the property is a documented developer affordance only — and since
  * the source is open, building from source already grants premium access
- * anyway (an accepted trade-off of the open-source model, see BILLING.md).
+ * anyway (an accepted trade-off of the open-source model).
  */
 object PremiumFeatureGate {
     private val log = Log.getInstance(PremiumFeatureGate::class.java)
