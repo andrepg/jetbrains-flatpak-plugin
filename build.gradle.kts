@@ -20,6 +20,12 @@ sentry {
     authToken = System.getenv("SENTRY_AUTH_TOKEN")
 }
 
+// The upload only runs when SENTRY_AUTH_TOKEN is set (see the sentry {} block above);
+// disable the task otherwise so local builds without the token do not fail.
+tasks.matching { it.name.startsWith("sentryUploadSourceBundle") }.configureEach {
+    enabled = System.getenv("SENTRY_AUTH_TOKEN") != null
+}
+
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
     testImplementation(libs.junit)

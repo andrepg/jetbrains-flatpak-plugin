@@ -34,16 +34,14 @@ class RunConfigurationValidatorTest {
     }
 
     @Test
-    fun `blank manifest path is reported`() {
+    fun `default manifest path is reported`() {
         val errors = RunConfigurationValidator.validate(
             config {
                 command = UserVisibleCommand.BUILD
-                manifestPath = ""
                 buildDir = "build"
             }
         )
-        System.err.println("DEBUG blank-test errors=$errors")
-        assertTrue(errors.any { it.contains("Manifest path") })
+        assertTrue(errors.any { it.contains("Manifest file not found") })
     }
 
     @Test
@@ -60,16 +58,17 @@ class RunConfigurationValidatorTest {
 
     @Test
     fun `all errors are collected in one call`() {
+        val buildDirUnderFile = File(File.createTempFile("validator-parent", ".file"), "sub").path
         val errors = RunConfigurationValidator.validate(
             config {
                 command = UserVisibleCommand.BUILD
-                manifestPath = ""
-                buildDir = ""
+                manifestPath = "does-not-exist.json"
+                buildDir = buildDirUnderFile
             }
         )
         assertEquals(2, errors.size)
-        assertTrue(errors.any { it.contains("Manifest path") })
-        assertTrue(errors.any { it.contains("Build directory") })
+        assertTrue(errors.any { it.contains("Manifest file not found") })
+        assertTrue(errors.any { it.contains("Cannot create build directory") })
     }
 
     private fun withTempManifest(block: (File) -> Unit) {

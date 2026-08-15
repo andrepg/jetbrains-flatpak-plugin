@@ -31,14 +31,10 @@ abstract class CommandFactory {
      * context options (`--socket`, `--talk-name`, `--filesystem`, `--device`, `--env`),
      * which must be placed before the `DIRECTORY MANIFEST COMMAND` positional args.
      */
-    protected fun buildSandboxOptions(config: FlatpakRunSettings): List<String> {
-        val options = listOf<String>().also {
-            if (config.enablePortals) it.plus(CommandExecutionArguments.ENABLE_PORTALS)
-            if (config.enableThemes) it.plus(CommandExecutionArguments.ENABLE_THEMES)
-            if (config.enableAudio) it.plus(CommandExecutionArguments.ENABLE_AUDIO)
-            if (config.enableWayland) it.plus(CommandExecutionArguments.ENABLE_WAYLAND)
-        }
-
-        return options
+    protected fun buildSandboxOptions(config: FlatpakRunSettings): List<String> = buildList {
+        if (config.enablePortals) addAll(CommandExecutionArguments.ENABLE_PORTALS)
+        if (config.enableThemes) addAll(CommandExecutionArguments.ENABLE_THEMES)
+        if (config.enableAudio) addAll(CommandExecutionArguments.ENABLE_AUDIO)
+        if (config.enableWayland) addAll(CommandExecutionArguments.ENABLE_WAYLAND)
     }
 }

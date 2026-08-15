@@ -3,7 +3,7 @@ package io.github.andrepg.flatpak.runs.execution
 import com.intellij.execution.configurations.CommandLineState
 import com.intellij.execution.process.ProcessHandler
 import com.intellij.execution.runners.ExecutionEnvironment
-import com.intellij.openapi.project.currentOrDefaultProject
+import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.shared.log.Log
 
@@ -11,7 +11,8 @@ import io.github.andrepg.shared.log.Log
  * Run state that executes the configured Flatpak command.
  *
  * Implements [CommandLineState] to compose the process command line and attach the console
- * output view while the command runs.
+ * output view while the command runs. When the deep clean flag is enabled for the BUILD
+ * command, the VFS deep clean runs first as a pre-step of [CommandChainProcessHandler].
  */
 class FlatpakRunner(
     environment: ExecutionEnvironment,
@@ -20,16 +21,12 @@ class FlatpakRunner(
     private val log = Log.getInstance(FlatpakRunner::class.java)
 
     private val engine = CommandExecutionEngine(environment.project)
-    private val strategy = CommandExecutionStrategy().create(config)
+    private val strategy = CommandExecutionStrategy().mapUserCommandToInternal(config.command)
 
     /**
-     * Composes the Flatpak command line and starts the underlying OS process.
+     * Composes the Flatpak command line and starts the underlying process chain.
      *
-     * Cleanup pre-steps (CLEAN/DEEP_CLEAN) run as their own processes in the
-     * background via [CleanupThenProcessHandler], never on the EDT, so they are
-     * never flattened into a single command line.
-     *
-     * @return the handler managing the started process
+     * @return the handler managing the process chain
      */
     override fun startProcess(): ProcessHandler {
         log.info(
@@ -39,16 +36,20 @@ class FlatpakRunner(
                     "themes=${config.enableThemes}, audio=${config.enableAudio}, wayland=${config.enableWayland}"
         )
 
-        val commandLines = strategy.all.map { step ->
-            engine.toGeneralCommandLine(engine.buildCommand(step, config))
+        val commandLine = engine.buildCommand(strategy, config)
+        val generalCommandLine = engine.toGeneralCommandLine(commandLine)
+            .withWorkDirectory(environment.project.basePath)
+
+        val preSteps = if (config.enableDeepClean && config.command == UserVisibleCommand.BUILD) {
+            listOf<() -> Boolean> { DeepCleanExecutor().clean(environment.project, config) }
+        } else {
+            emptyList()
         }
 
         return CommandChainProcessHandler(
-            commandLines = commandLines,
-            workDir = currentOrDefaultProject(environment.project).workspaceFile,
-            engine = engine
-        ).also {
-            it.startNotify()
-        }
+            commandLines = listOf(generalCommandLine),
+            engine = engine,
+            preSteps = preSteps
+        )
     }
 }

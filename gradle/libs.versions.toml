@@ -1,5 +1,9 @@
 [versions]
 junit = "4.13.2"
+mockito = "5.15.2"
+sentry = "8.53.0"
 
 [libraries]
 junit = { module = "junit:junit", version.ref = "junit" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }
+sentry = { module = "io.sentry:sentry", version.ref = "sentry" }

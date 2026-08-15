@@ -101,17 +101,27 @@ class CommandExecutionEngineTest {
     }
 
     @Test
-    fun `build command keeps force-clean for build and export`() {
-        for (command in listOf(InternalCommand.BUILD, InternalCommand.EXPORT)) {
-            val line = engine.buildCommand(
-                command,
-                config {
-                    manifestPath = sampleManifestPath
-                    buildDir = "/tmp/build"
-                }
-            )
-            assertTrue("expected --force-clean for $command", line.contains("--force-clean"))
+    fun `build command applies force-clean only for the BUILD command`() {
+        val buildConfig = config {
+            manifestPath = sampleManifestPath
+            buildDir = "/tmp/build"
+            enableForceClean = true
         }
+        assertTrue(
+            "expected --force-clean for BUILD",
+            engine.buildCommand(InternalCommand.BUILD, buildConfig).contains("--force-clean")
+        )
+
+        val exportConfig = config {
+            command = UserVisibleCommand.EXPORT
+            manifestPath = sampleManifestPath
+            buildDir = "/tmp/build"
+            enableForceClean = true
+        }
+        assertFalse(
+            "expected no --force-clean for EXPORT",
+            engine.buildCommand(InternalCommand.EXPORT, exportConfig).contains("--force-clean")
+        )
     }
 
     @Test
@@ -123,15 +133,11 @@ class CommandExecutionEngineTest {
         }
 
         assertEquals(
-            listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "--force-clean", "/tmp/build", sampleManifestPath),
+            listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "/tmp/build", sampleManifestPath),
             engine.buildCommand(InternalCommand.BUILD, config)
         )
         assertEquals(
-            listOf("rm", "-rf", "/tmp/build"),
-            engine.buildCommand(InternalCommand.CLEAN, config)
-        )
-        assertEquals(
-            listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "--repo=repo-build", "--force-clean", "/tmp/build", sampleManifestPath),
+            listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "--repo=repo-build", "/tmp/build", sampleManifestPath),
             engine.buildCommand(InternalCommand.EXPORT, config)
         )
         assertEquals(

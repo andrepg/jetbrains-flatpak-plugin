@@ -8,13 +8,13 @@ import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
-class CleanupThenProcessHandlerTest : BasePlatformTestCase() {
+class CommandChainProcessHandlerTest : BasePlatformTestCase() {
 
     private fun runToTermination(
-        cleanupCommandLines: List<List<String>> = emptyList(),
-        mainCommandLine: GeneralCommandLine = GeneralCommandLine(listOf("sh", "-c", "exit 0")),
+        commandLines: List<GeneralCommandLine>,
+        preSteps: List<() -> Boolean> = emptyList(),
     ): Int {
-        val handler = CleanupThenProcessHandler(cleanupCommandLines, mainCommandLine, null)
+        val handler = CommandChainProcessHandler(commandLines, CommandExecutionEngine(project), preSteps)
         val terminated = CountDownLatch(1)
         var exitCode = Int.MIN_VALUE
         handler.addProcessListener(object : ProcessListener {
@@ -31,22 +31,28 @@ class CleanupThenProcessHandlerTest : BasePlatformTestCase() {
         return exitCode
     }
 
-    fun `test cleanup failure terminates the run with exit code 1`() {
+    fun `test pre-step failure terminates the run with exit code 1`() {
         val exitCode = runToTermination(
-            cleanupCommandLines = listOf(listOf("sh", "-c", "exit 3")),
+            commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "exit 0"))),
+            preSteps = listOf({ false }),
         )
         assertEquals(1, exitCode)
     }
 
-    fun `test successful cleanup then main command yields main exit code`() {
-        val marker = File(System.getProperty("user.home"), "cleanup-handler-${System.nanoTime()}.marker")
+    fun `test successful pre-step then main command yields main exit code`() {
+        val marker = File(System.getProperty("user.home"), "chain-handler-${System.nanoTime()}.marker")
         try {
+            var preStepRan = false
             val exitCode = runToTermination(
-                cleanupCommandLines = listOf(listOf("sh", "-c", "exit 0")),
-                mainCommandLine = GeneralCommandLine(listOf("sh", "-c", "touch '$marker.path'")),
+                commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "touch '${marker.path}'"))),
+                preSteps = listOf({
+                    preStepRan = true
+                    true
+                }),
             )
             assertEquals(0, exitCode)
-            assertTrue("main command must have run after cleanup", marker.isFile)
+            assertTrue("pre-step must have run", preStepRan)
+            assertTrue("main command must have run after pre-step", marker.isFile)
         } finally {
             marker.delete()
         }
@@ -54,19 +60,18 @@ class CleanupThenProcessHandlerTest : BasePlatformTestCase() {
 
     fun `test main command failure propagates its exit code`() {
         val exitCode = runToTermination(
-            cleanupCommandLines = listOf(listOf("sh", "-c", "exit 0")),
-            mainCommandLine = GeneralCommandLine(listOf("sh", "-c", "exit 7")),
+            commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "exit 7"))),
         )
         assertEquals(7, exitCode)
     }
 
-    fun `test destroy during cleanup cancels the chain and never runs the main command`() {
-        val marker = File(System.getProperty("user.home"), "cleanup-handler-cancelled-${System.nanoTime()}.marker")
+    fun `test destroy during pre-step cancels the chain and never runs the main command`() {
+        val marker = File(System.getProperty("user.home"), "chain-handler-cancelled-${System.nanoTime()}.marker")
         try {
-            val handler = CleanupThenProcessHandler(
-                cleanupCommandLines = listOf(listOf("sh", "-c", "sleep 30")),
-                mainCommandLine = GeneralCommandLine(listOf("sh", "-c", "touch '$marker.path'")),
-                workDir = null,
+            val handler = CommandChainProcessHandler(
+                commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "touch '${marker.path}'"))),
+                engine = CommandExecutionEngine(project),
+                preSteps = listOf({ Thread.sleep(500); true }),
             )
             val terminated = CountDownLatch(1)
             handler.addProcessListener(object : ProcessListener {
@@ -75,14 +80,14 @@ class CleanupThenProcessHandlerTest : BasePlatformTestCase() {
                 }
             })
             handler.startNotify()
-            Thread.sleep(500)
+            Thread.sleep(200)
             handler.destroyProcess()
 
             assertTrue(
                 "handler must terminate after destroy",
                 terminated.await(10, TimeUnit.SECONDS),
             )
-            assertTrue("main command must never run after a cancelled cleanup", !marker.isFile)
+            assertTrue("main command must never run after a cancelled pre-step", !marker.isFile)
         } finally {
             marker.delete()
         }

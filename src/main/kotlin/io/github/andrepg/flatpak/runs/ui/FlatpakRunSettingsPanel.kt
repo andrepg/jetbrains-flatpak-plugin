@@ -8,6 +8,7 @@ import com.intellij.openapi.ui.TextFieldWithBrowseButton
 import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.ExpandableTextField
+import com.intellij.ui.dsl.builder.Row
 import com.intellij.ui.dsl.builder.panel
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
@@ -24,6 +25,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
 
     private lateinit var commandComboBox: ComboBox<UserVisibleCommand>
     private lateinit var manifestField: TextFieldWithBrowseButton
+    private var cleanupGroupRow: Row? = null
 
     private lateinit var customArgumentsField: ExpandableTextField
     private lateinit var buildDir: JBTextField
@@ -90,7 +92,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
                     .comment(Localization.message("runs.settings.deep-clean.description"))
                     .component
             }
-        }
+        }.visible(commandComboBox.selectedItem == UserVisibleCommand.BUILD)
 
         group(Localization.message("runs.settings.group.portals")) {
             row {
@@ -130,7 +132,6 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
 
     init {
         wireChangeListeners()
-        updateForceCleanEnablement()
     }
 
     /**
@@ -140,7 +141,6 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
     private fun wireChangeListeners() {
         commandComboBox.addActionListener {
             fireEditorStateChanged()
-            updateForceCleanEnablement()
         }
 
         checkboxes.forEach { it.addChangeListener { fireEditorStateChanged() } }
@@ -148,18 +148,6 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         textFields
             .plus(textWithButtons.map { it.textField })
             .forEach { it.document.addDocumentListener(notifyingDocumentListener()) }
-    }
-
-    /**
-     * Updates the enabled state of forceCleanCheck based on the selected command.
-     * Disables it for non-BUILD/EXPORT commands.
-     */
-    private fun updateForceCleanEnablement() {
-        val isBuildOrExport = commandComboBox.item in setOf(UserVisibleCommand.BUILD, UserVisibleCommand.EXPORT)
-        forceCleanCheck.isEnabled = isBuildOrExport
-        if (!isBuildOrExport) {
-            forceCleanCheck.isSelected = false
-        }
     }
 
     private fun notifyingDocumentListener() = object : DocumentListener {

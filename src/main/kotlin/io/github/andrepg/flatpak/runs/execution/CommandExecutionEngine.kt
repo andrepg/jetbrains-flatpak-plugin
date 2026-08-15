@@ -31,7 +31,6 @@ class CommandExecutionEngine(private val project: Project) {
     ): List<String> {
         val commandLine = when (command) {
             InternalCommand.CUSTOM -> CustomCommandFactory().create(config)
-            InternalCommand.DEEP_CLEAN -> DeepCleanCommandFactory().create(config)
             InternalCommand.BUILD -> BuildCommandFactory().create(config)
             InternalCommand.RUN -> RunCommandFactory().create(config)
             InternalCommand.EXPORT -> ExportBundleCommandFactory().create(config)

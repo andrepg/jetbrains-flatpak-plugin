@@ -36,12 +36,14 @@ class Log private constructor(private val jdk: JdkLogger) {
     private fun log(level: Level, message: String, throwable: Throwable?) {
         if (!jdk.isLoggable(level)) return
         jdk.log(level, message, throwable)
-        val active = listener
-        if (active != null) {
-            try {
-                active.onLog(category, level, message, throwable)
-            } catch (_: Throwable) {
-                // A misbehaving listener must never break the caller.
+
+        val l = listener ?: return
+        try {
+            l.onLog(category, level, message, throwable)
+        } catch (e: Exception) {
+            // A misbehaving listener must never break the caller.
+            if (jdk.isLoggable(Level.FINE)) {
+                jdk.log(Level.FINE, "LogListener failed for $category", e)
             }
         }
     }
@@ -56,12 +58,3 @@ class Log private constructor(private val jdk: JdkLogger) {
     }
 }
 
-/**
- * Observes every event recorded through [Log].
- *
- * Implementations must not block and must never throw: exceptions thrown by a
- * listener are swallowed so the logging caller is never affected.
- */
-fun interface LogListener {
-    fun onLog(category: String, level: Level, message: String, throwable: Throwable?)
-}

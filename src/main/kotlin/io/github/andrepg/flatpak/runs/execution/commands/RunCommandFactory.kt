@@ -3,19 +3,17 @@ package io.github.andrepg.flatpak.runs.execution.commands
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.flatpak.utils.FlatpakManifestReader
 
-class RunCommandFactory: CommandFactory() {
-    override fun create(settings: FlatpakRunSettings): List<String> = this.getFlatpakCommand().let {
+class RunCommandFactory : CommandFactory() {
+    override fun create(settings: FlatpakRunSettings): List<String> {
         val appCommand = FlatpakManifestReader.readCommand(settings.manifestPath)
-        val appId = FlatpakManifestReader.readAppId(settings.manifestPath)
-
-        val sandboxArgs = this.buildSandboxOptions(settings).joinToString(" ")
-
-        it.plus(listOfNotNull(
-            "--run",
-            sandboxArgs,
-            settings.buildDir,
-            settings.manifestPath,
-            appCommand ?: appId
-        ))
+            ?: FlatpakManifestReader.readAppId(settings.manifestPath)
+        return buildList {
+            addAll(getFlatpakCommand())
+            add("--run")
+            addAll(buildSandboxOptions(settings))
+            add(settings.buildDir)
+            add(settings.manifestPath)
+            if (appCommand != null) add(appCommand)
+        }
     }
 }
