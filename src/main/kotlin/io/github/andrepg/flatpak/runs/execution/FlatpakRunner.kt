@@ -41,13 +41,18 @@ class FlatpakRunner(
             .withWorkDirectory(environment.project.basePath)
 
         val preSteps = if (config.enableDeepClean && config.command == UserVisibleCommand.BUILD) {
-            listOf<() -> Boolean> { DeepCleanExecutor().clean(environment.project, config) }
+            listOf(
+                CommandChainProcessHandler.PreStep("DEEP_CLEAN") {
+                    DeepCleanExecutor().clean(environment.project, config)
+                }
+            )
         } else {
             emptyList()
         }
 
         return CommandChainProcessHandler(
             commandLines = listOf(generalCommandLine),
+            commandLabels = listOf(config.command.name),
             engine = engine,
             preSteps = preSteps
         )

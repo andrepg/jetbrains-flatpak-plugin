@@ -1,6 +1,6 @@
 package io.github.andrepg.flatpak.runs.execution
 
-import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
@@ -13,7 +13,10 @@ import java.io.IOException
  * cache) through the IntelliJ VFS instead of spawning a `rm` process.
  *
  * Must be invoked off the EDT: refreshing and deleting large trees can block.
- * The caller ([CommandChainProcessHandler]) runs this on a pooled thread.
+ * The caller ([CommandChainProcessHandler]) runs this on a pooled thread, so the
+ * VFS deletion runs inside a [WriteCommandAction], which hands the write action
+ * off to the EDT via `invokeAndWait` when called from a background thread
+ * (`Application.runWriteAction` would throw on this thread).
  */
 class DeepCleanExecutor {
     private val log = Log.getInstance(DeepCleanExecutor::class.java)
@@ -25,7 +28,7 @@ class DeepCleanExecutor {
      */
     fun clean(project: Project, settings: FlatpakRunSettings): Boolean =
         deepCleanTargets(project, settings).fold(true) { success, target ->
-            delete(target) && success
+            delete(project, target) && success
         }
 
     /** The absolute paths cleaned by a deep clean, in deletion order. */
@@ -41,19 +44,25 @@ class DeepCleanExecutor {
         return File("${normalized}.cache/flatpak-builder/")
     }
 
-    private fun delete(target: File): Boolean {
+    private fun delete(project: Project, target: File): Boolean {
         val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(target) ?: return true
-        return try {
-            ApplicationManager.getApplication().runWriteAction {
+        var failure: IOException? = null
+        WriteCommandAction.writeCommandAction(project)
+            .withName("Deep clean")
+            .run<RuntimeException> {
                 if (virtualFile.exists()) {
-                    virtualFile.delete(this)
+                    try {
+                        virtualFile.delete(this)
+                    } catch (e: IOException) {
+                        failure = e
+                    }
                 }
             }
-            log.info("Deep clean deleted: ${target.path}")
-            true
-        } catch (e: IOException) {
-            log.warn("Deep clean failed to delete: ${target.path}", e)
-            false
+        if (failure != null) {
+            log.warn("Deep clean failed to delete: ${target.path}", failure)
+            return false
         }
+        log.info("Deep clean deleted: ${target.path}")
+        return true
     }
 }

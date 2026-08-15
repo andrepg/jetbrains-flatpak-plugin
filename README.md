@@ -28,7 +28,7 @@ Develop and package sandboxed Linux applications without leaving your IDE.
 
   Cleanup and sandbox toggles are wired into the generated command line:
   - **Cleanup Options** — *Force clean* prepends a `clean` step before build/run/export; *Deep clean* also removes the `flatpak-builder` cache.
-  - **D-Bus (always on for `Run`)** — the app is given the session and system bus sockets (`--socket=session-bus`, `--socket=system-bus`) so D-Bus service discovery works out of the box.
+  - **D-Bus (on for `Run`)** — the app is given the session and system bus sockets (`--socket=session-bus`, `--socket=system-bus`) so D-Bus service discovery works out of the box. The sockets are added only when the host exposes a Flatpak bus at `/run/flatpak/bus`; otherwise they are skipped with a warning and the app relies on flatpak's filtered default session bus (the same behaviour as GNOME Builder).
   - **Portal Permissions** (applied to `Run`) — *Portals* (`--talk-name=org.freedesktop.portal.*`, `--device=dri`, `--env=GTK_USE_PORTAL=1`), *Themes & icons* (`--filesystem=xdg-config/gtk-3.0:ro`, `xdg-data/icons:ro`, `xdg-data/themes:ro`, `xdg-config/glib-2.0`), *Audio* (`--socket=pulseaudio`), *Wayland* (`--socket=wayland`).
 
 - **Flatpak Builder SDK integration** — commands are executed through the official Flatpak Builder application (`org.flatpak.Builder`), so builds behave exactly like your terminal workflow.
@@ -106,8 +106,8 @@ inputs with `-PgirDir=<dir>` / `-PschemaOut=<file>` (see AGENTS.md).
 ## Known Issues
 
 - **GTK Preview**: Adwaita interfaces are not yet rendered correctly (phase 2).
-- **Validate command in the JetBrains test sandbox**: running `Validate` inside the plugin-development sandbox IDE can report missing `pip3`/`pipx`. This is an artifact of the bare sandbox SDK (which lacks the full Flatpak Builder runtime), not of the command itself — it works on a normal IDE.
-- **Custom arguments**: the run-configuration editor hides the *Custom arguments* field by default (legacy escape hatch). Enable it with `-Dflatpak.runs.show-custom-arguments=true`.
+- **Validate/Export command in the JetBrains test sandbox**: running `Validate` or `Export` inside the plugin-development sandbox IDE can report missing `pip3`/`pipx` (via `flatpak-node-generator`). This is an artifact of the bare sandbox SDK (which lacks the full Flatpak Builder runtime), not of the command itself — it works on a normal IDE.
+- **Custom arguments**: the *Custom arguments* field is shown in the run-configuration editor only when the **Custom** command is selected.
 
 ## Visual Testable Features Checklist
 
@@ -120,7 +120,7 @@ inputs with `-PgirDir=<dir>` / `-PschemaOut=<file>` (see AGENTS.md).
 - [ ] **Custom**: Runs Flatpak with custom arguments.
 
 ### Portal Sandbox Flags (Run Command)
-- [ ] **D-Bus**: `--socket=session-bus`, `--socket=system-bus` are always applied.
+- [ ] **D-Bus**: `--socket=session-bus`, `--socket=system-bus` are applied when `/run/flatpak/bus` exists.
 - [ ] **Portals**: `--talk-name=org.freedesktop.portal.*` is applied.
 - [ ] **Themes & Icons**: `--filesystem=xdg-config/gtk-3.0:ro`, `xdg-data/icons:ro`, `xdg-data/themes:ro`, `xdg-config/glib-2.0` are applied.
 - [ ] **Audio**: `--socket=pulseaudio` is applied.

@@ -9,18 +9,18 @@
 ## Key files
 - **Entry point**: `src/main/resources/META-INF/plugin.xml`
 - **Flatpak runs**: `src/main/kotlin/io/github/andrepg/flatpak/runs/`
-  - `FlatpakCommand.kt`: Command enums (`InternalCommand`: BUILD, CLEAN, DEEP_CLEAN, EXPORT, RUN, VALIDATE, CUSTOM; `UserVisibleCommand`)
-  - `configuration/`: Run configuration machinery (type, configuration, factory, generator, manifest producer, project opener, settings defaults). `FlatpakRunGenerator.formatRunName(command, appId)` names configs `[build] <app-id>`; `RunManifestProducer.setupConfigurationFromContext` sets command/manifest/buildDir/name explicitly
-  - `execution/CommandSelectionStrategy.kt`: Picks commands from config flags (cleanup prepends for build-like commands)
-  - `execution/CommandExecutionEngine.kt`: Maps one command to a flatpak-builder/flatpak CLI line; `toGeneralCommandLine` for the IDE process API; wraps command/process failures in `FlatpakExecutionException`
-  - `execution/CommandExecutionArguments.kt`: sandbox flag sets — `DEFAULT_BUS` (`--socket=session-bus`, `--socket=system-bus`, always on for `Run`) + opt-in portals/themes/audio/wayland
+  - `FlatpakCommand.kt`: Command enums (`InternalCommand`: BUILD, EXPORT, RUN, VALIDATE, CUSTOM; `UserVisibleCommand` — same set, what the run-config editor shows)
+  - `configuration/`: Run configuration machinery (type, configuration, factory, generator, manifest producer, project opener, settings defaults). `FlatpakRunGenerator.formatRunName(command, appId)` names configs `[build] <app-id>`; `RunManifestProducer.setupConfigurationFromContext` sets command/manifest/buildDir/name explicitly. `FlatpakRunSettings` implements `LocatableConfiguration`: `suggestedName()` drives the *Run → Edit Configurations → New* name (`[command] <app-id>`), `isGeneratedName()` recognizes the generated pattern
+  - `execution/CommandExecutionStrategy.kt`: Maps the selected `UserVisibleCommand` to the `InternalCommand` executed
+  - `execution/CommandExecutionEngine.kt`: Maps one command to a flatpak-builder/flatpak CLI line; `toGeneralCommandLine` for the IDE process API; wraps command/process failures in `FlatpakExecutionException`. Constructor takes a `hostBusAvailable` predicate (default `CommandExecutionArguments::hostHasFlatpakBus`) so RUN's D-Bus sockets are testable
+  - `execution/CommandExecutionArguments.kt`: sandbox flag sets — `DEFAULT_BUS` (`--socket=session-bus`, `--socket=system-bus`, added to `Run` only when `hostHasFlatpakBus()` — `/run/flatpak/bus` exists; otherwise skipped with a warning, GNOME Builder-style filtered default bus) + opt-in portals/themes/audio/wayland
   - `execution/commands/CommandFactory.kt`: base class with `getFlatpakCommand()`/`buildSandboxOptions()` and the `effectiveBuildDir()`/`effectiveManifestPath()` non-blank guards (I1)
-  - `execution/CleanupThenProcessHandler.kt`: `ProcessHandler` that runs cleanup pre-steps (CLEAN/DEEP_CLEAN) as raw OS processes on a pooled thread (never the EDT — `OSProcessHandler.checkEdtAndReadAction` forbids blocking `runProcess` from `CommandLineState.startProcess`), then starts the main `OSProcessHandler` and relays its output/termination
-  - `execution/FlatpakRunner.kt`: `CommandLineState` that picks the command list, routes cleanup steps through `CleanupThenProcessHandler`, and attaches the console
-  - `ui/FlatpakRunSettingsPanel.kt`: Settings editor form for the run configuration; the *Custom arguments* row is hidden unless `flatpak.runs.show-custom-arguments=true` (I3)
+  - `execution/CommandChainProcessHandler.kt`: `ProcessHandler` that runs blocking pre-steps (the VFS deep clean) on a pooled thread — never the EDT — then runs the main `OSProcessHandler` and relays its output/termination. Every step is announced to the console as a named workflow step (`Running DEEP_CLEAN...`, `Running BUILD: <cmdline>`, `<label> finished with exit code N`) so the flow is visible, not just the build report
+  - `execution/FlatpakRunner.kt`: `CommandLineState` that picks the command, labels the chain steps, routes deep clean through `CommandChainProcessHandler`, and attaches the console
+  - `ui/FlatpakRunSettingsPanel.kt`: Settings editor form for the run configuration. Option groups are command-sensitive and toggle live with the command combo: cleanup for BUILD, portal permissions for RUN, *Custom arguments* (shown right below the command box) for CUSTOM
 - **Manifest reading** (IO policy, §3.2): `flatpak/utils/FlatpakManifestReader.kt` = pure-JDK parser (`parseFields(content, fileName, keys)`, throws `FlatpakManifestException`) + JDK `readXxx(path)` conveniences (forgiving, for tooling/hermetic tests). `flatpak/utils/FlatpakManifestVfsReader.kt` = IDE glue reading `VirtualFile` (or a path via `LocalFileSystem`, with guarded JDK fallback for headless tests). IDE-glue callers (`FlatpakProjectDetector`, `RunCommandFactory`, `GtkSdkHintResolver`) read through the VFS reader.
 - **Exceptions**: `flatpak/exception/FlatpakExceptions.kt` — `FlatpakPluginException` base + `FlatpakManifestException`/`FlatpakExecutionException`/`FlatpakConfigurationException` (all pure JDK). Wrapped at boundaries (`CommandExecutionEngine`); platform contracts kept (`RuntimeConfigurationError` in `FlatpakRunSettings.checkConfiguration`).
-- **GTK preview**: `src/main/kotlin/io/github/andrepg/gtk/preview/` (JDK-only `GtkBuilderToolRunner` + `AdwShimManager`; IDE glue `ui/GtkPreviewService`, `GtkPreviewPanel`, `GtkPreviewToolWindowFactory`, `GtkPreviewEditorNotificationProvider`). All gates go through `FeatureFlags.FEATURE_FLAG_ENABLE_GTK_PREVIEW` (§3.1).
+- **GTK preview**: `src/main/kotlin/io/github/andrepg/gtk/preview/` (JDK-only `GtkBuilderToolRunner` + `AdwShimManager`; IDE glue `ui/GtkPreviewService`, `GtkPreviewPanel`, `GtkPreviewToolWindowFactory`, `GtkPreviewEditorNotificationProvider`). All gates go through `FeatureFlags.FEATURE_FLAG_ENABLE_GTK_PREVIEW` (§3.1). GTK work is tracked separately in `GTK_BUILDING_PLAN.md`.
 - **Billing/licensing**: `src/main/kotlin/io/github/andrepg/shared/license/` (`LicenseCheck` = Kotlin port of JetBrains' `CheckLicense`, verifies `LicensingFacade` stamps; `PremiumFeatureGate` = the single premium/paid-feature decision point). Freemium plugin: `<product-descriptor code="PFLATPAKDEV" ... optional="true"/>` in `plugin.xml`, product versioned `2026.1.x` (calendar scheme). Premium = GTK Preview only; the gate also honors the dev system property `flatpak.devtools.development` (set automatically by `runIde`) so development is never locked out. See `BILLING.md`.
 
 ## Commands
@@ -52,9 +52,11 @@
 
 ## Flatpak integration notes
 - Commands execute via `flatpak-builder` and `flatpak` CLI
-- `FlatpakCommand.RUN` executes the manifest's `command` field (read via the VFS reader in `RunCommandFactory`), falling back to the app-id; cleanup (CLEAN/DEEP_CLEAN) pre-steps run synchronously as separate processes before the main command
-- Run command sandbox always includes the D-Bus sockets (`DEFAULT_BUS`: `--socket=session-bus`, `--socket=system-bus`) before the opt-in portal/theme/audio/wayland flags and the positional `DIRECTORY MANIFEST COMMAND` args (I2)
+- `FlatpakCommand.RUN` executes the manifest's `command` field (read via the VFS reader in `RunCommandFactory`), falling back to the app-id; the deep-clean pre-step (DEEP_CLEAN) runs synchronously as a `PreStep` in `CommandChainProcessHandler` before the main command
+- Run command sandbox includes the D-Bus sockets (`DEFAULT_BUS`: `--socket=session-bus`, `--socket=system-bus`) before the opt-in portal/theme/audio/wayland flags and the positional `DIRECTORY MANIFEST COMMAND` args (I2) — but only when `CommandExecutionArguments.hostHasFlatpakBus()` (`/run/flatpak/bus` exists); otherwise the sockets are skipped with a warning and the run relies on flatpak's filtered default session bus (GNOME Builder behaves the same way)
+- The deep clean runs inside a `WriteCommandAction` on the pooled thread (`DeepCleanExecutor`), never a raw `runWriteAction` — the EDT would throw "Background write action is not permitted on this thread"
 - Factories never emit a blank `buildDir`/`manifestPath` positional arg: `CommandFactory.effectiveBuildDir()`/`effectiveManifestPath()` default to `_build`/`flatpak.json` (I1)
+- EXPORT/VALIDATE (and I5) fail inside the sandbox IDE for a documented, non-fixable-in-plugin reason: `flatpak-node-generator`/`pip3`/`pipx` are missing from the Builder runtime (`flatpak-builder --run` module-lacks-python issue). The build report's export failure is a sandbox-IDE artifact, not a plugin bug — see README/CHANGELOG
 - Configuration requires:
   - `manifestPath`: Path to flatpak manifest file
   - `BUILD_DIR`: Build directory for flatpak-builder
@@ -74,6 +76,7 @@
 - Target IDE version is hardcoded in `build.gradle.kts:15`
 - Configuration cache enabled in `gradle.properties:8`
 - Kotlin stdlib opt-out in `gradle.properties:5`
+- Gradle build cache enabled in `gradle.properties` (`org.gradle.caching=true`); it has served a stale `compileTestKotlin` ABI once after a visibility change — run local verification as `./gradlew clean build --no-build-cache` (CI is unaffected, fresh runner)
 
 ## Architecture
 - Plugin uses IntelliJ's `ConfigurationTypeBase` for run configurations
@@ -90,8 +93,8 @@
 ## Next steps for full implementation
 1. Implement LSP for XML files
 2. Add proper configuration validation
-3. Implement full SettingsEditor UI with command selection dropdown
-4. GResource integration and undeclared-file notifications
+3. GResource integration and undeclared-file notifications
+4. Runtime schema/preview polish — see `GTK_BUILDING_PLAN.md`
 
 ## CI/CD
 - `.github/workflows/ci.yml`: on PR/push — `./gradlew build` + `./gradlew test` (GTK tests are `@Ignore`'d, so this is the non-GTK gate).
@@ -99,5 +102,4 @@
 
 ## Feature flags (runtime system properties)
 - `flatpak.gtk.preview.enabled` — enables the GTK preview/schema premium features (also the Marketplace `<with>` property).
-- `flatpak.runs.show-custom-arguments` — shows the legacy *Custom arguments* row in the run-configuration editor (hidden by default).
 - `flatpak.devtools.development` — dev-only premium unlock, set by `runIde`.

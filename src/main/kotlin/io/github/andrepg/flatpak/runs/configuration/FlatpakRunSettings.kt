@@ -9,12 +9,13 @@ import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.execution.FlatpakRunner
 import io.github.andrepg.flatpak.runs.execution.RunConfigurationValidator
 import io.github.andrepg.flatpak.runs.ui.FlatpakRunSettingsPanel
+import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
 
 class FlatpakRunSettings(
     project: Project,
     factory: ConfigurationFactory?,
     name: String?
-) : RunConfigurationBase<FlatpakRunSettingsAttributes>(project, factory, name) {
+) : RunConfigurationBase<FlatpakRunSettingsAttributes>(project, factory, name), LocatableConfiguration {
 
     /** The typed options holder for this configuration. */
     private val flatpakState: FlatpakRunSettingsAttributes
@@ -84,10 +85,33 @@ class FlatpakRunSettings(
      * started.
      */
     override fun checkConfiguration() {
-        super.checkConfiguration()
         val errors = RunConfigurationValidator.validate(this)
         if (errors.isNotEmpty()) {
             throw RuntimeConfigurationError(errors.joinToString("\n"))
         }
+    }
+
+    /**
+     * Whether the configuration name is still the suggested `[command] <app-id>`
+     * template rather than a user-chosen name. The IDE uses this to decide when
+     * it may keep rewriting the name as the command/manifest change.
+     */
+    override fun isGeneratedName(): Boolean = GENERATED_NAME_PATTERN.matches(name)
+
+    /**
+     * The suggested name for the Run/Debug Configurations dialog and the
+     * manifest right-click action: `[command] <app-id>` (e.g. `[build] org.example.App`).
+     * Returns null until a manifest is configured, so the dialog falls back to
+     * its default empty name.
+     */
+    override fun suggestedName(): String? {
+        val manifest = flatpakState.flatpakManifest ?: return null
+        val appId = FlatpakManifestVfsReader.readAppId(project, manifest)
+            ?: manifest.substringAfterLast('/').substringBeforeLast('.')
+        return FlatpakRunGenerator.formatRunName(command, appId)
+    }
+
+    private companion object {
+        val GENERATED_NAME_PATTERN = Regex("""^\[[a-z]+\] .+$""")
     }
 }

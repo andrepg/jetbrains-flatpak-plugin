@@ -9,20 +9,24 @@
 - Flatpak v1.0 hardening pass:
   - Custom plugin exceptions (`FlatpakPluginException` + manifest/execution/configuration subtypes) wrapping command and process failures at the engine boundary
   - IDE-glue manifest reads go through the IntelliJ VFS (`FlatpakManifestVfsReader`); the pure-JDK `FlatpakManifestReader.parseFields(content, ...)` stays for tooling/hermetic tests
-  - `DEFAULT_BUS` sandbox flags: the **Run** command always exposes the session and system D-Bus sockets
+  - `DEFAULT_BUS` sandbox flags: the **Run** command exposes the session and system D-Bus sockets when the host Flatpak bus exists (`/run/flatpak/bus`), skipping them with a warning otherwise (GNOME Builder-style filtered default bus)
   - `generateBundledGtkSchema` Gradle task (regenerated bundled GTK/Adwaita schema, provisioned in CI pre-publish)
   - GitHub Actions: `ci.yml` (build + tests on PR/push) and `pre-publish.yml` (schema regeneration + `verifyPlugin` + `publishPlugin` on release)
+  - Run-configuration suggestions on *Run → Edit Configurations → New* (`[command] <app-id>`) via `LocatableConfiguration.suggestedName()`
 
 ### Changed
 
 - Run configurations named `[build] <app-id>` (template `[{0}] {1}`) via `FlatpakRunGenerator.formatRunName`
 - Build directory/manifest path never blank on the command line (`effectiveBuildDir()`/`effectiveManifestPath()` default to `_build`/`flatpak.json`)
 - Manifest-name heuristics unified: `FlatpakProjectDetector.isCandidateName` now shared with the JSON schema provider
-- Feature flags consolidated: GTK gates all use `FeatureFlags`; the *Custom arguments* row in the run-configuration editor is hidden behind `flatpak.runs.show-custom-arguments` (default off)
+- Feature flags consolidated: GTK gates all use `FeatureFlags`; the *Custom arguments* row was un-flagged and is now shown right below the command box only when the **Custom** command is selected
+- Run-configuration editor option groups toggle live with the selected command: cleanup for **Build**, portal permissions for **Run**, custom arguments for **Custom**
+- Console output shows each workflow step (`Running DEEP_CLEAN...`, `Running BUILD: <cmdline>`, `<label> finished with exit code N`) instead of only the final build report
+- Deep clean runs inside a `WriteCommandAction` (no longer throws "Background write action is not permitted on this thread" when started from the pooled thread)
 
 ### Known Issues
 - **GTK Preview**: Adwaita interfaces are not yet rendered correctly.
-- **VALIDATE**: requires `pip3`/`pipx` in the sandbox IDE (JetBrains test-IDE artifact; not reproducible on a normal IDE).
+- **VALIDATE/EXPORT**: require `pip3`/`pipx`/`flatpak-node-generator` in the sandbox IDE (JetBrains test-IDE artifact; not reproducible on a normal IDE).
 
 ## [2026.1.1] - 2026-08-14
 

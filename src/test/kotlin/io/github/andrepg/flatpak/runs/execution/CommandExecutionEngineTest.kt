@@ -13,7 +13,7 @@ import java.io.File
 
 class CommandExecutionEngineTest {
 
-    private val engine = CommandExecutionEngine(mock(Project::class.java))
+    private val engine = CommandExecutionEngine(mock(Project::class.java)) { true }
 
     private fun config(configure: FlatpakRunSettings.() -> Unit = {}): FlatpakRunSettings {
         val configuration = FlatpakRunSettings(mock(Project::class.java), null, null)
@@ -87,6 +87,22 @@ class CommandExecutionEngineTest {
             assertTrue("sandbox option should precede positional args: $option", option.startsWith("-"))
         }
         assertFalse("--force-clean is invalid for --run mode", line.contains("--force-clean"))
+        assertEquals("my-app.sh", line.last())
+    }
+
+    @Test
+    fun `run command skips dbus sockets when the host has no flatpak bus`() {
+        val engineWithoutBus = CommandExecutionEngine(mock(Project::class.java)) { false }
+        val line = engineWithoutBus.buildCommand(
+            InternalCommand.RUN,
+            config {
+                command = UserVisibleCommand.RUN
+                manifestPath = sampleManifestPath
+                buildDir = "/tmp/build"
+            }
+        )
+        assertFalse("no session bus socket without host bus", line.contains("--socket=session-bus"))
+        assertFalse("no system bus socket without host bus", line.contains("--socket=system-bus"))
         assertEquals("my-app.sh", line.last())
     }
 

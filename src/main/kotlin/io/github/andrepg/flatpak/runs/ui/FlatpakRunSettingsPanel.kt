@@ -9,14 +9,13 @@ import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBTextField
 import com.intellij.ui.components.fields.ExpandableTextField
 import com.intellij.ui.dsl.builder.Row
+import com.intellij.ui.dsl.builder.RowLayout
 import com.intellij.ui.dsl.builder.panel
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
-import io.github.andrepg.shared.FeatureFlags
 import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.UiRows.browseTextFieldRow
 import io.github.andrepg.shared.UiRows.comboBoxRow
-import io.github.andrepg.shared.UiRows.expandableTextFieldRow
 import io.github.andrepg.shared.UiRows.textFieldRow
 import javax.swing.JComponent
 import javax.swing.event.DocumentEvent
@@ -27,8 +26,10 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
     private lateinit var commandComboBox: ComboBox<UserVisibleCommand>
     private lateinit var manifestField: TextFieldWithBrowseButton
     private var cleanupGroupRow: Row? = null
+    private var portalsGroupRow: Row? = null
+    private var customArgumentsRow: Row? = null
 
-    private var customArgumentsField: ExpandableTextField? = null
+    private lateinit var customArgumentsField: ExpandableTextField
     private lateinit var buildDir: JBTextField
 
     private lateinit var forceCleanCheck: JBCheckBox
@@ -39,7 +40,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
     private lateinit var waylandCheck: JBCheckBox
 
     private val textFields by lazy {
-        listOfNotNull(
+        listOf(
             customArgumentsField,
             buildDir,
         )
@@ -71,6 +72,15 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
                 comment = Localization.message("runs.settings.command.description"),
                 items = UserVisibleCommand.entries,
             ).component
+
+            customArgumentsRow = row(Localization.message("runs.settings.custom-arguments.label")) {
+                customArgumentsField = expandableTextField(
+                    { text: String -> text.lines().map(String::trim).filter(String::isNotBlank).toMutableList() },
+                    { values: List<String> -> values.joinToString("\n") },
+                ).component
+            }
+            customArgumentsRow?.layout(RowLayout.LABEL_ALIGNED)
+            customArgumentsRow?.rowComment(Localization.message("runs.settings.custom-arguments.description"))
         }
 
         group(Localization.message("runs.settings.group.manifest")) {
@@ -82,7 +92,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
             ).component
         }
 
-        group(Localization.message("runs.settings.group.cleanup")) {
+        cleanupGroupRow = group(Localization.message("runs.settings.group.cleanup")) {
             row {
                 forceCleanCheck = checkBox(Localization.message("runs.settings.force-clean.label"))
                     .comment(Localization.message("runs.settings.force-clean.description"))
@@ -93,9 +103,9 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
                     .comment(Localization.message("runs.settings.deep-clean.description"))
                     .component
             }
-        }.visible(commandComboBox.selectedItem == UserVisibleCommand.BUILD)
+        }
 
-        group(Localization.message("runs.settings.group.portals")) {
+        portalsGroupRow = group(Localization.message("runs.settings.group.portals")) {
             row {
                 portalsCheck = checkBox(Localization.message("runs.settings.portals.label"))
                     .comment(Localization.message("runs.settings.portals.description"))
@@ -123,18 +133,12 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
                 label = Localization.message("runs.settings.build-output.label"),
                 comment = Localization.message("runs.settings.build-output.description"),
             ).component
-
-            if (FeatureFlags.getBoolean(FeatureFlags.FEATURE_FLAG_SHOW_CUSTOM_ARGUMENTS)) {
-                customArgumentsField = expandableTextFieldRow(
-                    label = Localization.message("runs.settings.custom-arguments.label"),
-                    comment = Localization.message("runs.settings.custom-arguments.description"),
-                ).component
-            }
         }
     }
 
     init {
         wireChangeListeners()
+        updateCommandSensitiveVisibility()
     }
 
     /**
@@ -143,6 +147,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
      */
     private fun wireChangeListeners() {
         commandComboBox.addActionListener {
+            updateCommandSensitiveVisibility()
             fireEditorStateChanged()
         }
 
@@ -151,6 +156,18 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         textFields
             .plus(textWithButtons.map { it.textField })
             .forEach { it.document.addDocumentListener(notifyingDocumentListener()) }
+    }
+
+    /**
+     * Shows only the option groups that apply to the selected command: cleanup
+     * for BUILD, portal permissions for RUN, custom arguments for CUSTOM.
+     */
+    private fun updateCommandSensitiveVisibility() {
+        val command = commandComboBox.item ?: UserVisibleCommand.BUILD
+        cleanupGroupRow?.visible(command == UserVisibleCommand.BUILD)
+        portalsGroupRow?.visible(command == UserVisibleCommand.RUN)
+        customArgumentsRow?.visible(command == UserVisibleCommand.CUSTOM)
+            ?.enabled(command == UserVisibleCommand.CUSTOM)
     }
 
     private fun notifyingDocumentListener() = object : DocumentListener {
@@ -167,8 +184,8 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         manifestField.text = configuration.manifestPath
         buildDir.text = configuration.buildDir
 
-        // Custom arguments passed to Flatpak (only when the row is visible)
-        customArgumentsField?.text = configuration.customArguments.joinToString("\n")
+        // Custom arguments passed to Flatpak
+        customArgumentsField.text = configuration.customArguments.joinToString("\n")
 
         // Build clean arguments
         forceCleanCheck.isSelected = configuration.enableForceClean
@@ -187,13 +204,11 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         manifestField.text.also { configuration.manifestPath = it }
         buildDir.text.also { configuration.buildDir = it }
 
-        // Custom Flatpak build arguments (kept as-is when the row is hidden)
-        customArgumentsField?.let { field ->
-            configuration.customArguments = field.text
-                .lines()
-                .map { it.trim() }
-                .filter { it.isNotBlank() }
-        }
+        // Custom Flatpak build arguments
+        configuration.customArguments = customArgumentsField.text
+            .lines()
+            .map { it.trim() }
+            .filter { it.isNotBlank() }
 
         // Build clean arguments
         forceCleanCheck.isSelected.also { configuration.enableForceClean = it }

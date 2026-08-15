@@ -12,9 +12,15 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
 
     private fun runToTermination(
         commandLines: List<GeneralCommandLine>,
-        preSteps: List<() -> Boolean> = emptyList(),
+        commandLabels: List<String> = commandLines.mapIndexed { i, _ -> "COMMAND_$i" },
+        preSteps: List<CommandChainProcessHandler.PreStep> = emptyList(),
     ): Int {
-        val handler = CommandChainProcessHandler(commandLines, CommandExecutionEngine(project), preSteps)
+        val handler = CommandChainProcessHandler(
+            commandLines = commandLines,
+            commandLabels = commandLabels,
+            engine = CommandExecutionEngine(project),
+            preSteps = preSteps
+        )
         val terminated = CountDownLatch(1)
         var exitCode = Int.MIN_VALUE
         handler.addProcessListener(object : ProcessListener {
@@ -34,7 +40,7 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
     fun `test pre-step failure terminates the run with exit code 1`() {
         val exitCode = runToTermination(
             commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "exit 0"))),
-            preSteps = listOf({ false }),
+            preSteps = listOf(CommandChainProcessHandler.PreStep("DEEP_CLEAN") { false }),
         )
         assertEquals(1, exitCode)
     }
@@ -45,10 +51,12 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
             var preStepRan = false
             val exitCode = runToTermination(
                 commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "touch '${marker.path}'"))),
-                preSteps = listOf({
-                    preStepRan = true
-                    true
-                }),
+                preSteps = listOf(
+                    CommandChainProcessHandler.PreStep("DEEP_CLEAN") {
+                        preStepRan = true
+                        true
+                    }
+                ),
             )
             assertEquals(0, exitCode)
             assertTrue("pre-step must have run", preStepRan)
@@ -70,8 +78,9 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
         try {
             val handler = CommandChainProcessHandler(
                 commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "touch '${marker.path}'"))),
+                commandLabels = listOf("BUILD"),
                 engine = CommandExecutionEngine(project),
-                preSteps = listOf({ Thread.sleep(500); true }),
+                preSteps = listOf(CommandChainProcessHandler.PreStep("DEEP_CLEAN") { Thread.sleep(500); true }),
             )
             val terminated = CountDownLatch(1)
             handler.addProcessListener(object : ProcessListener {

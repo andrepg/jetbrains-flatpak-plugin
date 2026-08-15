@@ -17,7 +17,10 @@ import io.github.andrepg.shared.log.Log
  * decides whether a command runs as a synchronous pre-step (cleanup) or as the
  * streamed main process.
  */
-class CommandExecutionEngine(private val project: Project) {
+class CommandExecutionEngine(
+    private val project: Project,
+    private val hostBusAvailable: () -> Boolean = CommandExecutionArguments::hostHasFlatpakBus,
+) {
     private val log = Log.getInstance(CommandExecutionEngine::class.java)
 
     /**
@@ -35,7 +38,7 @@ class CommandExecutionEngine(private val project: Project) {
             when (command) {
                 InternalCommand.CUSTOM -> CustomCommandFactory().create(config)
                 InternalCommand.BUILD -> BuildCommandFactory().create(config)
-                InternalCommand.RUN -> RunCommandFactory().create(config)
+                InternalCommand.RUN -> RunCommandFactory(hostBusAvailable).create(config)
                 InternalCommand.EXPORT -> ExportBundleCommandFactory().create(config)
                 InternalCommand.VALIDATE -> ValidateManifestCommandFactory().create(config)
             }

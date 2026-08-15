@@ -11,14 +11,22 @@ import java.io.OutputStream
  * A [ProcessHandler] that runs optional blocking pre-steps (e.g. the VFS deep
  * clean) on a pooled thread, then executes a chain of commands sequentially.
  * Each command runs as an [OSProcessHandler]; on success the next one starts.
- * Text and termination of the underlying handlers are relayed to the console.
+ *
+ * Every step (pre-step or command) is announced to the console as a named
+ * workflow step, e.g. `Running DEEP_CLEAN...` then `Running BUILD: <cmdline>`,
+ * so the user sees the whole `DEEP_CLEAN -> BUILD` flow instead of only the
+ * build report. Text and termination of the underlying handlers are relayed.
  */
 class CommandChainProcessHandler(
     private val commandLines: List<GeneralCommandLine>,
     private val engine: CommandExecutionEngine,
-    private val preSteps: List<() -> Boolean> = emptyList(),
+    private val commandLabels: List<String>,
+    private val preSteps: List<PreStep> = emptyList(),
 ) : ProcessHandler() {
     private val log = Log.getInstance(CommandChainProcessHandler::class.java)
+
+    /** A blocking step run before the first command, announced as [label]. */
+    class PreStep(val label: String, val run: () -> Boolean)
 
     @Volatile
     private var activeHandler: OSProcessHandler? = null
@@ -49,9 +57,9 @@ class CommandChainProcessHandler(
                     notifyProcessTerminated(-1)
                     return
                 }
-                notifyTextAvailable("Running pre-step...\n", ProcessOutputTypes.SYSTEM)
-                if (!step()) {
-                    notifyTextAvailable("Pre-step failed; aborting.\n", ProcessOutputTypes.SYSTEM)
+                notifyTextAvailable("Running ${step.label}...\n", ProcessOutputTypes.SYSTEM)
+                if (!step.run()) {
+                    notifyTextAvailable("${step.label} failed; aborting.\n", ProcessOutputTypes.SYSTEM)
                     notifyProcessTerminated(1)
                     return
                 }
@@ -62,6 +70,12 @@ class CommandChainProcessHandler(
             notifyProcessTerminated(0)
             return
         }
+
+        val label = commandLabels.getOrElse(currentIndex) { commandLines[currentIndex].commandLineString }
+        notifyTextAvailable(
+            "Running $label: ${commandLines[currentIndex].commandLineString}\n",
+            ProcessOutputTypes.SYSTEM
+        )
 
         val handler = engine.executeCommand(commandLines[currentIndex])
         activeHandler = handler
@@ -74,6 +88,10 @@ class CommandChainProcessHandler(
             override fun processTerminated(event: ProcessEvent) {
                 activeHandler = null
                 log.info("Command execution terminated with exit code ${event.exitCode}")
+                notifyTextAvailable(
+                    "$label finished with exit code ${event.exitCode}\n",
+                    ProcessOutputTypes.SYSTEM
+                )
 
                 if (cancelled) {
                     notifyProcessTerminated(-1)
