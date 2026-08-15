@@ -30,24 +30,31 @@ class FlatpakManifestCacheService(private val project: Project) : Disposable {
     private val connection = project.messageBus.connect(this)
 
     init {
-        connection.subscribe(VirtualFileManager.VFS_CHANGES, object : BulkFileListener {
-            override fun after(events: List<VFileEvent>) {
-                val roots = ProjectRootManager.getInstance(project).contentRoots
-                if (roots.isEmpty()) return
-                val anyUnderRoot = events.any { event ->
-                    event.file?.let { file ->
-                        roots.any { root -> VfsUtilCore.isAncestor(root, file, false) }
-                    } ?: false
+        connection.subscribe(
+            VirtualFileManager.VFS_CHANGES,
+            object : BulkFileListener {
+                override fun after(events: List<VFileEvent>) {
+                    val roots = ProjectRootManager.getInstance(project).contentRoots
+                    if (roots.isEmpty()) return
+                    val anyUnderRoot =
+                        events.any { event ->
+                            event.file?.let { file ->
+                                roots.any { root -> VfsUtilCore.isAncestor(root, file, false) }
+                            } ?: false
+                        }
+                    if (anyUnderRoot) invalidate()
                 }
-                if (anyUnderRoot) invalidate()
-            }
-        })
+            },
+        )
 
-        connection.subscribe(ModuleRootListener.TOPIC, object : ModuleRootListener {
-            override fun rootsChanged(event: com.intellij.openapi.roots.ModuleRootEvent) {
-                invalidate()
-            }
-        })
+        connection.subscribe(
+            ModuleRootListener.TOPIC,
+            object : ModuleRootListener {
+                override fun rootsChanged(event: com.intellij.openapi.roots.ModuleRootEvent) {
+                    invalidate()
+                }
+            },
+        )
     }
 
     /** Returns the cached manifest list, walking the project on first call. */
@@ -66,8 +73,7 @@ class FlatpakManifestCacheService(private val project: Project) : Disposable {
         cached = null
     }
 
-    private fun walkContentRoots(): List<Pair<VirtualFile, String>> =
-        FlatpakProjectDetector.findManifestsUncached(project)
+    private fun walkContentRoots(): List<Pair<VirtualFile, String>> = FlatpakProjectDetector.findManifestsUncached(project)
 
     override fun dispose() = Unit
 }

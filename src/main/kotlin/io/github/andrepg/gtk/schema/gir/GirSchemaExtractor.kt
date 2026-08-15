@@ -33,18 +33,18 @@ import kotlin.system.exitProcess
  * (e.g. `GtkSource-5.gir`) are skipped with a warning.
  */
 object GirSchemaExtractor {
-
     private const val NS_CORE = "http://www.gtk.org/introspection/core/1.0"
     private const val NS_C = "http://www.gtk.org/introspection/c/1.0"
     private const val NS_GLIB = "http://www.gtk.org/introspection/glib/1.0"
 
-    private val GIR_FILE_NAMES = listOf(
-        "Gtk-4.0.gir",
-        "GtkSource-5.gir",
-        "Adw-1.gir",
-        "GObject-2.0.gir",
-        "Gio-2.0.gir",
-    )
+    private val GIR_FILE_NAMES =
+        listOf(
+            "Gtk-4.0.gir",
+            "GtkSource-5.gir",
+            "Adw-1.gir",
+            "GObject-2.0.gir",
+            "Gio-2.0.gir",
+        )
 
     private const val FALLBACK_FLATPAK_BINARY = "/usr/bin/flatpak"
     private const val SDK_APP_ID = "org.gnome.Sdk"
@@ -74,7 +74,9 @@ object GirSchemaExtractor {
      * Index of all parsed types, keyed by `namespace.name`, with helpers to
      * resolve inheritance/interface chains and flatten their members.
      */
-    class Registry(entries: List<TypeEntry>) {
+    class Registry(
+        entries: List<TypeEntry>,
+    ) {
         private val byKey = LinkedHashMap<String, TypeEntry>()
 
         init {
@@ -82,8 +84,10 @@ object GirSchemaExtractor {
         }
 
         /** Resolves a parent/implements reference against [fromNamespace]. */
-        fun resolve(fromNamespace: String, ref: String): TypeEntry? =
-            byKey[if ('.' in ref) ref else "$fromNamespace.$ref"]
+        fun resolve(
+            fromNamespace: String,
+            ref: String,
+        ): TypeEntry? = byKey[if ('.' in ref) ref else "$fromNamespace.$ref"]
 
         /** All types, deduplicated and merged by C type, sorted by C type. */
         fun allTypes(): List<TypeEntry> {
@@ -104,7 +108,10 @@ object GirSchemaExtractor {
          * inherits or implements, walking parents and interface references
          * recursively across namespaces.
          */
-        fun flattened(root: TypeEntry, pick: (TypeEntry) -> Set<String>): List<String> {
+        fun flattened(
+            root: TypeEntry,
+            pick: (TypeEntry) -> Set<String>,
+        ): List<String> {
             val visited = mutableSetOf<String>()
             val result = LinkedHashSet<String>()
 
@@ -123,9 +130,17 @@ object GirSchemaExtractor {
     // ------------------------------------------------------------------ JSON
 
     internal sealed class Js {
-        data class Str(val value: String) : Js()
-        data class Arr(val items: List<Js>) : Js()
-        data class Obj(val entries: List<Pair<String, Js>>) : Js()
+        data class Str(
+            val value: String,
+        ) : Js()
+
+        data class Arr(
+            val items: List<Js>,
+        ) : Js()
+
+        data class Obj(
+            val entries: List<Pair<String, Js>>,
+        ) : Js()
 
         fun render(): String {
             val sb = StringBuilder()
@@ -135,7 +150,10 @@ object GirSchemaExtractor {
 
         private fun write(sb: StringBuilder) {
             when (this) {
-                is Str -> writeString(sb, value)
+                is Str -> {
+                    writeString(sb, value)
+                }
+
                 is Arr -> {
                     sb.append('[')
                     items.forEachIndexed { index, item ->
@@ -144,6 +162,7 @@ object GirSchemaExtractor {
                     }
                     sb.append(']')
                 }
+
                 is Obj -> {
                     sb.append('{')
                     entries.forEachIndexed { index, (key, value) ->
@@ -157,7 +176,10 @@ object GirSchemaExtractor {
             }
         }
 
-        private fun writeString(sb: StringBuilder, value: String) {
+        private fun writeString(
+            sb: StringBuilder,
+            value: String,
+        ) {
             sb.append('"')
             sb.append(EscapeTables.json(value))
             sb.append('"')
@@ -165,10 +187,15 @@ object GirSchemaExtractor {
     }
 
     private fun obj(vararg entries: Pair<String, Js>) = Js.Obj(entries.toList())
+
     private fun arr(vararg items: Js) = Js.Arr(items.toList())
+
     private fun str(value: String) = Js.Str(value)
+
     private fun ref(path: String) = obj("\$ref" to str(path))
+
     private fun strEnum(vararg values: String) = obj("enum" to arr(*values.map { str(it) }.toTypedArray()))
+
     private fun yesNoEnum() = strEnum("yes", "no", "true", "false")
 
     // ----------------------------------------------------------- Schema model
@@ -177,260 +204,314 @@ object GirSchemaExtractor {
         val allTypes = registry.allTypes()
         val allClassNames = allTypes.map { it.cType }
 
-        val classVariants = allTypes.map { type ->
-            obj(
-                "type" to str("object"),
-                "properties" to obj(
-                    "class" to obj("const" to str(type.cType)),
-                    "property" to propertyArray(registry.flattened(type) { it.properties }),
-                    "signal" to signalArray(registry.flattened(type) { it.signals }),
-                ),
-            )
-        }
+        val classVariants =
+            allTypes.map { type ->
+                obj(
+                    "type" to str("object"),
+                    "properties" to
+                        obj(
+                            "class" to obj("const" to str(type.cType)),
+                            "property" to propertyArray(registry.flattened(type) { it.properties }),
+                            "signal" to signalArray(registry.flattened(type) { it.signals }),
+                        ),
+                )
+            }
 
         return obj(
             "\$schema" to str("http://json-schema.org/draft-07/schema#"),
             "\$id" to str("urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"),
             "title" to str("GtkBuilder UI Layout (GTK 4 + Libadwaita + GtkSource-5)"),
-            "description" to str(
-                "Generated by the Flatpak DevTools generateBundledGtkSchema task from the " +
-                    "GObject Introspection (GIR) files of the GNOME SDK " +
-                    "(Gtk-4.0.gir, GtkSource-5.gir, Adw-1.gir, GObject-2.0.gir, Gio-2.0.gir). " +
-                    "Class, property and signal names are flattened through inheritance " +
-                    "and implemented interfaces."
-            ),
+            "description" to
+                str(
+                    "Generated by the Flatpak DevTools generateBundledGtkSchema task from the " +
+                        "GObject Introspection (GIR) files of the GNOME SDK " +
+                        "(Gtk-4.0.gir, GtkSource-5.gir, Adw-1.gir, GObject-2.0.gir, Gio-2.0.gir). " +
+                        "Class, property and signal names are flattened through inheritance " +
+                        "and implemented interfaces.",
+                ),
             "type" to str("object"),
-            "properties" to obj(
-                "interface" to ref("#/\$defs/interface"),
-            ),
-            "\$defs" to obj(
-                "interface" to interfaceDef(),
-                "requires" to requiresDef(),
-                "object" to objectDef(classVariants),
-                "objectCommon" to objectCommonDef(),
-                "template" to templateDef(allClassNames),
-                "property" to genericPropertyDef(),
-                "signal" to genericSignalDef(),
-                "child" to childDef(),
-                "menu" to menuDef(),
-                "menuItem" to menuItemDef(),
-                "menuSection" to menuSectionDef(),
-                "menuAttribute" to menuAttributeDef(),
-                "layout" to layoutDef(),
-                "packing" to packingDef(),
-                "accessibility" to accessibilityDef(),
-                "style" to styleDef(),
-            ),
+            "properties" to
+                obj(
+                    "interface" to ref("#/\$defs/interface"),
+                ),
+            "\$defs" to
+                obj(
+                    "interface" to interfaceDef(),
+                    "requires" to requiresDef(),
+                    "object" to objectDef(classVariants),
+                    "objectCommon" to objectCommonDef(),
+                    "template" to templateDef(allClassNames),
+                    "property" to genericPropertyDef(),
+                    "signal" to genericSignalDef(),
+                    "child" to childDef(),
+                    "menu" to menuDef(),
+                    "menuItem" to menuItemDef(),
+                    "menuSection" to menuSectionDef(),
+                    "menuAttribute" to menuAttributeDef(),
+                    "layout" to layoutDef(),
+                    "packing" to packingDef(),
+                    "accessibility" to accessibilityDef(),
+                    "style" to styleDef(),
+                ),
         )
     }
 
-    private fun interfaceDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "requires" to obj("type" to str("array"), "items" to ref("#/\$defs/requires")),
-            "object" to ref("#/\$defs/object"),
-            "template" to ref("#/\$defs/template"),
-            "menu" to obj("type" to str("array"), "items" to ref("#/\$defs/menu")),
-        ),
-    )
-
-    private fun requiresDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "lib" to obj("type" to str("string")),
-            "version" to obj("type" to str("string")),
-        ),
-    )
-
-    private fun objectDef(variants: List<Js>) = obj(
-        "type" to str("array"),
-        "items" to obj(
-            "allOf" to arr(
-                ref("#/\$defs/objectCommon"),
-                obj("anyOf" to Js.Arr(variants)),
-            ),
-        ),
-    )
-
-    private fun objectCommonDef() = obj(
-        "type" to str("object"),
-        "required" to arr(str("class")),
-        "properties" to obj(
-            "id" to obj("type" to str("string")),
-            "child" to obj("type" to str("array"), "items" to ref("#/\$defs/child")),
-            "layout" to ref("#/\$defs/layout"),
-            "packing" to ref("#/\$defs/packing"),
-            "accessibility" to ref("#/\$defs/accessibility"),
-            "style" to ref("#/\$defs/style"),
-        ),
-    )
-
-    private fun templateDef(allClassNames: List<String>) = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "class" to obj("type" to str("string")),
-            "parent" to strEnum(*allClassNames.toTypedArray()),
-            "property" to ref("#/\$defs/property"),
-            "signal" to ref("#/\$defs/signal"),
-            "child" to obj("type" to str("array"), "items" to ref("#/\$defs/child")),
-        ),
-    )
-
-    private fun propertyArray(names: List<String>) = obj(
-        "type" to str("array"),
-        "items" to obj(
+    private fun interfaceDef() =
+        obj(
             "type" to str("object"),
-            "properties" to obj(
-                "name" to strEnum(*names.toTypedArray()),
-                "$" to obj("type" to str("string")),
-                "translatable" to yesNoEnum(),
-                "context" to obj("type" to str("string")),
-                "comments" to obj("type" to str("string")),
-            ),
-        ),
-    )
+            "properties" to
+                obj(
+                    "requires" to obj("type" to str("array"), "items" to ref("#/\$defs/requires")),
+                    "object" to ref("#/\$defs/object"),
+                    "template" to ref("#/\$defs/template"),
+                    "menu" to obj("type" to str("array"), "items" to ref("#/\$defs/menu")),
+                ),
+        )
 
-    private fun signalArray(names: List<String>) = obj(
-        "type" to str("array"),
-        "items" to obj(
+    private fun requiresDef() =
+        obj(
             "type" to str("object"),
-            "properties" to obj(
-                "name" to strEnum(*names.toTypedArray()),
-                "handler" to obj("type" to str("string")),
-                "object" to obj("type" to str("string")),
-                "swapped" to yesNoEnum(),
-                "after" to yesNoEnum(),
-            ),
-        ),
-    )
-
-    private fun genericPropertyDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "name" to obj("type" to str("string")),
-            "$" to obj("type" to str("string")),
-            "translatable" to yesNoEnum(),
-            "context" to obj("type" to str("string")),
-            "comments" to obj("type" to str("string")),
-        ),
-    )
-
-    private fun genericSignalDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "name" to obj("type" to str("string")),
-            "handler" to obj("type" to str("string")),
-            "object" to obj("type" to str("string")),
-            "swapped" to yesNoEnum(),
-            "after" to yesNoEnum(),
-        ),
-    )
-
-    private fun childDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "type" to obj("type" to str("string")),
-            "object" to ref("#/\$defs/object"),
-            "layout" to ref("#/\$defs/layout"),
-            "packing" to ref("#/\$defs/packing"),
-        ),
-    )
-
-    private fun menuDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "id" to obj("type" to str("string")),
-            "attribute" to obj("type" to str("array"), "items" to ref("#/\$defs/menuAttribute")),
-            "item" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
-            "section" to obj("type" to str("array"), "items" to ref("#/\$defs/menuSection")),
-        ),
-    )
-
-    private fun menuItemDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "attribute" to obj("type" to str("array"), "items" to ref("#/\$defs/menuAttribute")),
-            "item" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
-            "submenu" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
-            "section" to obj("type" to str("array"), "items" to ref("#/\$defs/menuSection")),
-        ),
-    )
-
-    private fun menuSectionDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "attribute" to obj("type" to str("array"), "items" to ref("#/\$defs/menuAttribute")),
-            "item" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
-        ),
-    )
-
-    private fun menuAttributeDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "name" to obj("type" to str("string")),
-            "$" to obj("type" to str("string")),
-        ),
-    )
-
-    private fun layoutDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
-        ),
-    )
-
-    private fun packingDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
-        ),
-    )
-
-    private fun accessibilityDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
-            "relation" to obj(
-                "type" to str("array"),
-                "items" to obj(
-                    "type" to str("object"),
-                    "properties" to obj(
-                        "target" to obj("type" to str("string")),
-                        "$" to obj("type" to str("string")),
-                    ),
+            "properties" to
+                obj(
+                    "lib" to obj("type" to str("string")),
+                    "version" to obj("type" to str("string")),
                 ),
-            ),
-        ),
-    )
+        )
 
-    private fun styleDef() = obj(
-        "type" to str("object"),
-        "properties" to obj(
-            "class" to obj(
-                "type" to str("array"),
-                "items" to obj(
-                    "type" to str("object"),
-                    "properties" to obj("name" to obj("type" to str("string"))),
-                ),
-            ),
-            "node" to obj(
-                "type" to str("array"),
-                "items" to obj(
-                    "type" to str("object"),
-                    "properties" to obj(
-                        "id" to obj("type" to str("string")),
-                        "class" to obj(
-                            "type" to str("array"),
-                            "items" to obj(
-                                "type" to str("object"),
-                                "properties" to obj("name" to obj("type" to str("string"))),
-                            ),
+    private fun objectDef(variants: List<Js>) =
+        obj(
+            "type" to str("array"),
+            "items" to
+                obj(
+                    "allOf" to
+                        arr(
+                            ref("#/\$defs/objectCommon"),
+                            obj("anyOf" to Js.Arr(variants)),
                         ),
-                    ),
                 ),
-            ),
-        ),
-    )
+        )
+
+    private fun objectCommonDef() =
+        obj(
+            "type" to str("object"),
+            "required" to arr(str("class")),
+            "properties" to
+                obj(
+                    "id" to obj("type" to str("string")),
+                    "child" to obj("type" to str("array"), "items" to ref("#/\$defs/child")),
+                    "layout" to ref("#/\$defs/layout"),
+                    "packing" to ref("#/\$defs/packing"),
+                    "accessibility" to ref("#/\$defs/accessibility"),
+                    "style" to ref("#/\$defs/style"),
+                ),
+        )
+
+    private fun templateDef(allClassNames: List<String>) =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "class" to obj("type" to str("string")),
+                    "parent" to strEnum(*allClassNames.toTypedArray()),
+                    "property" to ref("#/\$defs/property"),
+                    "signal" to ref("#/\$defs/signal"),
+                    "child" to obj("type" to str("array"), "items" to ref("#/\$defs/child")),
+                ),
+        )
+
+    private fun propertyArray(names: List<String>) =
+        obj(
+            "type" to str("array"),
+            "items" to
+                obj(
+                    "type" to str("object"),
+                    "properties" to
+                        obj(
+                            "name" to strEnum(*names.toTypedArray()),
+                            "$" to obj("type" to str("string")),
+                            "translatable" to yesNoEnum(),
+                            "context" to obj("type" to str("string")),
+                            "comments" to obj("type" to str("string")),
+                        ),
+                ),
+        )
+
+    private fun signalArray(names: List<String>) =
+        obj(
+            "type" to str("array"),
+            "items" to
+                obj(
+                    "type" to str("object"),
+                    "properties" to
+                        obj(
+                            "name" to strEnum(*names.toTypedArray()),
+                            "handler" to obj("type" to str("string")),
+                            "object" to obj("type" to str("string")),
+                            "swapped" to yesNoEnum(),
+                            "after" to yesNoEnum(),
+                        ),
+                ),
+        )
+
+    private fun genericPropertyDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "name" to obj("type" to str("string")),
+                    "$" to obj("type" to str("string")),
+                    "translatable" to yesNoEnum(),
+                    "context" to obj("type" to str("string")),
+                    "comments" to obj("type" to str("string")),
+                ),
+        )
+
+    private fun genericSignalDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "name" to obj("type" to str("string")),
+                    "handler" to obj("type" to str("string")),
+                    "object" to obj("type" to str("string")),
+                    "swapped" to yesNoEnum(),
+                    "after" to yesNoEnum(),
+                ),
+        )
+
+    private fun childDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "type" to obj("type" to str("string")),
+                    "object" to ref("#/\$defs/object"),
+                    "layout" to ref("#/\$defs/layout"),
+                    "packing" to ref("#/\$defs/packing"),
+                ),
+        )
+
+    private fun menuDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "id" to obj("type" to str("string")),
+                    "attribute" to obj("type" to str("array"), "items" to ref("#/\$defs/menuAttribute")),
+                    "item" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
+                    "section" to obj("type" to str("array"), "items" to ref("#/\$defs/menuSection")),
+                ),
+        )
+
+    private fun menuItemDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "attribute" to obj("type" to str("array"), "items" to ref("#/\$defs/menuAttribute")),
+                    "item" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
+                    "submenu" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
+                    "section" to obj("type" to str("array"), "items" to ref("#/\$defs/menuSection")),
+                ),
+        )
+
+    private fun menuSectionDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "attribute" to obj("type" to str("array"), "items" to ref("#/\$defs/menuAttribute")),
+                    "item" to obj("type" to str("array"), "items" to ref("#/\$defs/menuItem")),
+                ),
+        )
+
+    private fun menuAttributeDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "name" to obj("type" to str("string")),
+                    "$" to obj("type" to str("string")),
+                ),
+        )
+
+    private fun layoutDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
+                ),
+        )
+
+    private fun packingDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
+                ),
+        )
+
+    private fun accessibilityDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "property" to obj("type" to str("array"), "items" to ref("#/\$defs/property")),
+                    "relation" to
+                        obj(
+                            "type" to str("array"),
+                            "items" to
+                                obj(
+                                    "type" to str("object"),
+                                    "properties" to
+                                        obj(
+                                            "target" to obj("type" to str("string")),
+                                            "$" to obj("type" to str("string")),
+                                        ),
+                                ),
+                        ),
+                ),
+        )
+
+    private fun styleDef() =
+        obj(
+            "type" to str("object"),
+            "properties" to
+                obj(
+                    "class" to
+                        obj(
+                            "type" to str("array"),
+                            "items" to
+                                obj(
+                                    "type" to str("object"),
+                                    "properties" to obj("name" to obj("type" to str("string"))),
+                                ),
+                        ),
+                    "node" to
+                        obj(
+                            "type" to str("array"),
+                            "items" to
+                                obj(
+                                    "type" to str("object"),
+                                    "properties" to
+                                        obj(
+                                            "id" to obj("type" to str("string")),
+                                            "class" to
+                                                obj(
+                                                    "type" to str("array"),
+                                                    "items" to
+                                                        obj(
+                                                            "type" to str("object"),
+                                                            "properties" to obj("name" to obj("type" to str("string"))),
+                                                        ),
+                                                ),
+                                        ),
+                                ),
+                        ),
+                ),
+        )
 
     // ---------------------------------------------------------------- Parsing
 
@@ -438,8 +519,9 @@ object GirSchemaExtractor {
         val factory = DocumentBuilderFactory.newInstance()
         factory.isNamespaceAware = true
         val document = factory.newDocumentBuilder().parse(file)
-        val namespace = children(document.documentElement, NS_CORE, "namespace").firstOrNull()
-            ?: return emptyList()
+        val namespace =
+            children(document.documentElement, NS_CORE, "namespace").firstOrNull()
+                ?: return emptyList()
         val namespaceName = namespace.getAttribute("name")
 
         val entries = mutableListOf<TypeEntry>()
@@ -449,39 +531,46 @@ object GirSchemaExtractor {
             val cType = cls.getAttributeNS(NS_C, "type").ifEmpty { namespaceName + name }
             val parent = cls.getAttribute("parent").ifEmpty { null }
             val implements = children(cls, NS_CORE, "implements").map { it.getAttribute("name") }
-            entries += TypeEntry(
-                namespace = namespaceName,
-                name = name,
-                cType = cType,
-                parent = parent,
-                requires = implements,
-                properties = children(cls, NS_CORE, "property").map { it.getAttribute("name") }.toSet(),
-                signals = children(cls, NS_GLIB, "signal").map { it.getAttribute("name") }.toSet(),
-            )
+            entries +=
+                TypeEntry(
+                    namespace = namespaceName,
+                    name = name,
+                    cType = cType,
+                    parent = parent,
+                    requires = implements,
+                    properties = children(cls, NS_CORE, "property").map { it.getAttribute("name") }.toSet(),
+                    signals = children(cls, NS_GLIB, "signal").map { it.getAttribute("name") }.toSet(),
+                )
         }
 
         for (iface in children(namespace, NS_CORE, "interface")) {
             val name = iface.getAttribute("name")
             val cType = iface.getAttributeNS(NS_C, "type").ifEmpty { namespaceName + name }
-            val requires = buildList {
-                iface.getAttribute("prerequisite").takeIf { it.isNotEmpty() }?.let { add(it) }
-                children(iface, NS_CORE, "interface").forEach { add(it.getAttribute("name")) }
-            }
-            entries += TypeEntry(
-                namespace = namespaceName,
-                name = name,
-                cType = cType,
-                parent = null,
-                requires = requires,
-                properties = children(iface, NS_CORE, "property").map { it.getAttribute("name") }.toSet(),
-                signals = children(iface, NS_GLIB, "signal").map { it.getAttribute("name") }.toSet(),
-            )
+            val requires =
+                buildList {
+                    iface.getAttribute("prerequisite").takeIf { it.isNotEmpty() }?.let { add(it) }
+                    children(iface, NS_CORE, "interface").forEach { add(it.getAttribute("name")) }
+                }
+            entries +=
+                TypeEntry(
+                    namespace = namespaceName,
+                    name = name,
+                    cType = cType,
+                    parent = null,
+                    requires = requires,
+                    properties = children(iface, NS_CORE, "property").map { it.getAttribute("name") }.toSet(),
+                    signals = children(iface, NS_GLIB, "signal").map { it.getAttribute("name") }.toSet(),
+                )
         }
 
         return entries
     }
 
-    private fun children(element: Element, namespaceUri: String, tag: String): List<Element> {
+    private fun children(
+        element: Element,
+        namespaceUri: String,
+        tag: String,
+    ): List<Element> {
         val result = mutableListOf<Element>()
         var node = element.firstChild
         while (node != null) {
@@ -506,19 +595,23 @@ object GirSchemaExtractor {
      * Parses every present GIR file in [girDir] into a [Registry]. Missing
      * optional files (e.g. `GtkSource-5.gir`) are skipped with a warning.
      */
-    internal fun parseAll(girDir: File, onProgress: GtkSchemaProgress? = null): Registry {
-        val entries = GIR_FILE_NAMES.flatMapIndexed { index, name ->
-            val file = File(girDir, name)
-            if (!file.isFile) {
-                System.err.println("WARNING: $name not found in $girDir; skipping")
-                emptyList()
-            } else {
-                if (onProgress?.report(GtkSchemaStep.Parsing(name, index + 1, GIR_FILE_NAMES.size)) == false) {
-                    throw CancellationException("GtkBuilder schema generation cancelled")
+    internal fun parseAll(
+        girDir: File,
+        onProgress: GtkSchemaProgress? = null,
+    ): Registry {
+        val entries =
+            GIR_FILE_NAMES.flatMapIndexed { index, name ->
+                val file = File(girDir, name)
+                if (!file.isFile) {
+                    System.err.println("WARNING: $name not found in $girDir; skipping")
+                    emptyList()
+                } else {
+                    if (onProgress?.report(GtkSchemaStep.Parsing(name, index + 1, GIR_FILE_NAMES.size)) == false) {
+                        throw CancellationException("GtkBuilder schema generation cancelled")
+                    }
+                    parseGir(file)
                 }
-                parseGir(file)
             }
-        }
         return Registry(entries)
     }
 
@@ -526,19 +619,23 @@ object GirSchemaExtractor {
         val allTypes = registry.allTypes()
         return SchemaPatches.GtkEnums(
             classNames = allTypes.map { it.cType },
-            propertyNames = allTypes
-                .flatMap { registry.flattened(it) { e -> e.properties } }
-                .distinct()
-                .sorted(),
-            signalNames = allTypes
-                .flatMap { registry.flattened(it) { e -> e.signals } }
-                .distinct()
-                .sorted(),
+            propertyNames =
+                allTypes
+                    .flatMap { registry.flattened(it) { e -> e.properties } }
+                    .distinct()
+                    .sorted(),
+            signalNames =
+                allTypes
+                    .flatMap { registry.flattened(it) { e -> e.signals } }
+                    .distinct()
+                    .sorted(),
         )
     }
 
-    internal fun renderXsd(registry: Registry, enums: SchemaPatches.GtkEnums): String =
-        SchemaPatches.applyXsd(buildXsd(), enums)
+    internal fun renderXsd(
+        registry: Registry,
+        enums: SchemaPatches.GtkEnums,
+    ): String = SchemaPatches.applyXsd(buildXsd(), enums)
 
     /**
      * Generates the patched GtkBuilder XSD string from the GIR files under
@@ -548,9 +645,16 @@ object GirSchemaExtractor {
      * @param onProgress optional progress reporter; returning `false` aborts
      *   generation with a [CancellationException]
      */
-    internal fun generateXsd(girDir: File, onProgress: GtkSchemaProgress? = null): String {
-        val resolved = resolveGirDir(girDir)
-            ?: error("No Gtk-4.0.gir found under $girDir. Pass the gir-1.0 dir or the GNOME SDK runtime base dir, or override with -PgirDir=")
+    internal fun generateXsd(
+        girDir: File,
+        onProgress: GtkSchemaProgress? = null,
+    ): String {
+        val resolved =
+            resolveGirDir(girDir)
+                ?: error(
+                    "No Gtk-4.0.gir found under $girDir. Pass the gir-1.0 dir or the GNOME SDK runtime " +
+                        "base dir, or override with -PgirDir=",
+                )
         val registry = parseAll(resolved, onProgress)
         if (onProgress?.report(GtkSchemaStep.Rendering) == false) {
             throw CancellationException("GtkBuilder schema generation cancelled")
@@ -774,9 +878,16 @@ object GirSchemaExtractor {
      * and the sibling `gtk-ui.xsd`. Used by the `generateBundledGtkSchema`
      * Gradle task and the CLI entry point.
      */
-    fun extract(girDir: File, output: File) {
-        val resolved = resolveGirDir(girDir)
-            ?: error("No Gtk-4.0.gir found under $girDir. Pass the gir-1.0 dir or the GNOME SDK runtime base dir, or override with -PgirDir=")
+    fun extract(
+        girDir: File,
+        output: File,
+    ) {
+        val resolved =
+            resolveGirDir(girDir)
+                ?: error(
+                    "No Gtk-4.0.gir found under $girDir. Pass the gir-1.0 dir or the GNOME SDK runtime base dir, " +
+                        "or override with -PgirDir=",
+                )
 
         val registry = parseAll(resolved)
         val enums = buildEnums(registry)
@@ -800,8 +911,9 @@ object GirSchemaExtractor {
     @JvmStatic
     fun main(args: Array<String>) {
         val girDirArg = parseArg(args, "--gir-dir")
-        val output = parseArg(args, "--schema-out")?.let(::File)
-            ?: File("src/main/resources/schemas/gtk-ui-schema.json")
+        val output =
+            parseArg(args, "--schema-out")?.let(::File)
+                ?: File("src/main/resources/schemas/gtk-ui-schema.json")
 
         val girDir = girDirArg?.let(::File) ?: autoDetectGirDir()
         if (girDir == null) {
@@ -812,11 +924,13 @@ object GirSchemaExtractor {
         extract(girDir, output)
     }
 
-    private fun parseArg(args: Array<String>, name: String): String? {
+    private fun parseArg(
+        args: Array<String>,
+        name: String,
+    ): String? {
         val index = args.indexOf(name)
         return if (index >= 0 && index + 1 < args.size) args[index + 1] else null
     }
 
-    private fun autoDetectGirDir(): File? =
-        GirSdkLocator.locate(SDK_APP_ID, branchHint = null, flatpakBinary = FALLBACK_FLATPAK_BINARY)
+    private fun autoDetectGirDir(): File? = GirSdkLocator.locate(SDK_APP_ID, branchHint = null, flatpakBinary = FALLBACK_FLATPAK_BINARY)
 }

@@ -8,7 +8,6 @@ package io.github.andrepg.gtk.schema.gir
  * returning `false` from [GtkSchemaProgress.report].
  */
 sealed interface GtkSchemaStep {
-
     /** Looking up the project's GNOME SDK in the Flatpak installation. */
     data object Locating : GtkSchemaStep
 

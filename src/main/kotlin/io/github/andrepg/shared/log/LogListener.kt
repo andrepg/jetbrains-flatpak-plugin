@@ -9,5 +9,10 @@ import java.util.logging.Level
  * listener are swallowed so the logging caller is never affected.
  */
 fun interface LogListener {
-    fun onLog(category: String, level: Level, message: String, throwable: Throwable?)
+    fun onLog(
+        category: String,
+        level: Level,
+        message: String,
+        throwable: Throwable?,
+    )
 }

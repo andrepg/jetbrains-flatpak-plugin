@@ -19,7 +19,6 @@ import io.github.andrepg.shared.log.Log
  * anyway (an accepted trade-off of the open-source model, see BILLING.md).
  */
 object PremiumFeatureGate {
-
     private val log = Log.getInstance(PremiumFeatureGate::class.java)
 
     const val DEV_OVERRIDE_PROPERTY = "flatpak.devtools.development"
@@ -33,6 +32,5 @@ object PremiumFeatureGate {
 
     fun requestAccess(message: String) = LicenseCheck.requestLicense(message)
 
-    private fun isDevelopmentBypass(): Boolean =
-        System.getProperty(DEV_OVERRIDE_PROPERTY)?.toBoolean() == true
+    private fun isDevelopmentBypass(): Boolean = System.getProperty(DEV_OVERRIDE_PROPERTY)?.toBoolean() == true
 }

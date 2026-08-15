@@ -13,7 +13,6 @@ import io.github.andrepg.shared.log.Log
  * IDE glue: imports the Flatpak domain for the SDK hint only.
  */
 object GtkSdkHintResolver {
-
     private val log = Log.getInstance(GtkSdkHintResolver::class.java)
 
     /**

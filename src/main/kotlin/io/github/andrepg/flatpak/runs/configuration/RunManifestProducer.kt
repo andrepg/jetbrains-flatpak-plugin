@@ -17,13 +17,12 @@ import io.github.andrepg.shared.log.Log
  * Suggests a `Run '[build] <app-id>'` action when a Flatpak manifest is right-clicked.
  */
 class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), DumbAware {
-
     private val log = Log.getInstance(RunManifestProducer::class.java)
 
     override fun setupConfigurationFromContext(
         configuration: FlatpakRunSettings,
         context: ConfigurationContext,
-        sourceElement: Ref<PsiElement>
+        sourceElement: Ref<PsiElement>,
     ): Boolean {
         val file = findManifestFile(context, sourceElement) ?: return false
         val appId = FlatpakProjectDetector.isFlatpakManifest(file) ?: return false
@@ -39,7 +38,7 @@ class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), 
 
     override fun isConfigurationFromContext(
         configuration: FlatpakRunSettings,
-        context: ConfigurationContext
+        context: ConfigurationContext,
     ): Boolean {
         val file = findManifestFile(context, null) ?: return false
         return configuration.manifestPath == file.path
@@ -47,7 +46,7 @@ class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), 
 
     private fun findManifestFile(
         context: ConfigurationContext,
-        sourceElement: Ref<PsiElement>?
+        sourceElement: Ref<PsiElement>?,
     ): VirtualFile? {
         context.location?.virtualFile?.let { return it }
         context.dataContext.getData(CommonDataKeys.VIRTUAL_FILE)?.let { return it }

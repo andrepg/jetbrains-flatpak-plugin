@@ -26,13 +26,17 @@ object FlatpakManifestVfsReader {
      * @param keys The manifest field names to extract
      * @return A map of key to field value; missing or unreadable keys map to null
      */
-    fun readFields(file: VirtualFile, vararg keys: String): Map<String, String?> {
-        val content = try {
-            file.contentsToByteArray().toString(Charsets.UTF_8)
-        } catch (e: Exception) {
-            log.warn("Could not read Flatpak manifest via VFS: ${file.path}", e)
-            return emptyMap()
-        }
+    fun readFields(
+        file: VirtualFile,
+        vararg keys: String,
+    ): Map<String, String?> {
+        val content =
+            try {
+                file.contentsToByteArray().toString(Charsets.UTF_8)
+            } catch (e: Exception) {
+                log.warn("Could not read Flatpak manifest via VFS: ${file.path}", e)
+                return emptyMap()
+            }
         return try {
             FlatpakManifestReader.parseFields(content, file.name, *keys)
         } catch (e: FlatpakManifestException) {
@@ -54,7 +58,11 @@ object FlatpakManifestVfsReader {
      * @param keys The manifest field names to extract
      * @return A map of key to field value; missing or unreadable keys map to null
      */
-    fun readFields(project: Project, path: String, vararg keys: String): Map<String, String?> {
+    fun readFields(
+        project: Project,
+        path: String,
+        vararg keys: String,
+    ): Map<String, String?> {
         val file = findInVfs(path)
         return if (file != null) {
             readFields(file, *keys)
@@ -77,7 +85,10 @@ object FlatpakManifestVfsReader {
     /**
      * Reads the application ID via [readFields]' path-based resolution.
      */
-    fun readAppId(project: Project, path: String): String? {
+    fun readAppId(
+        project: Project,
+        path: String,
+    ): String? {
         val fields = readFields(project, path, "app-id", "id")
         return fields["app-id"] ?: fields["id"]
     }
@@ -93,7 +104,10 @@ object FlatpakManifestVfsReader {
     /**
      * Reads the `command` field via [readFields]' path-based resolution.
      */
-    fun readCommand(project: Project, path: String): String? = readFields(project, path, "command")["command"]
+    fun readCommand(
+        project: Project,
+        path: String,
+    ): String? = readFields(project, path, "command")["command"]
 
     /**
      * Reads the `sdk` field from a Flatpak manifest file.
@@ -111,10 +125,11 @@ object FlatpakManifestVfsReader {
      */
     fun readRuntime(file: VirtualFile): String? = readFields(file, "runtime")["runtime"]
 
-    private fun findInVfs(path: String): VirtualFile? = try {
-        LocalFileSystem.getInstance().refreshAndFindFileByIoFile(File(path))
-    } catch (e: Throwable) {
-        log.debug("VFS unavailable; falling back to JDK read for: $path")
-        null
-    }
+    private fun findInVfs(path: String): VirtualFile? =
+        try {
+            LocalFileSystem.getInstance().refreshAndFindFileByIoFile(File(path))
+        } catch (e: Throwable) {
+            log.debug("VFS unavailable; falling back to JDK read for: $path")
+            null
+        }
 }

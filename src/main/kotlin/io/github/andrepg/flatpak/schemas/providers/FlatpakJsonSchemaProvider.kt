@@ -76,6 +76,5 @@ class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFilePr
      * @param file the file to check
      * @return true if the file looks like a Flatpak manifest
      */
-    override fun isAvailable(file: VirtualFile): Boolean =
-        FlatpakProjectDetector.isCandidateName(file.name)
+    override fun isAvailable(file: VirtualFile): Boolean = FlatpakProjectDetector.isCandidateName(file.name)
 }

@@ -7,7 +7,7 @@ import java.util.logging.Logger as JdkLogger
  * JDK-only logging facade used across the plugin.
  *
  * Wraps [java.util.logging.Logger] so that classes that must stay free of
- * IntelliJ imports (the JDK-only GTK schema/preview cores, which also run from
+ * IntelliJ imports (the JDK-only GTK schema cores, which also run from
  * standalone tooling) log through the same channel that lands in `idea.log`.
  * The IntelliJ Platform's own logging is JUL-backed since 2022.1, so records
  * made here are captured by the IDE log (`Help | Show Log`) and are filtered
@@ -19,21 +19,36 @@ import java.util.logging.Logger as JdkLogger
  * misbehaving one never breaks the caller.
  */
 class Log private constructor(private val jdk: JdkLogger) {
-
     /** Logger category, typically the owning class name. */
     val category: String get() = jdk.name
 
     val isDebugEnabled: Boolean get() = jdk.isLoggable(Level.FINE)
 
-    fun info(message: String, throwable: Throwable? = null) = log(Level.INFO, message, throwable)
+    fun info(
+        message: String,
+        throwable: Throwable? = null,
+    ) = log(Level.INFO, message, throwable)
 
-    fun warn(message: String, throwable: Throwable? = null) = log(Level.WARNING, message, throwable)
+    fun warn(
+        message: String,
+        throwable: Throwable? = null,
+    ) = log(Level.WARNING, message, throwable)
 
-    fun error(message: String, throwable: Throwable? = null) = log(Level.SEVERE, message, throwable)
+    fun error(
+        message: String,
+        throwable: Throwable? = null,
+    ) = log(Level.SEVERE, message, throwable)
 
-    fun debug(message: String, throwable: Throwable? = null) = log(Level.FINE, message, throwable)
+    fun debug(
+        message: String,
+        throwable: Throwable? = null,
+    ) = log(Level.FINE, message, throwable)
 
-    private fun log(level: Level, message: String, throwable: Throwable?) {
+    private fun log(
+        level: Level,
+        message: String,
+        throwable: Throwable?,
+    ) {
         if (!jdk.isLoggable(level)) return
         jdk.log(level, message, throwable)
 
@@ -57,4 +72,3 @@ class Log private constructor(private val jdk: JdkLogger) {
         fun getInstance(category: String): Log = Log(JdkLogger.getLogger(category))
     }
 }
-

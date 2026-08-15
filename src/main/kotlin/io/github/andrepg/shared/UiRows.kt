@@ -18,7 +18,6 @@ import com.intellij.ui.dsl.builder.RowLayout
  * label + optional comment + input layout consistent across the plugin.
  */
 object UiRows {
-
     /**
      * A label row with a plain text field.
      *

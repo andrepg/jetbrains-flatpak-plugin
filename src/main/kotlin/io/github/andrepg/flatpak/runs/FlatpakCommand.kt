@@ -10,9 +10,17 @@ package io.github.andrepg.flatpak.runs
  * @property CUSTOM Executes a custom Flatpak command with user-provided arguments
  */
 enum class UserVisibleCommand {
-    BUILD, EXPORT, RUN, VALIDATE, CUSTOM
+    BUILD,
+    EXPORT,
+    RUN,
+    VALIDATE,
+    CUSTOM,
 }
 
 enum class InternalCommand {
-    BUILD, EXPORT, RUN, VALIDATE, CUSTOM
+    BUILD,
+    EXPORT,
+    RUN,
+    VALIDATE,
+    CUSTOM,
 }

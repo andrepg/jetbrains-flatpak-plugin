@@ -14,20 +14,19 @@ import io.github.andrepg.shared.log.Log
  * Programmatic creation and deduplication of Flatpak run configurations.
  */
 class FlatpakRunGenerator {
-
     companion object {
-
         private val log = Log.getInstance(FlatpakRunGenerator::class.java)
 
         /**
          * @return the registered [FlatpakRunSettingsType] for this configuration type
          */
         fun factory(): FlatpakRunSettingsFactory {
-            val type = try {
-                ConfigurationTypeUtil.findConfigurationType(FlatpakRunSettingsType::class.java)
-            } catch (e: Exception) {
-                throw FlatpakConfigurationException("Flatpak run configuration type is not registered", e)
-            }
+            val type =
+                try {
+                    ConfigurationTypeUtil.findConfigurationType(FlatpakRunSettingsType::class.java)
+                } catch (e: Exception) {
+                    throw FlatpakConfigurationException("Flatpak run configuration type is not registered", e)
+                }
             return type.configurationFactories.firstOrNull() as? FlatpakRunSettingsFactory
                 ?: throw FlatpakConfigurationException("Flatpak run configuration factory is not registered")
         }
@@ -35,8 +34,10 @@ class FlatpakRunGenerator {
         /**
          * The default run-configuration name for a command and app-id, e.g. `[build] org.example.App`.
          */
-        fun formatRunName(command: UserVisibleCommand, appId: String): String =
-            Localization.message("runs.configuration.name", command.name.lowercase(), appId)
+        fun formatRunName(
+            command: UserVisibleCommand,
+            appId: String,
+        ): String = Localization.message("runs.configuration.name", command.name.lowercase(), appId)
 
         /**
          * Creates a `[build] <app-id>` run configuration for [file], reusing the existing one when a
@@ -47,7 +48,7 @@ class FlatpakRunGenerator {
         fun createForManifest(
             project: Project,
             file: VirtualFile,
-            appId: String
+            appId: String,
         ): RunnerAndConfigurationSettings {
             val runManager = RunManager.getInstance(project)
             findExisting(project, file)?.let { existing ->
@@ -56,10 +57,11 @@ class FlatpakRunGenerator {
             }
 
             val name = formatRunName(UserVisibleCommand.BUILD, appId)
-            val settings = runManager.createConfiguration(
-                name,
-                factory()
-            )
+            val settings =
+                runManager.createConfiguration(
+                    name,
+                    factory(),
+                )
             val configuration = settings.configuration as FlatpakRunSettings
             configuration.command = UserVisibleCommand.BUILD
             configuration.manifestPath = file.path
@@ -72,7 +74,10 @@ class FlatpakRunGenerator {
         /**
          * @return an existing Flatpak configuration targeting [file], or null
          */
-        fun findExisting(project: Project, file: VirtualFile): RunnerAndConfigurationSettings? =
+        fun findExisting(
+            project: Project,
+            file: VirtualFile,
+        ): RunnerAndConfigurationSettings? =
             RunManager.getInstance(project).allSettings.firstOrNull { settings ->
                 settings.type is FlatpakRunSettingsType &&
                     (settings.configuration as? FlatpakRunSettings)?.manifestPath == file.path

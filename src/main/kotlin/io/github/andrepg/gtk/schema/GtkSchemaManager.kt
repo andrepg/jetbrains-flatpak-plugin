@@ -27,7 +27,6 @@ class GtkSchemaManager(
     private val configDir: File,
     private val baseDirs: List<File> = GirSdkLocator.defaultBaseDirs(),
 ) {
-
     private val requested = ConcurrentHashMap<String, Boolean>()
     private val log = Log.getInstance(GtkSchemaManager::class.java)
 
@@ -49,7 +48,11 @@ class GtkSchemaManager(
      * @param onProgress optional progress reporter; returning `false` aborts
      *   the attempt (the bundled schema keeps serving)
      */
-    fun generateSchema(hint: SdkHint?, flatpakBinary: String, onProgress: GtkSchemaProgress? = null): File? {
+    fun generateSchema(
+        hint: SdkHint?,
+        flatpakBinary: String,
+        onProgress: GtkSchemaProgress? = null,
+    ): File? {
         if (hint == null) return null
 
         cachedSchema(hint)?.let {
@@ -64,12 +67,13 @@ class GtkSchemaManager(
             return null
         }
         log.info("Locating GIR dir for ${hint.sdkAppId}@${hint.branch}: ${girDir.absolutePath}")
-        val xsd = try {
-            GirSchemaExtractor.generateXsd(girDir, onProgress)
-        } catch (e: Exception) {
-            log.warn("Failed to generate GTK schema from $girDir; falling back to bundled schema", e)
-            return null
-        }
+        val xsd =
+            try {
+                GirSchemaExtractor.generateXsd(girDir, onProgress)
+            } catch (e: Exception) {
+                log.warn("Failed to generate GTK schema from $girDir; falling back to bundled schema", e)
+                return null
+            }
         if (onProgress?.report(GtkSchemaStep.Caching) == false) return null
         configDir.mkdirs()
         val target = File(configDir, "gtk-ui-${hint.key}.xsd")

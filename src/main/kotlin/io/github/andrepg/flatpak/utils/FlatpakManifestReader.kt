@@ -31,7 +31,11 @@ object FlatpakManifestReader {
      *
      * @throws FlatpakManifestException when the content cannot be parsed.
      */
-    fun parseFields(content: String, fileName: String, vararg keys: String): Map<String, String?> {
+    fun parseFields(
+        content: String,
+        fileName: String,
+        vararg keys: String,
+    ): Map<String, String?> {
         val json = isJson(content, fileName.substringAfterLast('.', ""))
         return try {
             if (json) {
@@ -54,7 +58,10 @@ object FlatpakManifestReader {
      * @param keys The manifest field names to extract
      * @return A map of key to field value; missing or unparseable keys map to null
      */
-    fun readFields(manifestPath: String, vararg keys: String): Map<String, String?> {
+    fun readFields(
+        manifestPath: String,
+        vararg keys: String,
+    ): Map<String, String?> {
         val file = File(manifestPath)
         if (!file.exists() || file.isDirectory) return emptyMap()
         return try {
@@ -100,6 +107,8 @@ object FlatpakManifestReader {
      */
     fun readCommand(manifestPath: String): String? = readFields(manifestPath, "command")["command"]
 
-    private fun isJson(content: String, extension: String): Boolean =
-        extension.equals("json", ignoreCase = true) || content.trimStart().startsWith("{")
+    private fun isJson(
+        content: String,
+        extension: String,
+    ): Boolean = extension.equals("json", ignoreCase = true) || content.trimStart().startsWith("{")
 }

@@ -23,7 +23,6 @@ import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
 class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
-
     private val log = Log.getInstance(FlatpakRunSettingsPanel::class.java)
 
     private lateinit var commandComboBox: ComboBox<UserVisibleCommand>
@@ -51,7 +50,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
 
     private val textWithButtons by lazy {
         listOf(
-            manifestField
+            manifestField,
         )
     }
 
@@ -66,78 +65,92 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         )
     }
 
-    private val panel: DialogPanel = panel {
-        val project = ProjectManager.getInstance().defaultProject
+    private val panel: DialogPanel =
+        panel {
+            val project = ProjectManager.getInstance().defaultProject
 
-        group(Localization.message("runs.settings.group.command")) {
-            commandComboBox = comboBoxRow(
-                label = Localization.message("runs.settings.command.label"),
-                comment = Localization.message("runs.settings.command.description"),
-                items = UserVisibleCommand.entries,
-            ).component
+            group(Localization.message("runs.settings.group.command")) {
+                commandComboBox =
+                    comboBoxRow(
+                        label = Localization.message("runs.settings.command.label"),
+                        comment = Localization.message("runs.settings.command.description"),
+                        items = UserVisibleCommand.entries,
+                    ).component
 
-            customArgumentsRow = row(Localization.message("runs.settings.custom-arguments.label")) {
-                customArgumentsField = expandableTextField(
-                    { text: String -> text.lines().map(String::trim).filter(String::isNotBlank).toMutableList() },
-                    { values: List<String> -> values.joinToString("\n") },
-                ).component
+                customArgumentsRow =
+                    row(Localization.message("runs.settings.custom-arguments.label")) {
+                        customArgumentsField =
+                            expandableTextField(
+                                { text: String -> text.lines().map(String::trim).filter(String::isNotBlank).toMutableList() },
+                                { values: List<String> -> values.joinToString("\n") },
+                            ).component
+                    }
+                customArgumentsRow?.layout(RowLayout.LABEL_ALIGNED)
+                customArgumentsRow?.rowComment(Localization.message("runs.settings.custom-arguments.description"))
             }
-            customArgumentsRow?.layout(RowLayout.LABEL_ALIGNED)
-            customArgumentsRow?.rowComment(Localization.message("runs.settings.custom-arguments.description"))
+
+            group(Localization.message("runs.settings.group.manifest")) {
+                manifestField =
+                    browseTextFieldRow(
+                        label = Localization.message("runs.settings.manifest.label"),
+                        project = project,
+                        comment = Localization.message("runs.settings.manifest.description"),
+                        fileChosen = { chosenFile -> chosenFile.path },
+                    ).component
+            }
+
+            cleanupGroupRow =
+                group(Localization.message("runs.settings.group.cleanup")) {
+                    row {
+                        forceCleanCheck =
+                            checkBox(Localization.message("runs.settings.force-clean.label"))
+                                .comment(Localization.message("runs.settings.force-clean.description"))
+                                .component
+                    }
+                    row {
+                        deepCleanCheck =
+                            checkBox(Localization.message("runs.settings.deep-clean.label"))
+                                .comment(Localization.message("runs.settings.deep-clean.description"))
+                                .component
+                    }
+                }
+
+            portalsGroupRow =
+                group(Localization.message("runs.settings.group.portals")) {
+                    row {
+                        portalsCheck =
+                            checkBox(Localization.message("runs.settings.portals.label"))
+                                .comment(Localization.message("runs.settings.portals.description"))
+                                .component
+                    }
+                    row {
+                        themesCheck =
+                            checkBox(Localization.message("runs.settings.themes.label"))
+                                .comment(Localization.message("runs.settings.themes.description"))
+                                .component
+                    }
+                    row {
+                        audioCheck =
+                            checkBox(Localization.message("runs.settings.audio.label"))
+                                .comment(Localization.message("runs.settings.audio.description"))
+                                .component
+                    }
+                    row {
+                        waylandCheck =
+                            checkBox(Localization.message("runs.settings.wayland.label"))
+                                .comment(Localization.message("runs.settings.wayland.description"))
+                                .component
+                    }
+                }
+
+            group(Localization.message("runs.settings.group.advanced")) {
+                buildDir =
+                    textFieldRow(
+                        label = Localization.message("runs.settings.build-output.label"),
+                        comment = Localization.message("runs.settings.build-output.description"),
+                    ).component
+            }
         }
-
-        group(Localization.message("runs.settings.group.manifest")) {
-            manifestField = browseTextFieldRow(
-                label = Localization.message("runs.settings.manifest.label"),
-                project = project,
-                comment = Localization.message("runs.settings.manifest.description"),
-                fileChosen = { chosenFile -> chosenFile.path },
-            ).component
-        }
-
-        cleanupGroupRow = group(Localization.message("runs.settings.group.cleanup")) {
-            row {
-                forceCleanCheck = checkBox(Localization.message("runs.settings.force-clean.label"))
-                    .comment(Localization.message("runs.settings.force-clean.description"))
-                    .component
-            }
-            row {
-                deepCleanCheck = checkBox(Localization.message("runs.settings.deep-clean.label"))
-                    .comment(Localization.message("runs.settings.deep-clean.description"))
-                    .component
-            }
-        }
-
-        portalsGroupRow = group(Localization.message("runs.settings.group.portals")) {
-            row {
-                portalsCheck = checkBox(Localization.message("runs.settings.portals.label"))
-                    .comment(Localization.message("runs.settings.portals.description"))
-                    .component
-            }
-            row {
-                themesCheck = checkBox(Localization.message("runs.settings.themes.label"))
-                    .comment(Localization.message("runs.settings.themes.description"))
-                    .component
-            }
-            row {
-                audioCheck = checkBox(Localization.message("runs.settings.audio.label"))
-                    .comment(Localization.message("runs.settings.audio.description"))
-                    .component
-            }
-            row {
-                waylandCheck = checkBox(Localization.message("runs.settings.wayland.label"))
-                    .comment(Localization.message("runs.settings.wayland.description"))
-                    .component
-            }
-        }
-
-        group(Localization.message("runs.settings.group.advanced")) {
-            buildDir = textFieldRow(
-                label = Localization.message("runs.settings.build-output.label"),
-                comment = Localization.message("runs.settings.build-output.description"),
-            ).component
-        }
-    }
 
     init {
         wireChangeListeners()
@@ -173,11 +186,14 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
             ?.enabled(command == UserVisibleCommand.CUSTOM)
     }
 
-    private fun notifyingDocumentListener() = object : DocumentListener {
-        override fun insertUpdate(e: DocumentEvent) = fireEditorStateChanged()
-        override fun removeUpdate(e: DocumentEvent) = fireEditorStateChanged()
-        override fun changedUpdate(e: DocumentEvent) = fireEditorStateChanged()
-    }
+    private fun notifyingDocumentListener() =
+        object : DocumentListener {
+            override fun insertUpdate(e: DocumentEvent) = fireEditorStateChanged()
+
+            override fun removeUpdate(e: DocumentEvent) = fireEditorStateChanged()
+
+            override fun changedUpdate(e: DocumentEvent) = fireEditorStateChanged()
+        }
 
     override fun resetEditorFrom(configuration: FlatpakRunSettings) {
         // Build Run type used
@@ -202,7 +218,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
 
         log.debug(
             "Settings editor reset: command=${configuration.command}, manifest=${configuration.manifestPath}, " +
-                "buildDir=${configuration.buildDir}"
+                "buildDir=${configuration.buildDir}",
         )
     }
 
@@ -213,10 +229,11 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         buildDir.text.also { configuration.buildDir = it }
 
         // Custom Flatpak build arguments
-        configuration.customArguments = customArgumentsField.text
-            .lines()
-            .map { it.trim() }
-            .filter { it.isNotBlank() }
+        configuration.customArguments =
+            customArgumentsField.text
+                .lines()
+                .map { it.trim() }
+                .filter { it.isNotBlank() }
 
         // Build clean arguments
         forceCleanCheck.isSelected.also { configuration.enableForceClean = it }

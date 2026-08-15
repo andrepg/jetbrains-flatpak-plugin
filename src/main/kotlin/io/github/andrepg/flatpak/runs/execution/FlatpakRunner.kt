@@ -16,7 +16,7 @@ import io.github.andrepg.shared.log.Log
  */
 class FlatpakRunner(
     environment: ExecutionEnvironment,
-    private val config: FlatpakRunSettings
+    private val config: FlatpakRunSettings,
 ) : CommandLineState(environment) {
     private val log = Log.getInstance(FlatpakRunner::class.java)
 
@@ -31,30 +31,32 @@ class FlatpakRunner(
     override fun startProcess(): ProcessHandler {
         log.info(
             "Flatpak run started: command=${config.command}, manifest=${config.manifestPath}, " +
-                    "buildDir=${config.buildDir}, forceClean=${config.enableForceClean}, " +
-                    "deepClean=${config.enableDeepClean}, portals=${config.enablePortals}, " +
-                    "themes=${config.enableThemes}, audio=${config.enableAudio}, wayland=${config.enableWayland}"
+                "buildDir=${config.buildDir}, forceClean=${config.enableForceClean}, " +
+                "deepClean=${config.enableDeepClean}, portals=${config.enablePortals}, " +
+                "themes=${config.enableThemes}, audio=${config.enableAudio}, wayland=${config.enableWayland}",
         )
 
         val commandLine = engine.buildCommand(strategy, config)
-        val generalCommandLine = engine.toGeneralCommandLine(commandLine)
-            .withWorkDirectory(environment.project.basePath)
+        val generalCommandLine =
+            engine.toGeneralCommandLine(commandLine)
+                .withWorkDirectory(environment.project.basePath)
 
-        val preSteps = if (config.enableDeepClean && config.command == UserVisibleCommand.BUILD) {
-            listOf(
-                CommandChainProcessHandler.PreStep("DEEP_CLEAN") {
-                    DeepCleanExecutor().clean(environment.project, config)
-                }
-            )
-        } else {
-            emptyList()
-        }
+        val preSteps =
+            if (config.enableDeepClean && config.command == UserVisibleCommand.BUILD) {
+                listOf(
+                    CommandChainProcessHandler.PreStep("DEEP_CLEAN") {
+                        DeepCleanExecutor().clean(environment.project, config)
+                    },
+                )
+            } else {
+                emptyList()
+            }
 
         return CommandChainProcessHandler(
             commandLines = listOf(generalCommandLine),
             commandLabels = listOf(config.command.name),
             engine = engine,
-            preSteps = preSteps
+            preSteps = preSteps,
         )
     }
 }

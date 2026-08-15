@@ -23,7 +23,12 @@ internal object Localization {
      * @return the localized, formatted message
      */
     @JvmStatic
-    fun message(key: @PropertyKey(resourceBundle = BUNDLE) String, vararg params: Any?): @Nls String {
+    fun message(
+        key:
+            @PropertyKey(resourceBundle = BUNDLE)
+            String,
+        vararg params: Any?,
+    ): @Nls String {
         return instance.getMessage(key, *params)
     }
 }
