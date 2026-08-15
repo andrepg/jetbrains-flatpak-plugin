@@ -7,6 +7,14 @@
       "headers": {
         "IJ_MCP_SERVER_PROJECT_PATH": "/var/home/apg/Projetos/plugins/jetbrains-flatpak"
       }
+    },
+    "Sentry": {
+      "type": "local",
+      "command": ["npx", "-y", "@sentry/mcp-server"],
+      "enabled": true,
+      "environment": {
+        "SENTRY_ACCESS_TOKEN": "{env:SENTRY_ACCESS_TOKEN}"
+      }
     }
   }
 }
