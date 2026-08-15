@@ -9,8 +9,8 @@ import io.github.andrepg.shared.log.Log
  * Determines which commands to execute based on user configuration.
  * Handles command selection and ordering.
  */
-class CommandSelectionStrategy {
-    private val log = Log.getInstance(CommandSelectionStrategy::class.java)
+class CommandExecutionStrategy {
+    private val log = Log.getInstance(CommandExecutionStrategy::class.java)
 
     /**
      * Builds the execution plan for the configuration: the main command plus
@@ -19,7 +19,7 @@ class CommandSelectionStrategy {
      * @param config The run configuration
      * @return the ordered execution plan
      */
-    fun plan(config: FlatpakRunSettings): CommandPlan {
+    fun create(config: FlatpakRunSettings): CommandPlan {
         val main = mapUserCommandToInternal(config.command)
         val preSteps = mutableListOf<InternalCommand>()
 

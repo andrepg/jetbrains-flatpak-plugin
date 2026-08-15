@@ -8,9 +8,9 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.mockito.Mockito.mock
 
-class CommandSelectionStrategyTest {
+class CommandExecutionStrategyTest {
 
-    private val strategy = CommandSelectionStrategy()
+    private val strategy = CommandExecutionStrategy()
 
     private fun config(configure: FlatpakRunSettings.() -> Unit = {}): FlatpakRunSettings {
         val configuration = FlatpakRunSettings(mock(Project::class.java), null, null)
@@ -21,7 +21,7 @@ class CommandSelectionStrategyTest {
 
     @Test
     fun `main command is always present`() {
-        val plan = strategy.plan(
+        val plan = strategy.create(
             config { command = UserVisibleCommand.VALIDATE }
         )
         assertEquals(CommandPlan(InternalCommand.VALIDATE), plan)
@@ -29,7 +29,7 @@ class CommandSelectionStrategyTest {
 
     @Test
     fun `force clean prepends clean before build`() {
-        val plan = strategy.plan(
+        val plan = strategy.create(
             config {
                 command = UserVisibleCommand.BUILD
                 enableForceClean = true
@@ -40,7 +40,7 @@ class CommandSelectionStrategyTest {
 
     @Test
     fun `deep clean prepends deep clean before run`() {
-        val plan = strategy.plan(
+        val plan = strategy.create(
             config {
                 command = UserVisibleCommand.RUN
                 enableDeepClean = true
@@ -52,7 +52,7 @@ class CommandSelectionStrategyTest {
     @Test
     fun `cleanup only applies to build-like commands`() {
         for (userCommand in listOf(UserVisibleCommand.VALIDATE, UserVisibleCommand.CLEAN, UserVisibleCommand.CUSTOM)) {
-            val plan = strategy.plan(
+            val plan = strategy.create(
                 config {
                     command = userCommand
                     enableForceClean = true
@@ -65,7 +65,7 @@ class CommandSelectionStrategyTest {
 
     @Test
     fun `force and deep clean both prepend in order`() {
-        val plan = strategy.plan(
+        val plan = strategy.create(
             config {
                 command = UserVisibleCommand.EXPORT
                 enableForceClean = true
@@ -80,7 +80,7 @@ class CommandSelectionStrategyTest {
 
     @Test
     fun `clean command without flags stays a single command`() {
-        val plan = strategy.plan(
+        val plan = strategy.create(
             config { command = UserVisibleCommand.CLEAN }
         )
         assertEquals(CommandPlan(InternalCommand.CLEAN), plan)

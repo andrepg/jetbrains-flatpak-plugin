@@ -1,10 +1,9 @@
 package io.github.andrepg.flatpak.runs.execution
 
 import com.intellij.execution.configurations.CommandLineState
-import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessHandler
-import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.openapi.project.currentOrDefaultProject
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.shared.log.Log
 
@@ -19,6 +18,9 @@ class FlatpakRunner(
     private val config: FlatpakRunSettings
 ) : CommandLineState(environment) {
     private val log = Log.getInstance(FlatpakRunner::class.java)
+
+    private val engine = CommandExecutionEngine(environment.project)
+    private val strategy = CommandExecutionStrategy().create(config)
 
     /**
      * Composes the Flatpak command line and starts the underlying OS process.
@@ -37,30 +39,16 @@ class FlatpakRunner(
                     "themes=${config.enableThemes}, audio=${config.enableAudio}, wayland=${config.enableWayland}"
         )
 
-        val plan = CommandSelectionStrategy().plan(config)
-        val engine = CommandExecutionEngine(environment.project)
-
-        val cleanupCommandLines = plan.preSteps.map { engine.buildCommand(it, config) }
-        val mainCommandLine = engine.buildCommand(plan.main, config)
-
-        val handler = when (cleanupCommandLines.isEmpty()) {
-            true -> engine.executeCommandSequence(mainCommandLine)
-            false -> CleanupThenProcessHandler(
-                cleanupCommandLines = cleanupCommandLines,
-                mainCommandLine = engine.toGeneralCommandLine(mainCommandLine),
-                workDir = environment.project.workspaceFile
-            )
+        val commandLines = strategy.all.map { step ->
+            engine.toGeneralCommandLine(engine.buildCommand(step, config))
         }
 
-        handler.addProcessListener(object : ProcessListener {
-            override fun processTerminated(event: ProcessEvent) {
-                event.processHandler.detachProcess()
-                log.info("Flatpak command terminated with exit code ${event.exitCode}")
-            }
-        })
-
-        handler.startNotify()
-
-        return handler
+        return CommandChainProcessHandler(
+            commandLines = commandLines,
+            workDir = currentOrDefaultProject(environment.project).workspaceFile,
+            engine = engine
+        ).also {
+            it.startNotify()
+        }
     }
 }
