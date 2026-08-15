@@ -18,7 +18,6 @@ import java.util.logging.Logger as JdkLogger
  * [setDebugEnabled].
  */
 object LogConfiguration {
-
     /** System property that turns verbose plugin logging on (`-Dflatpak.debug=true`). */
     const val DEBUG_PROPERTY = "flatpak.debug"
 
@@ -29,12 +28,10 @@ object LogConfiguration {
         get() = JdkLogger.getLogger(ROOT_CATEGORY)
 
     /** Whether the user requested debug logging (property or settings). */
-    fun isDebugRequested(): Boolean =
-        System.getProperty(DEBUG_PROPERTY)?.toBoolean() == true
+    fun isDebugRequested(): Boolean = System.getProperty(DEBUG_PROPERTY)?.toBoolean() == true
 
     /** Whether the FINE level is currently effective for the plugin namespace. */
-    fun isDebugActive(): Boolean =
-        (rootLogger.level?.intValue() ?: Level.INFO.intValue()) <= Level.FINE.intValue()
+    fun isDebugActive(): Boolean = (rootLogger.level?.intValue() ?: Level.INFO.intValue()) <= Level.FINE.intValue()
 
     /** Raises the plugin namespace level to FINE so all [Log.debug] calls emit. */
     fun setDebugEnabled(enabled: Boolean) {

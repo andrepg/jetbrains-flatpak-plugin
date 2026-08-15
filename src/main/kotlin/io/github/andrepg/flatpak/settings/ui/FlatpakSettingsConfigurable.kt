@@ -24,7 +24,6 @@ import javax.swing.JComponent
  * client) immediately, no IDE restart needed.
  */
 class FlatpakSettingsConfigurable : Configurable {
-
     private val settings = service<FlatpakGlobalSettingsState>()
 
     private lateinit var flatpakField: TextFieldWithBrowseButton
@@ -34,34 +33,39 @@ class FlatpakSettingsConfigurable : Configurable {
 
     override fun getDisplayName(): String = "Flatpak"
 
-    override fun createComponent(): JComponent = panel {
-        group(Localization.message("settings.flatpak.binaries.title")) {
-            flatpakField = browseTextFieldRow(
-                label = Localization.message("settings.flatpak.binaries.flatpak.label"),
-                project = ProjectManager.getInstance().defaultProject,
-                comment = Localization.message("settings.flatpak.binaries.flatpak.description"),
-                fileChosen = { chosenFile -> chosenFile.path },
-            ).component
+    override fun createComponent(): JComponent =
+        panel {
+            group(Localization.message("settings.flatpak.binaries.title")) {
+                flatpakField =
+                    browseTextFieldRow(
+                        label = Localization.message("settings.flatpak.binaries.flatpak.label"),
+                        project = ProjectManager.getInstance().defaultProject,
+                        comment = Localization.message("settings.flatpak.binaries.flatpak.description"),
+                        fileChosen = { chosenFile -> chosenFile.path },
+                    ).component
 
-            builderField = textFieldRow(
-                label = Localization.message("settings.flatpak.binaries.flatpak-builder.label"),
-                comment = Localization.message("settings.flatpak.binaries.flatpak-builder.description"),
-            ).component
-        }
+                builderField =
+                    textFieldRow(
+                        label = Localization.message("settings.flatpak.binaries.flatpak-builder.label"),
+                        comment = Localization.message("settings.flatpak.binaries.flatpak-builder.description"),
+                    ).component
+            }
 
-        group(Localization.message("settings.flatpak.diagnostics.title")) {
-            row {
-                sentryCheck = checkBox(Localization.message("settings.flatpak.diagnostics.sentry.label"))
-                    .comment(Localization.message("settings.flatpak.diagnostics.sentry.description"))
-                    .component
-            }
-            row {
-                debugCheck = checkBox(Localization.message("settings.flatpak.diagnostics.debug.label"))
-                    .comment(Localization.message("settings.flatpak.diagnostics.debug.description"))
-                    .component
+            group(Localization.message("settings.flatpak.diagnostics.title")) {
+                row {
+                    sentryCheck =
+                        checkBox(Localization.message("settings.flatpak.diagnostics.sentry.label"))
+                            .comment(Localization.message("settings.flatpak.diagnostics.sentry.description"))
+                            .component
+                }
+                row {
+                    debugCheck =
+                        checkBox(Localization.message("settings.flatpak.diagnostics.debug.label"))
+                            .comment(Localization.message("settings.flatpak.diagnostics.debug.description"))
+                            .component
+                }
             }
         }
-    }
 
     override fun isModified(): Boolean =
         flatpakField.text.orEmpty() != settings.flatpakBinaryPath.orEmpty() ||

@@ -12,20 +12,8 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.ModalityState
 import com.intellij.ui.LicensingFacade
 import io.github.andrepg.shared.log.Log
-import java.io.ByteArrayInputStream
 import java.nio.charset.StandardCharsets
 import java.security.Signature
-import java.security.cert.CertPath
-import java.security.cert.CertPathBuilder
-import java.security.cert.CertPathValidator
-import java.security.cert.CertStore
-import java.security.cert.Certificate
-import java.security.cert.CertificateFactory
-import java.security.cert.CollectionCertStoreParameters
-import java.security.cert.PKIXBuilderParameters
-import java.security.cert.TrustAnchor
-import java.security.cert.X509CertSelector
-import java.security.cert.X509Certificate
 import java.util.Base64
 
 /**
@@ -42,7 +30,6 @@ import java.util.Base64
  * `plugin.xml`.
  */
 object LicenseCheck {
-
     val certificateGenerator = CertificateGenerator()
 
     const val PRODUCT_CODE = "PFLATPAKDEV"
@@ -60,11 +47,12 @@ object LicenseCheck {
     fun isLicensed(): Boolean? {
         val facade = LicensingFacade.getInstance() ?: return null
         val stamp = facade.getConfirmationStamp(PRODUCT_CODE) ?: return false
-        val licensed = when {
-            stamp.startsWith(KEY_PREFIX) -> isKeyValid(stamp.removePrefix(KEY_PREFIX))
-            stamp.startsWith(STAMP_PREFIX) -> isLicenseServerStampValid(stamp.removePrefix(STAMP_PREFIX))
-            else -> false
-        }
+        val licensed =
+            when {
+                stamp.startsWith(KEY_PREFIX) -> isKeyValid(stamp.removePrefix(KEY_PREFIX))
+                stamp.startsWith(STAMP_PREFIX) -> isLicenseServerStampValid(stamp.removePrefix(STAMP_PREFIX))
+                else -> false
+            }
         log.debug("License check for $PRODUCT_CODE: ${if (licensed) "licensed" else "not licensed"}")
         return licensed
     }
@@ -75,21 +63,22 @@ object LicenseCheck {
      */
     fun requestLicense(message: String) {
         ApplicationManager.getApplication().invokeLater(
-            { showRegisterDialog( message) },
-            ModalityState.nonModal()
+            { showRegisterDialog(message) },
+            ModalityState.nonModal(),
         )
     }
 
     private fun showRegisterDialog(message: String) {
         val actionManager = ActionManager.getInstance()
         // first, assume we are running inside the OpenSource version
-        val registerAction = actionManager.getAction("RegisterPlugins")
-            // assume running inside commercial IDE distribution
-            ?: actionManager.getAction("Register")
+        val registerAction =
+            actionManager.getAction("RegisterPlugins")
+                // assume running inside commercial IDE distribution
+                ?: actionManager.getAction("Register")
         if (registerAction != null) {
             ActionUtil.performAction(
                 registerAction,
-                AnActionEvent.createEvent(asDataContext(message), Presentation(), "", ActionUiKind.NONE, null)
+                AnActionEvent.createEvent(asDataContext(message), Presentation(), "", ActionUiKind.NONE, null),
             )
         }
     }
@@ -100,7 +89,8 @@ object LicenseCheck {
      * and an optional message explaining why the dialog has been shown.
      */
     private fun asDataContext(message: String): DataContext =
-        SimpleDataContext.builder()
+        SimpleDataContext
+            .builder()
             .add(DataKey.create("register.product-descriptor.code"), PRODUCT_CODE)
             .add(DataKey.create("register.message"), message)
             .build()
@@ -123,8 +113,8 @@ object LicenseCheck {
                 certificateGenerator.createCertificate(
                     Base64.getMimeDecoder().decode(certBase64.toByteArray(StandardCharsets.UTF_8)),
                     emptyList<ByteArray>(),
-                    false
-                )
+                    false,
+                ),
             )
             val licenseBytes = Base64.getMimeDecoder().decode(licensePartBase64.toByteArray(StandardCharsets.UTF_8))
             signature.update(licenseBytes)
@@ -141,8 +131,8 @@ object LicenseCheck {
         }
     }
 
-    private fun isLicenseServerStampValid(serverStamp: String): Boolean {
-        return try {
+    private fun isLicenseServerStampValid(serverStamp: String): Boolean =
+        try {
             val parts = serverStamp.split(":")
             val decoder = Base64.getMimeDecoder()
 
@@ -167,7 +157,7 @@ object LicenseCheck {
                 // machineId must match the machineId from the server reply and
                 // the server reply should be relatively 'fresh'
                 expectedMachineId == machineId &&
-                    kotlin.math.abs(System.currentTimeMillis() - timeStamp) < LicenseParameters.timestampValidityPeriod
+                    kotlin.math.abs(System.currentTimeMillis() - timeStamp) < LicenseParameters.TIMESTAMP_VALIDITY_PERIOD
             } else {
                 false
             }
@@ -175,5 +165,4 @@ object LicenseCheck {
             // consider the server stamp invalid
             false
         }
-    }
 }

@@ -10,7 +10,6 @@ import java.io.File
  * the editor (Apply time) and from [FlatpakRunSettings.checkConfiguration].
  */
 object RunConfigurationValidator {
-
     /**
      * Validates [config] and returns every problem found; empty list means valid.
      */

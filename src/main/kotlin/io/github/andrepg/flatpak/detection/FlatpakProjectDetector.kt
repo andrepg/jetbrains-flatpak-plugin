@@ -16,7 +16,6 @@ import io.github.andrepg.shared.log.Log
  * domain (producer, configurator, project opener) consumes it for every detection concern.
  */
 object FlatpakProjectDetector {
-
     private val log = Log.getInstance(FlatpakProjectDetector::class.java)
 
     /** Reverse-DNS names such as `org.example.app.json` (at least three segments). */
@@ -27,15 +26,16 @@ object FlatpakProjectDetector {
     private val commonNameRegex =
         Regex("^(flatpak|manifest).*\\.(json|ya?ml)$")
 
-    private val excludedDirectoryNames = setOf(
-        ".git",
-        "build",
-        "_build",
-        "out",
-        "node_modules",
-        "target",
-        ".flatpak-builder"
-    )
+    private val excludedDirectoryNames =
+        setOf(
+            ".git",
+            "build",
+            "_build",
+            "out",
+            "node_modules",
+            "target",
+            ".flatpak-builder",
+        )
 
     /**
      * Returns the app-id when [file] looks like a Flatpak manifest, null otherwise.
@@ -68,7 +68,10 @@ object FlatpakProjectDetector {
     /**
      * Applies the [isCandidateName] gate and delegates content parsing to [FlatpakManifestReader].
      */
-    internal fun readAppIdFromCandidate(fileName: String, path: String): String? {
+    internal fun readAppIdFromCandidate(
+        fileName: String,
+        path: String,
+    ): String? {
         if (!isCandidateName(fileName)) return null
         return FlatpakManifestReader.readAppId(path)
     }
@@ -99,12 +102,12 @@ object FlatpakProjectDetector {
                         isFlatpakManifest(file)?.let { manifests.add(file to it) }
                         return true
                     }
-                }
+                },
             )
         }
         log.info(
             "Found ${manifests.size} Flatpak manifest(s): " +
-                manifests.joinToString(", ") { "${it.first.path} (${it.second})" }
+                manifests.joinToString(", ") { "${it.first.path} (${it.second})" },
         )
         return manifests
     }

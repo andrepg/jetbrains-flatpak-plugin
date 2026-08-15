@@ -11,8 +11,9 @@ class RunCommandFactory(
     private val log = Log.getInstance(RunCommandFactory::class.java)
 
     override fun create(settings: FlatpakRunSettings): List<String> {
-        val appCommand = FlatpakManifestVfsReader.readCommand(settings.project, settings.manifestPath)
-            ?: FlatpakManifestVfsReader.readAppId(settings.project, settings.manifestPath)
+        val appCommand =
+            FlatpakManifestVfsReader.readCommand(settings.project, settings.manifestPath)
+                ?: FlatpakManifestVfsReader.readAppId(settings.project, settings.manifestPath)
         return buildList {
             addAll(getFlatpakCommand())
             add("--run")

@@ -4,12 +4,12 @@ import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.components.service
 import com.intellij.openapi.extensions.PluginId
-import io.sentry.Sentry
-import io.sentry.SentryOptions
 import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
 import io.github.andrepg.shared.license.PremiumFeatureGate
 import io.github.andrepg.shared.log.Log
 import io.github.andrepg.shared.log.LogConfiguration
+import io.sentry.Sentry
+import io.sentry.SentryOptions
 
 /**
  * Initializes the Sentry error-reporting client and attaches the
@@ -31,7 +31,6 @@ import io.github.andrepg.shared.log.LogConfiguration
  * `io.github.andrepg` frames count as in-app.
  */
 object SentryInitializer {
-
     private const val PLUGIN_ID = "io.github.andrepg.flatpak-support"
     private const val RELEASE_PREFIX = "flatpak-devtools@"
 
@@ -71,7 +70,7 @@ object SentryInitializer {
         if (!isConsented()) {
             log.info(
                 "Sentry error reporting disabled (opt-in; enable it in Settings -> Flatpak -> Diagnostics " +
-                    "or with -D${ENABLED_PROPERTY}=true)"
+                    "or with -D${ENABLED_PROPERTY}=true)",
             )
             return
         }
@@ -80,15 +79,17 @@ object SentryInitializer {
         if (dsn == null) {
             log.warn(
                 "Sentry reporting requested but no DSN configured " +
-                    "(set $DSN_PROPERTY, SENTRY_DSN, or fill SentryInitializer.DSN); reporting skipped"
+                    "(set $DSN_PROPERTY, SENTRY_DSN, or fill SentryInitializer.DSN); reporting skipped",
             )
             return
         }
 
         try {
-            Sentry.init(Sentry.OptionsConfiguration { options ->
-                configure(options, dsn)
-            })
+            Sentry.init(
+                Sentry.OptionsConfiguration { options ->
+                    configure(options, dsn)
+                },
+            )
         } catch (e: Exception) {
             log.error("Sentry initialization failed; error reporting disabled", e)
             return
@@ -99,7 +100,10 @@ object SentryInitializer {
         log.info("Sentry error reporting enabled (environment=$environment, release=$release)")
     }
 
-    private fun configure(options: SentryOptions, dsn: String) {
+    private fun configure(
+        options: SentryOptions,
+        dsn: String,
+    ) {
         options.dsn = dsn
         options.environment = environment
         options.release = release
@@ -136,11 +140,12 @@ object SentryInitializer {
             ?: DSN.takeIf { it.isNotBlank() }
 
     private val environment: String
-        get() = if (System.getProperty(PremiumFeatureGate.DEV_OVERRIDE_PROPERTY)?.toBoolean() == true) {
-            "development"
-        } else {
-            "production"
-        }
+        get() =
+            if (System.getProperty(PremiumFeatureGate.DEV_OVERRIDE_PROPERTY)?.toBoolean() == true) {
+                "development"
+            } else {
+                "production"
+            }
 
     private val release: String
         get() = RELEASE_PREFIX + pluginVersion

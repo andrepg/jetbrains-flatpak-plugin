@@ -1,7 +1,11 @@
 package io.github.andrepg.flatpak.runs.execution
 
 import com.intellij.execution.configurations.GeneralCommandLine
-import com.intellij.execution.process.*
+import com.intellij.execution.process.OSProcessHandler
+import com.intellij.execution.process.ProcessEvent
+import com.intellij.execution.process.ProcessHandler
+import com.intellij.execution.process.ProcessListener
+import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
 import io.github.andrepg.shared.log.Log
@@ -26,7 +30,10 @@ class CommandChainProcessHandler(
     private val log = Log.getInstance(CommandChainProcessHandler::class.java)
 
     /** A blocking step run before the first command, announced as [label]. */
-    class PreStep(val label: String, val run: () -> Boolean)
+    class PreStep(
+        val label: String,
+        val run: () -> Boolean,
+    )
 
     @Volatile
     private var activeHandler: OSProcessHandler? = null
@@ -74,39 +81,44 @@ class CommandChainProcessHandler(
         val label = commandLabels.getOrElse(currentIndex) { commandLines[currentIndex].commandLineString }
         notifyTextAvailable(
             "Running $label: ${commandLines[currentIndex].commandLineString}\n",
-            ProcessOutputTypes.SYSTEM
+            ProcessOutputTypes.SYSTEM,
         )
 
         val handler = engine.executeCommand(commandLines[currentIndex])
         activeHandler = handler
 
-        handler.addProcessListener(object : ProcessListener {
-            override fun onTextAvailable(event: ProcessEvent, outputType: Key<*>) {
-                notifyTextAvailable(event.text, outputType)
-            }
-
-            override fun processTerminated(event: ProcessEvent) {
-                activeHandler = null
-                log.info("Command execution terminated with exit code ${event.exitCode}")
-                notifyTextAvailable(
-                    "$label finished with exit code ${event.exitCode}\n",
-                    ProcessOutputTypes.SYSTEM
-                )
-
-                if (cancelled) {
-                    notifyProcessTerminated(-1)
-                    return
+        handler.addProcessListener(
+            object : ProcessListener {
+                override fun onTextAvailable(
+                    event: ProcessEvent,
+                    outputType: Key<*>,
+                ) {
+                    notifyTextAvailable(event.text, outputType)
                 }
 
-                if (event.exitCode == 0 && currentIndex + 1 < commandLines.size) {
-                    currentIndex++
-                    log.info("Chaining next command")
-                    runChain()
-                } else {
-                    notifyProcessTerminated(event.exitCode)
+                override fun processTerminated(event: ProcessEvent) {
+                    activeHandler = null
+                    log.info("Command execution terminated with exit code ${event.exitCode}")
+                    notifyTextAvailable(
+                        "$label finished with exit code ${event.exitCode}\n",
+                        ProcessOutputTypes.SYSTEM,
+                    )
+
+                    if (cancelled) {
+                        notifyProcessTerminated(-1)
+                        return
+                    }
+
+                    if (event.exitCode == 0 && currentIndex + 1 < commandLines.size) {
+                        currentIndex++
+                        log.info("Chaining next command")
+                        runChain()
+                    } else {
+                        notifyProcessTerminated(event.exitCode)
+                    }
                 }
-            }
-        })
+            },
+        )
 
         handler.startNotify()
     }

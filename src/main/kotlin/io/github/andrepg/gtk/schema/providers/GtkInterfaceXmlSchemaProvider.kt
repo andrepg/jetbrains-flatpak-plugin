@@ -8,7 +8,6 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
-import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.psi.PsiFile
 import com.intellij.psi.PsiManager
@@ -19,7 +18,6 @@ import io.github.andrepg.gtk.schema.GtkSchemaManager
 import io.github.andrepg.gtk.schema.SdkHint
 import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
 import io.github.andrepg.shared.Localization
-import java.io.File
 
 /**
  * Serves the GtkBuilder XSD to GtkBuilder interface files: `.ui`, Glade
@@ -39,7 +37,6 @@ import java.io.File
  * manifest domain and delegates schema resolution to [GtkSchemaManager].
  */
 class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
-
     private val interfaceFileRegex = Regex(""".*\.(ui|glade)$""", RegexOption.IGNORE_CASE)
     private val xmlFileRegex = Regex(""".*\.xml$""", RegexOption.IGNORE_CASE)
 
@@ -64,7 +61,11 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
      * @param baseFile the file being processed
      * @return the resolved schema as an [XmlFile], or null
      */
-    override fun getSchema(url: String, module: Module?, baseFile: PsiFile): XmlFile? {
+    override fun getSchema(
+        url: String,
+        module: Module?,
+        baseFile: PsiFile,
+    ): XmlFile? {
         val xmlFile = baseFile as? XmlFile ?: return null
         if (!isAvailable(xmlFile)) return null
         val project = xmlFile.project
@@ -76,9 +77,10 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
             scheduleGeneration(project, hint)
         }
 
-        val schemaUrl = generated?.toURI()?.toString()
-            ?: javaClass.getResource(GTK_UI_XSD_PATH)?.toString()
-            ?: return null
+        val schemaUrl =
+            generated?.toURI()?.toString()
+                ?: javaClass.getResource(GTK_UI_XSD_PATH)?.toString()
+                ?: return null
         val virtualFile = VirtualFileManager.getInstance().findFileByUrl(schemaUrl) ?: return null
         return PsiManager.getInstance(project).findFile(virtualFile) as? XmlFile
     }
@@ -86,8 +88,10 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
     /**
      * @return the canonical GTK interface namespace for files this provider can serve
      */
-    override fun getAvailableNamespaces(file: XmlFile, tagName: String?): Set<String> =
-        if (isAvailable(file)) setOf(GTK_INTERFACE_NAMESPACE) else emptySet()
+    override fun getAvailableNamespaces(
+        file: XmlFile,
+        tagName: String?,
+    ): Set<String> = if (isAvailable(file)) setOf(GTK_INTERFACE_NAMESPACE) else emptySet()
 
     /**
      * The schema is a static classpath resource; safe to serve while the project is being indexed.
@@ -102,57 +106,72 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
      * through `invokeLater`), which covers [getSchema] being invoked during
      * highlighting and background analysis.
      */
-    private fun scheduleGeneration(project: Project, hint: SdkHint) {
+    private fun scheduleGeneration(
+        project: Project,
+        hint: SdkHint,
+    ) {
         if (project.isDisposed) return
-        val generation = object : Task.Backgroundable(
-            project,
-            Localization.message("gtk.schema.generation.title", hint.key),
-            true,
-        ) {
-            private var outcome = GenerationOutcome.CANCELLED
+        val generation =
+            object : Task.Backgroundable(
+                project,
+                Localization.message("gtk.schema.generation.title", hint.key),
+                true,
+            ) {
+                private var outcome = GenerationOutcome.CANCELLED
 
-            override fun run(indicator: ProgressIndicator) {
-                indicator.isIndeterminate = false
-                val generated = schemaManager.generateSchema(hint, FlatpakSettings.flatpakBinary) { step ->
-                    indicator.text = progressText(step, hint)
-                    indicator.fraction = progressFraction(step)
-                    !indicator.isCanceled()
+                override fun run(indicator: ProgressIndicator) {
+                    indicator.isIndeterminate = false
+                    val generated =
+                        schemaManager.generateSchema(hint, FlatpakSettings.flatpakBinary) { step ->
+                            indicator.text = progressText(step, hint)
+                            indicator.fraction = progressFraction(step)
+                            !indicator.isCanceled()
+                        }
+                    outcome =
+                        when {
+                            indicator.isCanceled() -> GenerationOutcome.CANCELLED
+                            generated != null -> GenerationOutcome.SUCCESS
+                            else -> GenerationOutcome.FAILED
+                        }
                 }
-                outcome = when {
-                    indicator.isCanceled() -> GenerationOutcome.CANCELLED
-                    generated != null -> GenerationOutcome.SUCCESS
-                    else -> GenerationOutcome.FAILED
+
+                override fun onFinished() {
+                    if (project.isDisposed) return
+                    when (outcome) {
+                        GenerationOutcome.SUCCESS -> notifyGeneration(project, hint, success = true)
+                        GenerationOutcome.FAILED -> notifyGeneration(project, hint, success = false)
+                        GenerationOutcome.CANCELLED -> {}
+                    }
                 }
             }
-
-            override fun onFinished() {
-                if (project.isDisposed) return
-                when (outcome) {
-                    GenerationOutcome.SUCCESS -> notifyGeneration(project, hint, success = true)
-                    GenerationOutcome.FAILED -> notifyGeneration(project, hint, success = false)
-                    GenerationOutcome.CANCELLED -> {}
-                }
-            }
-        }
         ProgressManager.getInstance().run(generation)
     }
 
-    private fun progressText(step: GtkSchemaStep, hint: SdkHint): String = when (step) {
-        GtkSchemaStep.Locating -> Localization.message("gtk.schema.generation.step.locating", hint.key)
-        is GtkSchemaStep.Parsing ->
-            Localization.message("gtk.schema.generation.step.parsing", step.fileName, step.index, step.total)
-        GtkSchemaStep.Rendering -> Localization.message("gtk.schema.generation.step.rendering")
-        GtkSchemaStep.Caching -> Localization.message("gtk.schema.generation.step.caching")
-    }
+    private fun progressText(
+        step: GtkSchemaStep,
+        hint: SdkHint,
+    ): String =
+        when (step) {
+            GtkSchemaStep.Locating -> Localization.message("gtk.schema.generation.step.locating", hint.key)
+            is GtkSchemaStep.Parsing ->
+                Localization.message("gtk.schema.generation.step.parsing", step.fileName, step.index, step.total)
+            GtkSchemaStep.Rendering -> Localization.message("gtk.schema.generation.step.rendering")
+            GtkSchemaStep.Caching -> Localization.message("gtk.schema.generation.step.caching")
+        }
 
-    private fun progressFraction(step: GtkSchemaStep): Double = when (step) {
-        GtkSchemaStep.Locating -> 0.05
-        is GtkSchemaStep.Parsing -> 0.1 + 0.8 * (step.index.toDouble() / step.total)
-        GtkSchemaStep.Rendering -> 0.95
-        GtkSchemaStep.Caching -> 1.0
-    }
+    private fun progressFraction(step: GtkSchemaStep): Double =
+        when (step) {
+            GtkSchemaStep.Locating -> 0.05
+            is GtkSchemaStep.Parsing -> 0.1 + 0.8 * (step.index.toDouble() / step.total)
+            GtkSchemaStep.Rendering -> 0.95
+            GtkSchemaStep.Caching -> 1.0
+        }
 
-    private fun notifyGeneration(project: Project, hint: SdkHint, success: Boolean) {
+    private fun notifyGeneration(
+        project: Project,
+        hint: SdkHint,
+        success: Boolean,
+    ) {
         val key = if (success) "gtk.schema.generation.notification.success" else "gtk.schema.generation.notification.failure"
         val type = if (success) NotificationType.INFORMATION else NotificationType.WARNING
         NotificationGroupManager.getInstance()

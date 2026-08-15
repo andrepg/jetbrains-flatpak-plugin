@@ -1,7 +1,12 @@
 package io.github.andrepg.flatpak.runs.configuration
 
 import com.intellij.execution.Executor
-import com.intellij.execution.configurations.*
+import com.intellij.execution.configurations.ConfigurationFactory
+import com.intellij.execution.configurations.LocatableConfiguration
+import com.intellij.execution.configurations.RunConfiguration
+import com.intellij.execution.configurations.RunConfigurationBase
+import com.intellij.execution.configurations.RunProfileState
+import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
@@ -14,9 +19,9 @@ import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
 class FlatpakRunSettings(
     project: Project,
     factory: ConfigurationFactory?,
-    name: String?
-) : RunConfigurationBase<FlatpakRunSettingsAttributes>(project, factory, name), LocatableConfiguration {
-
+    name: String?,
+) : RunConfigurationBase<FlatpakRunSettingsAttributes>(project, factory, name),
+    LocatableConfiguration {
     /** The typed options holder for this configuration. */
     private val flatpakState: FlatpakRunSettingsAttributes
         get() = checkNotNull(state)
@@ -24,60 +29,83 @@ class FlatpakRunSettings(
     /** The user-visible Flatpak command to execute when the configuration is run. */
     var command: UserVisibleCommand
         get() = UserVisibleCommand.valueOf(flatpakState.command ?: UserVisibleCommand.BUILD.name)
-        set(value) { flatpakState.command = value.name }
+        set(value) {
+            flatpakState.command = value.name
+        }
 
     /** Path to the Flatpak manifest file used by the command. */
     var manifestPath: String
         get() = flatpakState.flatpakManifest ?: "flatpak.json"
-        set(value) { flatpakState.flatpakManifest = value }
+        set(value) {
+            flatpakState.flatpakManifest = value
+        }
 
     /** Build directory used by flatpak-builder. */
     var buildDir: String
         get() = flatpakState.buildDir ?: "_build"
-        set(value) { flatpakState.buildDir = value }
+        set(value) {
+            flatpakState.buildDir = value
+        }
 
     /** Extra arguments appended to the generated command line. */
     var customArguments: List<String>
-        get() = flatpakState.customArguments.orEmpty().split(" ").filter { it.isNotBlank() }
-        set(value) { flatpakState.customArguments = value.joinToString(" ") }
+        get() =
+            flatpakState.customArguments
+                .orEmpty()
+                .split(" ")
+                .filter { it.isNotBlank() }
+        set(value) {
+            flatpakState.customArguments = value.joinToString(" ")
+        }
 
     /** Whether to clean the build directory before build. */
     var enableForceClean: Boolean
         get() = flatpakState.enableForceClean
-        set(value) { flatpakState.enableForceClean = value }
+        set(value) {
+            flatpakState.enableForceClean = value
+        }
 
     /** Whether to deep clean (including flatpak-builder cache) before build. */
     var enableDeepClean: Boolean
         get() = flatpakState.enableDeepClean
-        set(value) { flatpakState.enableDeepClean = value }
+        set(value) {
+            flatpakState.enableDeepClean = value
+        }
 
     /** Whether to enable GNOME portals. */
     var enablePortals: Boolean
         get() = flatpakState.enablePortals
-        set(value) { flatpakState.enablePortals = value }
+        set(value) {
+            flatpakState.enablePortals = value
+        }
 
     /** Whether to enable theme and icon access. */
     var enableThemes: Boolean
         get() = flatpakState.enableThemes
-        set(value) { flatpakState.enableThemes = value }
+        set(value) {
+            flatpakState.enableThemes = value
+        }
 
     /** Whether to enable audio/pulseaudio. */
     var enableAudio: Boolean
         get() = flatpakState.enableAudio
-        set(value) { flatpakState.enableAudio = value }
+        set(value) {
+            flatpakState.enableAudio = value
+        }
 
     /** Whether to enable the Wayland socket. */
     var enableWayland: Boolean
         get() = flatpakState.enableWayland
-        set(value) { flatpakState.enableWayland = value }
+        set(value) {
+            flatpakState.enableWayland = value
+        }
 
     override fun getState(
         executor: Executor,
-        environment: ExecutionEnvironment
+        environment: ExecutionEnvironment,
     ): RunProfileState = FlatpakRunner(environment, this)
 
-    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> =
-        FlatpakRunSettingsPanel()
+    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration> = FlatpakRunSettingsPanel()
 
     /**
      * Validates the configuration before launching, collecting every problem
@@ -106,12 +134,13 @@ class FlatpakRunSettings(
      */
     override fun suggestedName(): String? {
         val manifest = flatpakState.flatpakManifest ?: return null
-        val appId = FlatpakManifestVfsReader.readAppId(project, manifest)
-            ?: manifest.substringAfterLast('/').substringBeforeLast('.')
+        val appId =
+            FlatpakManifestVfsReader.readAppId(project, manifest)
+                ?: manifest.substringAfterLast('/').substringBeforeLast('.')
         return FlatpakRunGenerator.formatRunName(command, appId)
     }
 
     private companion object {
-        val GENERATED_NAME_PATTERN = Regex("""^\[[a-z]+\] .+$""")
+        val GENERATED_NAME_PATTERN = Regex("""^\[[a-z]+] .+$""")
     }
 }

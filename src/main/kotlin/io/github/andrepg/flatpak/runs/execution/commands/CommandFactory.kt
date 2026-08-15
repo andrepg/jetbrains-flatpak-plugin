@@ -10,11 +10,12 @@ abstract class CommandFactory {
      * Flatpak Builder bundle inside the sandbox. Usually this
      * command/function translates to `/usr/bin/flatpak run org.flatpak.Builder run`
      */
-    protected fun getFlatpakCommand(): List<String> = listOf(
-        FlatpakSettings.flatpakBinary,
-        "run",
-        FlatpakSettings.builderBinary
-    )
+    protected fun getFlatpakCommand(): List<String> =
+        listOf(
+            FlatpakSettings.flatpakBinary,
+            "run",
+            FlatpakSettings.builderBinary,
+        )
 
     /**
      * Invokes the Command builder creation and returns the
@@ -43,10 +44,11 @@ abstract class CommandFactory {
      * context options (`--socket`, `--talk-name`, `--filesystem`, `--device`, `--env`),
      * which must be placed before the `DIRECTORY MANIFEST COMMAND` positional args.
      */
-    protected fun buildSandboxOptions(config: FlatpakRunSettings): List<String> = buildList {
-        if (config.enablePortals) addAll(CommandExecutionArguments.ENABLE_PORTALS)
-        if (config.enableThemes) addAll(CommandExecutionArguments.ENABLE_THEMES)
-        if (config.enableAudio) addAll(CommandExecutionArguments.ENABLE_AUDIO)
-        if (config.enableWayland) addAll(CommandExecutionArguments.ENABLE_WAYLAND)
-    }
+    protected fun buildSandboxOptions(config: FlatpakRunSettings): List<String> =
+        buildList {
+            if (config.enablePortals) addAll(CommandExecutionArguments.ENABLE_PORTALS)
+            if (config.enableThemes) addAll(CommandExecutionArguments.ENABLE_THEMES)
+            if (config.enableAudio) addAll(CommandExecutionArguments.ENABLE_AUDIO)
+            if (config.enableWayland) addAll(CommandExecutionArguments.ENABLE_WAYLAND)
+        }
 }

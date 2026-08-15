@@ -43,13 +43,14 @@ object GirSdkLocator {
 
         // CLI-first: prefer the branch the manifest pins, ties resolved in
         // favor of user installations, then resolve through `flatpak info`.
-        val stdout = runProcess(
-            listOf(flatpakBinary, "list", "--runtime", "--columns=application,branch,installation"),
-        )
+        val stdout =
+            runProcess(
+                listOf(flatpakBinary, "list", "--runtime", "--columns=application,branch,installation"),
+            )
         if (stdout != null) {
             val branch = pickBranch(parseRuntimeRows(stdout), sdkAppId, branchHint)
             if (branch != null) {
-                log.info("Resolved ${sdkAppId}@$branch via flatpak CLI")
+                log.info("Resolved $sdkAppId@$branch via flatpak CLI")
                 return cliGirDir(sdkAppId, branch, flatpakBinary)
                     ?: globFallback(baseDirs, sdkAppId, branch)
             }
@@ -85,7 +86,11 @@ object GirSdkLocator {
      * installed rows matches it, otherwise the highest numeric branch. Ties are
      * broken in favor of user installations. Returns null when no row matches.
      */
-    internal fun pickBranch(rows: List<RuntimeRow>, sdkAppId: String, branchHint: String?): String? {
+    internal fun pickBranch(
+        rows: List<RuntimeRow>,
+        sdkAppId: String,
+        branchHint: String?,
+    ): String? {
         val matching = rows.filter { it.appId == sdkAppId }
         if (matching.isEmpty()) return null
         branchHint?.let { hint ->
@@ -96,38 +101,55 @@ object GirSdkLocator {
     }
 
     /** Resolves `<location>/files/share/gir-1.0` for an installed SDK, verifying `Gtk-4.0.gir`. */
-    internal fun cliGirDir(sdkAppId: String, branch: String, flatpakBinary: String): File? {
-        val location = runProcess(listOf(flatpakBinary, "info", "--show-location", "$sdkAppId//$branch"))
-            ?.trim()
-            ?.takeIf { it.isNotEmpty() }
-            ?: return null
+    internal fun cliGirDir(
+        sdkAppId: String,
+        branch: String,
+        flatpakBinary: String,
+    ): File? {
+        val location =
+            runProcess(listOf(flatpakBinary, "info", "--show-location", "$sdkAppId//$branch"))
+                ?.trim()
+                ?.takeIf { it.isNotEmpty() }
+                ?: return null
         val girDir = File(location, "files/share/gir-1.0")
         return girDir.takeIf { File(it, "Gtk-4.0.gir").isFile }
     }
 
     /** Probes the standard Flatpak install roots for the SDK's gir-1.0 directory. */
-    internal fun globFallback(baseDirs: List<File>, sdkAppId: String, branch: String): File? =
-        baseDirs.firstNotNullOfOrNull { resolveFromBaseDir(it, sdkAppId, branch) }
+    internal fun globFallback(
+        baseDirs: List<File>,
+        sdkAppId: String,
+        branch: String,
+    ): File? = baseDirs.firstNotNullOfOrNull { resolveFromBaseDir(it, sdkAppId, branch) }
 
     /**
      * Fallback used when the flatpak CLI is unavailable: probes the install
      * roots for the [branchHint] branch, else scans for the highest numeric
      * branch actually installed.
      */
-    internal fun globFallbackBest(baseDirs: List<File>, sdkAppId: String, branchHint: String?): File? {
+    internal fun globFallbackBest(
+        baseDirs: List<File>,
+        sdkAppId: String,
+        branchHint: String?,
+    ): File? {
         branchHint?.let { hint ->
             globFallback(baseDirs, sdkAppId, hint)?.let { return it }
         }
-        val branches = baseDirs
-            .flatMap { base -> File(base, "runtime/$sdkAppId/x86_64").listFiles()?.toList().orEmpty() }
-            .filter { it.isDirectory && it.name.toIntOrNull() != null }
-            .map { it.name.toInt() }
+        val branches =
+            baseDirs
+                .flatMap { base -> File(base, "runtime/$sdkAppId/x86_64").listFiles()?.toList().orEmpty() }
+                .filter { it.isDirectory && it.name.toIntOrNull() != null }
+                .map { it.name.toInt() }
         val best = branches.maxOrNull() ?: return null
         return globFallback(baseDirs, sdkAppId, best.toString())
     }
 
     /** Resolves the gir-1.0 directory under a Flatpak install root, verifying `Gtk-4.0.gir`. */
-    internal fun resolveFromBaseDir(base: File, sdkAppId: String, branch: String): File? {
+    internal fun resolveFromBaseDir(
+        base: File,
+        sdkAppId: String,
+        branch: String,
+    ): File? {
         val candidate = File(base, "runtime/$sdkAppId/x86_64/$branch/active/files/share/gir-1.0")
         return candidate.takeIf { File(it, "Gtk-4.0.gir").isFile }
     }
@@ -142,8 +164,7 @@ object GirSdkLocator {
 
     private fun numericBranch(branch: String): Int = branch.toIntOrNull() ?: -1
 
-    private fun runProcess(command: List<String>): String? =
-        ProcessRunner.run(command, timeoutMs = TIMEOUT_MS)?.stdout
+    private fun runProcess(command: List<String>): String? = ProcessRunner.run(command, timeoutMs = TIMEOUT_MS)?.stdout
 
     private const val TIMEOUT_MS = 10_000L
 }

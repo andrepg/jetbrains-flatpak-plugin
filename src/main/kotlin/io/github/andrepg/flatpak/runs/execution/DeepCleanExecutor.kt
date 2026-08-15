@@ -26,13 +26,19 @@ class DeepCleanExecutor {
      *
      * @return true when all existing targets were deleted, false on any failure
      */
-    fun clean(project: Project, settings: FlatpakRunSettings): Boolean =
+    fun clean(
+        project: Project,
+        settings: FlatpakRunSettings,
+    ): Boolean =
         deepCleanTargets(project, settings).fold(true) { success, target ->
             delete(project, target) && success
         }
 
     /** The absolute paths cleaned by a deep clean, in deletion order. */
-    fun deepCleanTargets(project: Project, settings: FlatpakRunSettings): List<File> {
+    fun deepCleanTargets(
+        project: Project,
+        settings: FlatpakRunSettings,
+    ): List<File> {
         val buildDir = File(settings.buildDir)
         val resolvedBuildDir = if (buildDir.isAbsolute) buildDir else File(project.basePath, settings.buildDir)
         return listOf(resolvedBuildDir, flatpakBuilderCache())
@@ -41,10 +47,13 @@ class DeepCleanExecutor {
     private fun flatpakBuilderCache(): File {
         val home = System.getProperty("user.home").orEmpty()
         val normalized = if (home.endsWith("/") || home.isEmpty()) home else "$home/"
-        return File("${normalized}.cache/flatpak-builder/")
+        return File("$normalized.cache/flatpak-builder/")
     }
 
-    private fun delete(project: Project, target: File): Boolean {
+    private fun delete(
+        project: Project,
+        target: File,
+    ): Boolean {
         val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(target) ?: return true
         var failure: IOException? = null
         WriteCommandAction.writeCommandAction(project)

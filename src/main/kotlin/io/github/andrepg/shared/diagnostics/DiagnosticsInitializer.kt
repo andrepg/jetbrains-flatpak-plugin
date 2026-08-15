@@ -21,7 +21,6 @@ import io.github.andrepg.shared.sentry.SentryInitializer
  * applied, so toggles take effect without restarting the IDE.
  */
 class DiagnosticsInitializer : AppLifecycleListener {
-
     private val log = Log.getInstance(DiagnosticsInitializer::class.java)
 
     override fun appFrameCreated(commandLineArgs: MutableList<String>) {
@@ -30,15 +29,16 @@ class DiagnosticsInitializer : AppLifecycleListener {
 
     /** Applies the current debug-logging and Sentry settings. */
     fun applyRuntimeConfiguration() {
-        val debugEnabled = LogConfiguration.isDebugRequested() ||
-            service<FlatpakGlobalSettingsState>().debugLoggingEnabled
+        val debugEnabled =
+            LogConfiguration.isDebugRequested() ||
+                service<FlatpakGlobalSettingsState>().debugLoggingEnabled
         LogConfiguration.setDebugEnabled(debugEnabled)
 
         SentryInitializer.reconfigure()
 
         log.info(
             "Flatpak DevTools initialized: debug logging=${if (debugEnabled) "on" else "off"}, " +
-                "sentry error reporting=${if (SentryInitializer.isActive) "on" else "off"}"
+                "sentry error reporting=${if (SentryInitializer.isActive) "on" else "off"}",
         )
     }
 }

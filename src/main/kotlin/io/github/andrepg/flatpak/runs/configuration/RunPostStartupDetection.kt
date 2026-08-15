@@ -19,7 +19,6 @@ import kotlinx.coroutines.withContext
  * configurations. Shown at most once per project ("shown once" flag in [PropertiesComponent]).
  */
 class RunPostStartupDetection : ProjectActivity {
-
     private val log = Log.getInstance(RunPostStartupDetection::class.java)
 
     override suspend fun execute(project: Project) {
@@ -30,14 +29,15 @@ class RunPostStartupDetection : ProjectActivity {
             return
         }
 
-        val manifests = withContext(Dispatchers.Default) {
-            FlatpakProjectDetector.findManifests(project)
-        }
+        val manifests =
+            withContext(Dispatchers.Default) {
+                FlatpakProjectDetector.findManifests(project)
+            }
         if (project.isDisposed || manifests.isEmpty()) return
 
         log.info(
             "Offering run configurations for ${manifests.size} detected manifest(s) in ${project.name}: " +
-                manifests.joinToString(", ") { it.second }
+                manifests.joinToString(", ") { it.second },
         )
 
         ApplicationManager.getApplication().invokeLater {
@@ -47,21 +47,25 @@ class RunPostStartupDetection : ProjectActivity {
         }
     }
 
-    private fun showNotification(project: Project, manifests: List<Pair<VirtualFile, String>>) {
-        val notification = NotificationGroupManager.getInstance()
-            .getNotificationGroup(NOTIFICATION_GROUP_ID)
-            .createNotification(
-                Localization.message("detection.notification.title"),
-                Localization.message("detection.notification.body", describe(manifests)),
-                NotificationType.INFORMATION
-            )
+    private fun showNotification(
+        project: Project,
+        manifests: List<Pair<VirtualFile, String>>,
+    ) {
+        val notification =
+            NotificationGroupManager.getInstance()
+                .getNotificationGroup(NOTIFICATION_GROUP_ID)
+                .createNotification(
+                    Localization.message("detection.notification.title"),
+                    Localization.message("detection.notification.body", describe(manifests)),
+                    NotificationType.INFORMATION,
+                )
         notification.addAction(
             NotificationAction.createSimple(Localization.message("detection.notification.action.create")) {
                 manifests.forEach { (file, appId) ->
                     FlatpakRunGenerator.createForManifest(project, file, appId)
                 }
                 notification.expire()
-            }
+            },
         )
         notification.notify(project)
     }

@@ -23,14 +23,15 @@ object ProcessRunner {
         timeoutMs: Long = DEFAULT_TIMEOUT_MS,
         env: Map<String, String> = emptyMap(),
     ): ProcessResult? {
-        val process = try {
-            ProcessBuilder(command).apply {
-                workDir?.let { directory(it) }
-                env.forEach { (key, value) -> environment()[key] = value }
-            }.start()
-        } catch (e: IOException) {
-            return null
-        }
+        val process =
+            try {
+                ProcessBuilder(command).apply {
+                    workDir?.let { directory(it) }
+                    env.forEach { (key, value) -> environment()[key] = value }
+                }.start()
+            } catch (e: IOException) {
+                return null
+            }
 
         val stdoutFuture = CompletableFuture.supplyAsync { process.inputStream.bufferedReader().readText() }
         val stderrFuture = CompletableFuture.supplyAsync { process.errorStream.bufferedReader().readText() }
@@ -68,10 +69,14 @@ object ProcessRunner {
  * [DefaultProcessRunner] shells out to [ProcessRunner].
  */
 fun interface CommandRunner {
-    fun run(command: List<String>, timeoutMs: Long): ProcessRunner.ProcessResult?
+    fun run(
+        command: List<String>,
+        timeoutMs: Long,
+    ): ProcessRunner.ProcessResult?
 }
 
 /** Real [ProcessRunner]-backed implementation used in production. */
-val DefaultProcessRunner = CommandRunner { command, timeoutMs ->
-    ProcessRunner.run(command, timeoutMs = timeoutMs)
-}
+val DefaultProcessRunner =
+    CommandRunner { command, timeoutMs ->
+        ProcessRunner.run(command, timeoutMs = timeoutMs)
+    }

@@ -1,9 +1,9 @@
 package io.github.andrepg.shared.sentry
 
+import io.github.andrepg.shared.log.LogListener
 import io.sentry.Breadcrumb
 import io.sentry.Sentry
 import io.sentry.SentryLevel
-import io.github.andrepg.shared.log.LogListener
 import java.util.logging.Level
 
 /**
@@ -22,8 +22,12 @@ import java.util.logging.Level
  * - INFO/DEBUG -> ignored (would flood the quota)
  */
 class SentryLogBridge : LogListener {
-
-    override fun onLog(category: String, level: Level, message: String, throwable: Throwable?) {
+    override fun onLog(
+        category: String,
+        level: Level,
+        message: String,
+        throwable: Throwable?,
+    ) {
         if (!Sentry.isEnabled()) return
         when (level) {
             Level.SEVERE -> {
@@ -40,12 +44,17 @@ class SentryLogBridge : LogListener {
         }
     }
 
-    private fun addBreadcrumb(level: SentryLevel, category: String, message: String) {
-        val breadcrumb = Breadcrumb().apply {
-            this.level = level
-            this.category = category
-            this.message = message
-        }
+    private fun addBreadcrumb(
+        level: SentryLevel,
+        category: String,
+        message: String,
+    ) {
+        val breadcrumb =
+            Breadcrumb().apply {
+                this.level = level
+                this.category = category
+                this.message = message
+            }
         Sentry.addBreadcrumb(breadcrumb)
     }
 }
