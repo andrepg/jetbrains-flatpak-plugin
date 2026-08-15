@@ -83,7 +83,7 @@ tasks.matching { it.name.contains("ktlintTestSourceSet") }.configureEach {
 // The sandbox IDE (./gradlew runIde) has no Marketplace license, so premium
 // features would otherwise be locked during development. The dev override is a
 // runtime system property — release builds never set it, and premium access is
-// only a convenience, since the source is open anyway (see BILLING.md §6.4).
+// only a convenience, since the source is open anyway
 tasks.named("runIde") {
     if (this is JavaExec) {
         systemProperty("flatpak.devtools.development", "true")
