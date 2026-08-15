@@ -14,25 +14,9 @@
 
 ### 🎉 First release
 
-This is our first releae ever. The one that contains our most basic features to a MVP. The following is contained inside
-our first publication:
-
-#### Flatpak Support
-
 - Flatpak integration with `org.flatpak.Builder` under **Run** settings, with flags and portals
 - Automatic schema detection for manifest Flatpaks in the format com.developer.AppName(.?), in YAML or JSON formats
 - Code completion with detected schema inside Flatpak manifest
 - Integration and deep clean of Flatpak's artifacts before building the app
 - Run detection from manifest files, with option on Context Menu (right-click, usually)
 - Custom binaries can be configured under Settings | Languages & Frameworks | Flatpak Binaries
-
-#### GTK Support
-
-- There is a basic GTK XML integration in place, allowing to validate tags
-- Schema validation of GTK interface based on Flatpak manifest's declared SDK
-- In-flight basic SDK support built from installed SDK on host's machine
-
-#### Licensing
-
-- We have implemented a dual-license verification to check if plugin was paid or not, to disable some features
-- Project publication under AGPL/GPL license in GitHub. Modifications are allowed, under same licenses.
