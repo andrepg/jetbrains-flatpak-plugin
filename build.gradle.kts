@@ -7,6 +7,8 @@ plugins {
     // Source-context upload for Sentry crash reporting.
     // Read more: https://docs.sentry.io/platforms/java/source-context/
     id("io.sentry.jvm.gradle") version "6.19.0"
+    // Kotlin code style checking
+    id("org.jlleitschuh.gradle.ktlint") version "12.1.1"
 }
 
 sentry {
@@ -57,6 +59,25 @@ intellijPlatform {
     // (no valid license / modal UI), so the task must be disabled. See
     // https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin-extension.html
     buildSearchableOptions = false
+}
+
+// Configure ktlint to use standard Kotlin style guide
+ktlint {
+    android.set(false)
+    ignoreFailures.set(true)  // Set to false once formatting issues are resolved
+    reporters {
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.PLAIN)
+        reporter(org.jlleitschuh.gradle.ktlint.reporter.ReporterType.CHECKSTYLE)
+    }
+    filter {
+        exclude("**/generated/**")
+        exclude("**/test/**")
+    }
+}
+
+// Disable ktlint for test source sets to avoid blocking on existing test file formatting
+tasks.matching { it.name.contains("ktlintTestSourceSet") }.configureEach {
+    enabled = false
 }
 
 // The sandbox IDE (./gradlew runIde) has no Marketplace license, so premium
