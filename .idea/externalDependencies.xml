@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ExternalDependencies">
+    <plugin id="DevKit" />
+    <plugin id="com.intellij.dev" />
+    <plugin id="com.intellij.gradle" />
+    <plugin id="com.nbadal.ktlint" />
+    <plugin id="org.intellij.groovy" />
+  </component>
+</project>
