@@ -4,7 +4,7 @@
 
 ## Unreleased
 
-## 2026.1.2 - 2026-08-15
+## 2026.1.3 - 2026-08-15
 
 - Bump our supported version to anyone since 2025.3
 
