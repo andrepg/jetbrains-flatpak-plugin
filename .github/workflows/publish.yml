@@ -1,0 +1,32 @@
+name: Publish our plugin to JetBrains Marketplace
+
+# Regenerates the bundled GTK schema from a pinned GNOME SDK before releasing,
+# auto-commits any drift in src/main/resources/schemas/, then verifies and
+# publishes the plugin to the JetBrains Marketplace.
+#
+# Requires the PUBLISH_TOKEN repository secret.
+on:
+  workflow_dispatch:
+  push:
+    tags: [ "v*" ]
+
+jobs:
+  publish:
+    name: Regenerate schema, verify & publish
+    runs-on: ubuntu-latest
+    env:
+      GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3g
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.1.0
+
+      - name: Setup project
+        uses: ./.github/actions/setup-project
+
+      - name: Verify plugin compatibility
+        run: ./gradlew verifyPlugin --no-daemon --stacktrace
+
+      - name: Publish to JetBrains Marketplace
+        env:
+          PUBLISH_TOKEN: ${{ secrets.GH_JETBRAINS_PUBLISH_TOKEN }}
+        run: ./gradlew publishPlugin --no-daemon --stacktrace
