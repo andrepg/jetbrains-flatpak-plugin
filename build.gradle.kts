@@ -8,7 +8,7 @@ plugins {
     // Read more: https://docs.sentry.io/platforms/java/source-context/
     id("io.sentry.jvm.gradle") version "6.19.0"
     // Kotlin code style checking
-    id("org.jlleitschuh.gradle.ktlint") version "12.1.1"
+    id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
 
 sentry {
