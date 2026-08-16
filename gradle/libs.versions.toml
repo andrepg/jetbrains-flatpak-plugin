@@ -1,6 +1,6 @@
 [versions]
 junit = "4.13.2"
-mockito = "5.15.2"
+mockito = "5.23.0"
 sentry = "8.53.0"
 
 [libraries]
