@@ -1,4 +1,4 @@
-name: Publish our plugin to JetBrains Marketplace
+name: Publish to JetBrains Marketplace
 
 # Regenerates the bundled GTK schema from a pinned GNOME SDK before releasing,
 # auto-commits any drift in src/main/resources/schemas/, then verifies and
