@@ -1,0 +1,22 @@
+name: Setup project requirements
+author: Andre Paul Grandsire
+description: Setup basic Kotlin, Gradle and other commmon requirements after checkout
+runs:
+  using: composite
+  steps:
+    - name: Set up JDK
+      uses: actions/setup-java@v5.7.0
+      with:
+        distribution: temurin
+        java-version: "21"
+
+    - name: Handle Gradle cache
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.gradle/cache
+          ~/.gradle/wrapper
+        key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+        restore-keys: |
+          ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle.kts', 'gradle.properties', 'gradle/wrapper/gradle-wrapper.properties') }}
+          ${{ runner.os }}-gradle-

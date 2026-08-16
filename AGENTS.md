@@ -87,7 +87,7 @@
 - The GTK/Adwaita schema feature lives under `io.github.andrepg.gtk` (not the Flatpak namespace).
 - Core (`gtk/schema/`, `gtk/schema/gir/`, `gtk/schema/locator/`) is **JDK-only** (no IntelliJ/Flatpak imports) so it can run from the `generateBundledGtkSchema` Gradle task and from inside the IDE. `gtk/schema/providers/` is IDE glue and the composition root: it computes the `SdkHint` from `FlatpakManifestVfsReader.readSdk()`/`readRuntime()` via `FlatpakProjectDetector.findManifests()`, then delegates to `GtkSchemaManager`.
 - `GtkSchemaManager` resolves the project SDK's GIR dir via `GirSdkLocator` (flatpak CLI first, install-root glob fallback), generates `gtk-ui-<key>.xsd` into the plugin config dir (idempotent, background `executeOnPooledThread`), and falls back to the bundled classpath `/schemas/gtk-ui.xsd`.
-- Regenerate bundled artifacts (JSON + XSD, incl. GtkSource-5) with `./gradlew generateBundledGtkSchema` (provisions the bundled fallback — GNOME 50 basic support — for the phase-2 runtime schema feature; runtime per-project generation is the primary path). The extractor auto-detects the installed GNOME SDK or takes `-PgirDir=`/`-PschemaOut=`. CI pre-publish (`pre-publish.yml`) runs it and auto-commits drift; never run it during app lifecycle.
+- Regenerate bundled artifacts (JSON + XSD, incl. GtkSource-5) with `./gradlew generateBundledGtkSchema` (provisions the bundled fallback — GNOME 50 basic support — for the phase-2 runtime schema feature; runtime per-project generation is the primary path). The extractor auto-detects the installed GNOME SDK or takes `-PgirDir=`/`-PschemaOut=`. CI pre-publish (`publish.yml`) runs it and auto-commits drift; never run it during app lifecycle.
 - The GTK snapshot preview renders `.ui` files via `gtk4-builder-tool` inside the GNOME SDK: `GtkBuilderToolRunner` (validate/render, JDK-only) + `AdwShimManager` (per-branch `adw_init()` constructor shim compiled with `cc`/`pkg-config`, cached in the config dir). Host `/tmp` is masked inside the flatpak sandbox, so test/preview files must live under `$HOME` (exposed via `--filesystem=host`).
 
 ## Next steps for full implementation
@@ -98,7 +98,7 @@
 
 ## CI/CD
 - `.github/workflows/ci.yml`: on PR/push — `./gradlew build` + `./gradlew test` (GTK tests are `@Ignore`'d, so this is the non-GTK gate).
-- `.github/workflows/pre-publish.yml`: on `v*` tag / manual — regenerates the bundled GTK schema in a pinned Fedora + GNOME SDK 50 container, auto-commits drift, then `verifyPlugin` + `publishPlugin` (requires the `PUBLISH_TOKEN` secret).
+- `.github/workflows/publish.yml`: on `v*` tag / manual — regenerates the bundled GTK schema in a pinned Fedora + GNOME SDK 50 container, auto-commits drift, then `verifyPlugin` + `publishPlugin` (requires the `PUBLISH_TOKEN` secret).
 
 ## Feature flags (runtime system properties)
 - `flatpak.gtk.preview.enabled` — enables the GTK preview/schema premium features (also the Marketplace `<with>` property).
