@@ -36,6 +36,9 @@ jobs:
       - name: Setup project
         uses: ./.github/actions/setup-project
 
+      - name: Clean up Gradle cache
+        run: ./gradlew clean --no-daemon --stacktrace
+
       - name: Verify plugin compatibility
         run: ./gradlew verifyPlugin --no-daemon --stacktrace
 
