@@ -78,6 +78,10 @@
 - Kotlin stdlib opt-out in `gradle.properties:5`
 - Gradle build cache enabled in `gradle.properties` (`org.gradle.caching=true`); it has served a stale `compileTestKotlin` ABI once after a visibility change — run local verification as `./gradlew clean build --no-build-cache` (CI is unaffected, fresh runner)
 
+## Agent guardrails
+- **No internal APIs**: never use `@ApiStatus.Internal` or `@IntellijInternalApi`-annotated platform classes (e.g., `PluginManagerCore`). Prefer pure-JVM alternatives (classpath resources, reflection-free patterns). The `verifyPlugin` task flags these as failures since IntelliJ Platform Gradle Plugin 2.15.0.
+- **Save plans locally**: always write request plans and task breakdowns into the `plans/` folder before implementing.
+
 ## Architecture
 - Plugin uses IntelliJ's `ConfigurationTypeBase` for run configurations
 - Flatpak commands integrate with IntelliJ's `CommandLineState`

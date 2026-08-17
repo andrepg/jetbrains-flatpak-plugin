@@ -1,9 +1,7 @@
 package io.github.andrepg.shared.sentry
 
-import com.intellij.ide.plugins.PluginManagerCore
 import com.intellij.openapi.application.ApplicationInfo
 import com.intellij.openapi.components.service
-import com.intellij.openapi.extensions.PluginId
 import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
 import io.github.andrepg.shared.license.PremiumFeatureGate
 import io.github.andrepg.shared.log.Log
@@ -151,7 +149,16 @@ object SentryInitializer {
         get() = RELEASE_PREFIX + pluginVersion
 
     private val pluginVersion: String
-        get() = PluginManagerCore.getPlugin(PluginId.getId(PLUGIN_ID))?.version ?: "dev"
+        get() {
+            val stream = javaClass.classLoader.getResourceAsStream("META-INF/plugin.xml") ?: return "dev"
+            return stream.use { it.bufferedReader().readText() }
+                .let { javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(it.toByteArray().inputStream()) }
+                .getElementsByTagName("version")
+                .item(0)
+                .textContent
+                .takeIf { it.isNotBlank() && !it.startsWith("\$") }
+                ?: "dev"
+        }
 
     private val ideVersion: String
         get() = ApplicationInfo.getInstance().apiVersion
