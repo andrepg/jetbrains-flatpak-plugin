@@ -2,7 +2,7 @@
 <idea-plugin>
     <id>io.github.andrepg.flatpak-support</id>
     <name>Flatpak DevTools</name>
-    <product-descriptor code="PFLATPAKDEV" release-date="20260814" release-version="20261" optional="true"/>
+    <product-descriptor code="PFLATPAKDEV" release-date="20260815" release-version="20261" optional="true"/>
     <version>${pluginVersion}</version>
 
     <vendor
@@ -37,20 +37,14 @@
 
         <h3>GTK Support</h3>
         <ul>
-            <li>Basic window/widget preview directly from the IDE</li>
-            <li>Better DX and autocompletion for interface and XML attributes</li>
-            <li>Autodetected unregistered files from GResource</li>
-            <li>Suggestion to register files into GResource</li>
-            <li>Blueprint format support</li>
+            <li>Code completion and validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
+            <li><i>Planned:</i> Basic window/widget preview directly from the IDE</li>
+            <li><i>Planned:</i> Autodetected unregistered files from GResource</li>
+            <li><i>Planned:</i> Blueprint format support</li>
         </ul>
 
         <h3>Qt/KDE support</h3>
-        <ul>
-            <li>Schema-aware editing for Qt <code>.ui</code> files with completion and validation</li>
-            <li><b>Qt SDK autodetection</b> — resolves the project's Qt runtime from the manifest</li>
-            <li><b>Qt snapshot preview</b> — renders Qt <code>.ui</code> files to an image inside the Qt SDK</li>
-            <li>Qt resource system integration and undeclared-file notifications</li>
-        </ul>
+        <p><i>Planned — future roadmap, no ETA yet.</i></p>
 
 
         <h2>Basic privacy</h2>

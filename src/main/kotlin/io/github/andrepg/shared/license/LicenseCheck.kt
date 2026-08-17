@@ -126,7 +126,7 @@ object LicenseCheck {
             val licenseData = String(licenseBytes, StandardCharsets.UTF_8)
             licenseData.contains("\"licenseId\":\"$licenseId\"")
         } catch (e: Throwable) {
-            e.printStackTrace() // For debug purposes only
+            log.warn("License key verification failed", e)
             false
         }
     }

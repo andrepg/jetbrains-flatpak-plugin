@@ -8,6 +8,7 @@ class CustomCommandFactory : CommandFactory() {
             listOf(
                 settings.effectiveBuildDir(),
                 settings.effectiveManifestPath(),
+                // Each element is a separate argument; the UI collects them one-per-line.
                 settings.customArguments.joinToString(" "),
             ),
         )
