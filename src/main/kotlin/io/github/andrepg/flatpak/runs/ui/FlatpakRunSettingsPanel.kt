@@ -79,6 +79,7 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
 
                 customArgumentsRow =
                     row(Localization.message("runs.settings.custom-arguments.label")) {
+                        // One argument per line — each line is trimmed and passed as a separate CLI arg.
                         customArgumentsField =
                             expandableTextField(
                                 { text: String -> text.lines().map(String::trim).filter(String::isNotBlank).toMutableList() },
