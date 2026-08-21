@@ -1,6 +1,6 @@
 package io.github.andrepg.flatpak.settings
 
-import com.intellij.openapi.components.service
+import com.intellij.openapi.application.ApplicationManager
 
 /**
  * Live accessor for the configured Flatpak binaries.
@@ -8,21 +8,28 @@ import com.intellij.openapi.components.service
  * Reads the persisted [FlatpakGlobalSettingsState] application service, falling
  * back to the [DefaultFlatpakPaths] when the user has not customized anything.
  * Getters evaluate on every access so Settings changes apply to the next run.
+ *
+ * When no IDE application exists (plain unit tests), every getter falls back
+ * to the documented defaults instead of throwing.
  */
 object FlatpakSettings {
+    /** The persisted state, or null outside the IDE (headless unit tests). */
+    private fun state(): FlatpakGlobalSettingsState? =
+        ApplicationManager.getApplication()?.getService(FlatpakGlobalSettingsState::class.java)
+
     /** The configured `flatpak` CLI binary. */
     val flatpakBinary: String
-        get() = service<FlatpakGlobalSettingsState>().flatpakBinaryPath ?: DefaultFlatpakPaths.MAIN_BINARY
+        get() = state()?.flatpakBinaryPath ?: DefaultFlatpakPaths.MAIN_BINARY
 
     /** The configured flatpak-builder invocation (binary or flatpak run id). */
     val builderBinary: String
-        get() = service<FlatpakGlobalSettingsState>().flatpakBuilderBinaryPath ?: DefaultFlatpakPaths.BUILDER_BINARY
+        get() = state()?.flatpakBuilderBinaryPath ?: DefaultFlatpakPaths.BUILDER_BINARY
 
     /** Opt-in anonymous error reporting via Sentry. */
     val sentryEnabled: Boolean
-        get() = service<FlatpakGlobalSettingsState>().sentryEnabled
+        get() = state()?.sentryEnabled ?: false
 
     /** Verbose plugin logging into the IDE log. */
     val debugLoggingEnabled: Boolean
-        get() = service<FlatpakGlobalSettingsState>().debugLoggingEnabled
+        get() = state()?.debugLoggingEnabled ?: false
 }
