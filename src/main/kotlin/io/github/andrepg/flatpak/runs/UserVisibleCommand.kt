@@ -16,11 +16,3 @@ enum class UserVisibleCommand {
     VALIDATE,
     CUSTOM,
 }
-
-enum class InternalCommand {
-    BUILD,
-    EXPORT,
-    RUN,
-    VALIDATE,
-    CUSTOM,
-}
