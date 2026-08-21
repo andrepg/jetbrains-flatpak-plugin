@@ -80,7 +80,7 @@
 
 ## Agent guardrails
 - **No internal APIs**: never use `@ApiStatus.Internal` or `@IntellijInternalApi`-annotated platform classes (e.g., `PluginManagerCore`). Prefer pure-JVM alternatives (classpath resources, reflection-free patterns). The `verifyPlugin` task flags these as failures since IntelliJ Platform Gradle Plugin 2.15.0.
-- **Save plans locally**: always write request plans and task breakdowns into the `plans/` folder before implementing.
+- **Save plans locally**: write request plans and task breakdowns into the `plans/` folder **only when the user explicitly asks**.
 
 ## Architecture
 - Plugin uses IntelliJ's `ConfigurationTypeBase` for run configurations
