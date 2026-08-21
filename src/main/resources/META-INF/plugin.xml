@@ -95,12 +95,12 @@
                 id="io.github.andrepg.flatpak.detection"
                 bundle="messages.Messages"
                 key="detection.notification.title"/>
-         <notificationGroup
-                 displayType="BALLOON"
-                 id="io.github.andrepg.flatpak.schema"
-                 bundle="messages.Messages"
-                 key="gtk.schema.generation.title"/>
-    
+        <notificationGroup
+                displayType="BALLOON"
+                id="io.github.andrepg.flatpak.schema"
+                bundle="messages.Messages"
+                key="gtk.schema.generation.title"/>
+
     </extensions>
 
     <!-- Flatpak JSON Schema Provider -->
