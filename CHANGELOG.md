@@ -4,20 +4,20 @@
 
 ## Unreleased
 
-## 2026.1.4 - 2026-08-20
+## 2026.1.4 - 2026-08-21
 
 #### Bugfixes
 
-- Stop button terminates `flatpak` forcefuly and left dead `ro-files` fuse mounts
+- Stop button terminates `flatpak` forcefully and leaves dead `ro-files` FUSE mounts
   - The wrongful termination caused `Error: opendir(rofiles-...): Transport endpoint is not connected`
-  - A new silent (unless errored) `UNMOUNT_STALE` pre-step was added to detected and unmount these type of errors before build
-  - When killing a `flatpak` process there is a chain termination
+  - A new silent (unless errored) `UNMOUNT_STALE` pre-step detects and unmounts these mounts before a build
+  - Killing a `flatpak` process now terminates the whole process chain
 - A wrong validation was creating an output folder inside the `$HOME` (user's folder). We removed this validation completely.
 - Remove invalid `io.sentry.jvm.gradle` from `plugin.xml` dependency, which led to an initialization error
 
 #### Changed
 
-- The `./gradlew build` now produces a installable ZIP inside `./build/distributions`
+- The `./gradlew build` now produces an installable ZIP inside `./build/distributions`
 - Silently check for Sentry or fallback to log only (on missing Sentry lib, or jar installed directly, for instance)
 
 ## 2026.1.3 - 2026-08-15
