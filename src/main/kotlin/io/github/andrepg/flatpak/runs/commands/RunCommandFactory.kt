@@ -1,7 +1,6 @@
-package io.github.andrepg.flatpak.runs.execution.commands
+package io.github.andrepg.flatpak.runs.commands
 
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
-import io.github.andrepg.flatpak.runs.execution.CommandExecutionArguments
 import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
 import io.github.andrepg.shared.log.Log
 

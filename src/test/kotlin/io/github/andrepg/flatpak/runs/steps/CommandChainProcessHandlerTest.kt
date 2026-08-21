@@ -1,9 +1,12 @@
-package io.github.andrepg.flatpak.runs.execution
+package io.github.andrepg.flatpak.runs.steps
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
+import com.intellij.openapi.util.Key
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
+import io.github.andrepg.flatpak.runs.InternalCommand
+import io.github.andrepg.flatpak.runs.commands.CommandExecutionEngine
 import java.io.File
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
@@ -11,13 +14,13 @@ import java.util.concurrent.TimeUnit
 class CommandChainProcessHandlerTest : BasePlatformTestCase() {
     private fun runToTermination(
         commandLines: List<GeneralCommandLine>,
-        commandLabels: List<String> = commandLines.mapIndexed { i, _ -> "COMMAND_$i" },
+        commandSteps: List<InternalCommand> = commandLines.map { InternalCommand.CUSTOM },
         preSteps: List<CommandChainProcessHandler.PreStep> = emptyList(),
     ): Int {
         val handler =
             CommandChainProcessHandler(
                 commandLines = commandLines,
-                commandLabels = commandLabels,
+                commandSteps = commandSteps,
                 engine = CommandExecutionEngine(project),
                 preSteps = preSteps,
             )
@@ -43,7 +46,7 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
         val exitCode =
             runToTermination(
                 commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "exit 0"))),
-                preSteps = listOf(CommandChainProcessHandler.PreStep("DEEP_CLEAN") { false }),
+                preSteps = listOf(CommandChainProcessHandler.PreStep(PreStepType.DEEP_CLEAN) { _ -> false }),
             )
         assertEquals(1, exitCode)
     }
@@ -57,7 +60,7 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
                     commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "touch '${marker.path}'"))),
                     preSteps =
                         listOf(
-                            CommandChainProcessHandler.PreStep("DEEP_CLEAN") {
+                            CommandChainProcessHandler.PreStep(PreStepType.DEEP_CLEAN) { _ ->
                                 preStepRan = true
                                 true
                             },
@@ -85,11 +88,11 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
             val handler =
                 CommandChainProcessHandler(
                     commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "touch '${marker.path}'"))),
-                    commandLabels = listOf("BUILD"),
+                    commandSteps = listOf(InternalCommand.BUILD),
                     engine = CommandExecutionEngine(project),
                     preSteps =
                         listOf(
-                            CommandChainProcessHandler.PreStep("DEEP_CLEAN") {
+                            CommandChainProcessHandler.PreStep(PreStepType.DEEP_CLEAN) { _ ->
                                 Thread.sleep(500)
                                 true
                             },
@@ -115,5 +118,41 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
         } finally {
             marker.delete()
         }
+    }
+
+    fun `test quiet pre-step reports without announcement`() {
+        val handler =
+            CommandChainProcessHandler(
+                commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "exit 0"))),
+                commandSteps = listOf(InternalCommand.BUILD),
+                engine = CommandExecutionEngine(project),
+                preSteps =
+                    listOf(
+                        CommandChainProcessHandler.PreStep(PreStepType.UNMOUNT_STALE, quiet = true) { report ->
+                            report("${PreStepType.UNMOUNT_STALE}: removed stale FUSE mount at /tmp/rofiles-x\n")
+                            true
+                        },
+                    ),
+            )
+        val terminated = CountDownLatch(1)
+        val texts = StringBuilder()
+        handler.addProcessListener(
+            object : ProcessListener {
+                override fun onTextAvailable(
+                    event: ProcessEvent,
+                    outputType: Key<*>,
+                ) {
+                    texts.append(event.text)
+                }
+
+                override fun processTerminated(event: ProcessEvent) {
+                    terminated.countDown()
+                }
+            },
+        )
+        handler.startNotify()
+        assertTrue("handler must terminate within 30s", terminated.await(30, TimeUnit.SECONDS))
+        assertTrue("quiet step report must reach the console", texts.contains("removed stale FUSE mount"))
+        assertFalse("quiet step must not be announced", texts.contains("Running UNMOUNT_STALE"))
     }
 }

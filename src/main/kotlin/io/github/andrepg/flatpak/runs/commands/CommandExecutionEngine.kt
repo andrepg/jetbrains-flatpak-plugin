@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs.execution
+package io.github.andrepg.flatpak.runs.commands
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -7,11 +7,6 @@ import io.github.andrepg.flatpak.exception.FlatpakExecutionException
 import io.github.andrepg.flatpak.exception.FlatpakPluginException
 import io.github.andrepg.flatpak.runs.InternalCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
-import io.github.andrepg.flatpak.runs.execution.commands.BuildCommandFactory
-import io.github.andrepg.flatpak.runs.execution.commands.CustomCommandFactory
-import io.github.andrepg.flatpak.runs.execution.commands.ExportBundleCommandFactory
-import io.github.andrepg.flatpak.runs.execution.commands.RunCommandFactory
-import io.github.andrepg.flatpak.runs.execution.commands.ValidateManifestCommandFactory
 import io.github.andrepg.shared.log.Log
 
 /**
@@ -75,13 +70,17 @@ class CommandExecutionEngine(
     /**
      * Starts the process handler for the given command line.
      *
+     * Recursive destruction is enabled so that stopping the run tears down the
+     * whole flatpak process tree (bwrap, rofiles-fuse), not just the direct
+     * child — an unclean teardown leaves dead FUSE mounts inside the build dir.
+     *
      * @param commandLine The command line to start
      * @return The process handler for the executed command
      */
     fun executeCommand(commandLine: GeneralCommandLine): OSProcessHandler {
         log.info("Executing command: ${commandLine.commandLineString}")
         return try {
-            OSProcessHandler(commandLine)
+            OSProcessHandler(commandLine).apply { setShouldDestroyProcessRecursively(true) }
         } catch (e: Exception) {
             throw FlatpakExecutionException(
                 "Failed to start the flatpak process: ${commandLine.commandLineString}",

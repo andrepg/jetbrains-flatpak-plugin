@@ -1,14 +1,15 @@
-package io.github.andrepg.flatpak.runs.execution.commands
+package io.github.andrepg.flatpak.runs.commands
 
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 
-class ExportBundleCommandFactory : CommandFactory() {
+class CustomCommandFactory : CommandFactory() {
     override fun create(settings: FlatpakRunSettings): List<String> =
         this.getFlatpakCommand().plus(
             listOf(
-                "--repo=repo-build",
                 settings.effectiveBuildDir(),
                 settings.effectiveManifestPath(),
+                // Each element is a separate argument; the UI collects them one-per-line.
+                settings.customArguments.joinToString(" "),
             ),
         )
 }

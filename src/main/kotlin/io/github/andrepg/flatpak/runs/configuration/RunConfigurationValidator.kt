@@ -1,6 +1,5 @@
-package io.github.andrepg.flatpak.runs.execution
+package io.github.andrepg.flatpak.runs.configuration
 
-import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import java.io.File
 
 /**

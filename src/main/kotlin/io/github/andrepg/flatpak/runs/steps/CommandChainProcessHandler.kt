@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs.execution
+package io.github.andrepg.flatpak.runs.steps
 
 import com.intellij.execution.configurations.GeneralCommandLine
 import com.intellij.execution.process.OSProcessHandler
@@ -8,6 +8,8 @@ import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
+import io.github.andrepg.flatpak.runs.InternalCommand
+import io.github.andrepg.flatpak.runs.commands.CommandExecutionEngine
 import io.github.andrepg.shared.log.Log
 import java.io.OutputStream
 
@@ -24,15 +26,22 @@ import java.io.OutputStream
 class CommandChainProcessHandler(
     private val commandLines: List<GeneralCommandLine>,
     private val engine: CommandExecutionEngine,
-    private val commandLabels: List<String>,
+    private val commandSteps: List<InternalCommand>,
     private val preSteps: List<PreStep> = emptyList(),
 ) : ProcessHandler() {
     private val log = Log.getInstance(CommandChainProcessHandler::class.java)
 
-    /** A blocking step run before the first command, announced as [label]. */
+    /**
+     * A blocking step run before the first command, announced as [type].
+     *
+     * Quiet steps skip the `Running <type>...` announcement and print only
+     * what they explicitly [report]; use them for cheap conditional cleanups
+     * that are usually no-ops.
+     */
     class PreStep(
-        val label: String,
-        val run: () -> Boolean,
+        val type: PreStepType,
+        val quiet: Boolean = false,
+        val run: (report: (String) -> Unit) -> Boolean,
     )
 
     @Volatile
@@ -64,9 +73,14 @@ class CommandChainProcessHandler(
                     notifyProcessTerminated(-1)
                     return
                 }
-                notifyTextAvailable("Running ${step.label}...\n", ProcessOutputTypes.SYSTEM)
-                if (!step.run()) {
-                    notifyTextAvailable("${step.label} failed; aborting.\n", ProcessOutputTypes.SYSTEM)
+                if (!step.quiet) {
+                    notifyTextAvailable("Running ${step.type}...\n", ProcessOutputTypes.SYSTEM)
+                }
+                val report: (String) -> Unit = { text ->
+                    notifyTextAvailable(text, ProcessOutputTypes.SYSTEM)
+                }
+                if (!step.run(report)) {
+                    notifyTextAvailable("${step.type} failed; aborting.\n", ProcessOutputTypes.SYSTEM)
                     notifyProcessTerminated(1)
                     return
                 }
@@ -78,7 +92,7 @@ class CommandChainProcessHandler(
             return
         }
 
-        val label = commandLabels.getOrElse(currentIndex) { commandLines[currentIndex].commandLineString }
+        val label = commandSteps.getOrElse(currentIndex) { InternalCommand.CUSTOM }.name
         notifyTextAvailable(
             "Running $label: ${commandLines[currentIndex].commandLineString}\n",
             ProcessOutputTypes.SYSTEM,

@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs.execution
+package io.github.andrepg.flatpak.runs.cleanup
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
