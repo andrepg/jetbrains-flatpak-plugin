@@ -5,6 +5,7 @@ import com.intellij.openapi.components.service
 import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
 import io.github.andrepg.shared.log.Log
 import io.github.andrepg.shared.log.LogConfiguration
+import io.github.andrepg.shared.sentry.SentryGuard
 import io.github.andrepg.shared.sentry.SentryInitializer
 
 /**
@@ -34,11 +35,15 @@ class DiagnosticsInitializer : AppLifecycleListener {
                 service<FlatpakGlobalSettingsState>().debugLoggingEnabled
         LogConfiguration.setDebugEnabled(debugEnabled)
 
-        SentryInitializer.reconfigure()
+        var sentryActive = false
+        SentryGuard.run("Sentry initialization") {
+            SentryInitializer.reconfigure()
+            sentryActive = SentryInitializer.isActive
+        }
 
         log.info(
             "Flatpak DevTools initialized: debug logging=${if (debugEnabled) "on" else "off"}, " +
-                "sentry error reporting=${if (SentryInitializer.isActive) "on" else "off"}",
+                "sentry error reporting=${if (sentryActive) "on" else "off"}",
         )
     }
 }

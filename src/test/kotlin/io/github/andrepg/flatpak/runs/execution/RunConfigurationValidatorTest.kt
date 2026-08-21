@@ -5,6 +5,7 @@ import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettingsAttributes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -60,18 +61,77 @@ class RunConfigurationValidatorTest {
 
     @Test
     fun `all errors are collected in one call`() {
-        val buildDirUnderFile = File(File.createTempFile("validator-parent", ".file"), "sub").path
-        val errors =
-            RunConfigurationValidator.validate(
-                config {
-                    command = UserVisibleCommand.BUILD
-                    manifestPath = "does-not-exist.json"
-                    buildDir = buildDirUnderFile
-                },
-            )
-        assertEquals(2, errors.size)
-        assertTrue(errors.any { it.contains("Manifest file not found") })
-        assertTrue(errors.any { it.contains("Cannot create build directory") })
+        val buildDirAsFile = File.createTempFile("validator-build", ".file")
+        try {
+            val errors =
+                RunConfigurationValidator.validate(
+                    config {
+                        command = UserVisibleCommand.BUILD
+                        manifestPath = "does-not-exist.json"
+                        buildDir = buildDirAsFile.path
+                    },
+                )
+            assertEquals(2, errors.size)
+            assertTrue(errors.any { it.contains("Manifest file not found") })
+            assertTrue(errors.any { it.contains("is a file, not a directory") })
+        } finally {
+            buildDirAsFile.delete()
+        }
+    }
+
+    @Test
+    fun `missing build directory is accepted even when its parent is invalid`() {
+        val parentAsFile = File.createTempFile("validator-parent", ".file")
+        try {
+            val errors =
+                RunConfigurationValidator.validate(
+                    config {
+                        command = UserVisibleCommand.BUILD
+                        manifestPath = "does-not-exist.json"
+                        buildDir = File(parentAsFile, "sub").path
+                    },
+                )
+            assertTrue(errors.none { it.contains("Build directory") })
+        } finally {
+            parentAsFile.delete()
+        }
+    }
+
+    @Test
+    fun `relative paths resolve against base path without creating anything`() {
+        withTempManifest { manifest ->
+            val base = manifest.parentFile
+            val buildDirInCwd = File("_build")
+            val buildDirInCwdExisted = buildDirInCwd.exists()
+            val errors =
+                RunConfigurationValidator.validate(
+                    config {
+                        command = UserVisibleCommand.BUILD
+                        manifestPath = manifest.name
+                        buildDir = "_build"
+                    },
+                    basePath = base.path,
+                )
+            assertTrue(errors.isEmpty())
+            assertFalse("validation must not create the build dir", File(base, "_build").exists())
+            assertEquals(buildDirInCwdExisted, buildDirInCwd.exists())
+        }
+    }
+
+    @Test
+    fun `relative manifest path resolves against base path`() {
+        withTempManifest { manifest ->
+            val errors =
+                RunConfigurationValidator.validate(
+                    config {
+                        command = UserVisibleCommand.BUILD
+                        manifestPath = manifest.name
+                        buildDir = "_build"
+                    },
+                    basePath = manifest.parent,
+                )
+            assertTrue(errors.none { it.contains("Manifest file not found") })
+        }
     }
 
     private fun withTempManifest(block: (File) -> Unit) {
