@@ -61,6 +61,14 @@ intellijPlatform {
     buildSearchableOptions = false
 }
 
+// In IntelliJ Platform Gradle Plugin 2.x, `assemble` stops at bare jars and
+// never runs `buildPlugin`, so `./gradlew build` produced no installable ZIP —
+// inviting accidental installs of the bare plugin jar, which lacks bundled
+// dependencies (e.g. the Sentry SDK) and crashes at runtime. Wire the ZIP in.
+tasks.named("assemble") {
+    dependsOn("buildPlugin")
+}
+
 // Configure ktlint to use standard Kotlin style guide
 ktlint {
     android.set(false)
