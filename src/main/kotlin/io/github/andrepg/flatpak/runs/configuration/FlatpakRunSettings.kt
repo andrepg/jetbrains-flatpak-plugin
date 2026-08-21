@@ -11,8 +11,7 @@ import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
-import io.github.andrepg.flatpak.runs.execution.FlatpakRunner
-import io.github.andrepg.flatpak.runs.execution.RunConfigurationValidator
+import io.github.andrepg.flatpak.runs.steps.FlatpakRunner
 import io.github.andrepg.flatpak.runs.ui.FlatpakRunSettingsPanel
 import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
 
@@ -113,7 +112,7 @@ class FlatpakRunSettings(
      * started.
      */
     override fun checkConfiguration() {
-        val errors = RunConfigurationValidator.validate(this)
+        val errors = RunConfigurationValidator.validate(this, project.basePath)
         if (errors.isNotEmpty()) {
             throw RuntimeConfigurationError(errors.joinToString("\n"))
         }

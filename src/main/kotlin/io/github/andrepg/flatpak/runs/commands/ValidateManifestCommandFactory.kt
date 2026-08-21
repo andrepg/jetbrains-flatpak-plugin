@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs.execution.commands
+package io.github.andrepg.flatpak.runs.commands
 
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 

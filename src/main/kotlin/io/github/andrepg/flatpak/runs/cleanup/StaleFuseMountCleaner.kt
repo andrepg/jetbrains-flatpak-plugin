@@ -1,5 +1,6 @@
-package io.github.andrepg.flatpak.runs.execution
+package io.github.andrepg.flatpak.runs.cleanup
 
+import io.github.andrepg.flatpak.runs.steps.PreStepType
 import io.github.andrepg.shared.log.Log
 import java.io.File
 import java.util.concurrent.TimeUnit
@@ -60,12 +61,14 @@ class StaleFuseMountCleaner(
 
         for (mountPoint in stale) {
             if (mountPoint !in survivors) {
-                report("UNMOUNT_STALE: removed stale FUSE mount at $mountPoint\n")
+                report("${PreStepType.UNMOUNT_STALE}: removed stale FUSE mount at $mountPoint\n")
             }
         }
         if (survivors.isNotEmpty()) {
-            report("UNMOUNT_STALE: could not unmount ${survivors.joinToString(", ")}\n")
-            report("UNMOUNT_STALE: try manually, e.g. fusermount3 -uz <mount-point> or umount -l <mount-point>\n")
+            report("${PreStepType.UNMOUNT_STALE}: could not unmount ${survivors.joinToString(", ")}\n")
+            report(
+                "${PreStepType.UNMOUNT_STALE}: try manually, e.g. fusermount3 -uz <mount-point> or umount -l <mount-point>\n",
+            )
             log.warn("Stale FUSE mounts could not be removed: $survivors")
         }
         return true

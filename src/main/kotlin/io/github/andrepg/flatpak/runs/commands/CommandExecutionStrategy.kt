@@ -1,4 +1,4 @@
-package io.github.andrepg.flatpak.runs.execution
+package io.github.andrepg.flatpak.runs.commands
 
 import io.github.andrepg.flatpak.runs.InternalCommand
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
