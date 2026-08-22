@@ -69,7 +69,6 @@ There is a ton of Gradle commands configured. All of them listed by `./gradlew t
 | `build`                    | Build **JAR** artifacts to distribute as installable      |
 | `test`                     | Execute tests routines written to project                 |
 | `verifyPlugin`             | Check plugin agains JetBrains Marketplace recommendations |
-| `generateBundledGtkSchema` | Read installed SDK and generate GTK schemas to bundle     |
 | `check`                    | Run code linting and verifications to ensure quality      |
 
 ## Known Issues

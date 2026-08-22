@@ -29,9 +29,10 @@ import io.github.andrepg.shared.Localization
  * `<interface>` — i.e. the document already matches our valid schema — and the
  * project is a recognized Flatpak project (the feature's scope).
  *
- * [getSchema] returns the schema for the project's GNOME SDK. A generated XSD
- * cached in the plugin config dir is preferred (background generation on first
- * open), otherwise the bundled `gtk-ui.xsd` from the classpath.
+ * [getSchema] returns the schema for the project's GNOME SDK: a generated XSD
+ * cached in the plugin config dir. On first open, generation is scheduled in
+ * the background; until it succeeds (or when the SDK cannot be located) no
+ * schema is served.
  *
  * This class is the composition root: it reads the SDK hint from the Flatpak
  * manifest domain and delegates schema resolution to [GtkSchemaManager].
@@ -53,8 +54,9 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
     }
 
     /**
-     * Resolves the schema for the project's GNOME SDK (generated and cached, or
-     * bundled), or null when no SDK/pattern matches.
+     * Resolves the schema for the project's GNOME SDK (generated and cached in
+     * the plugin config dir), or null when no SDK is resolved or no generated
+     * schema exists yet.
      *
      * @param url the namespace requested for the file
      * @param module the module the file belongs to
@@ -73,15 +75,15 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
         val hint = GtkSdkHintResolver.resolve(project)
         if (xmlFile.name.matches(xmlFileRegex) && hint == null) return null
         val generated = schemaManager.cachedSchema(hint)
-        if (generated == null && hint != null && schemaManager.markRequested(hint)) {
-            scheduleGeneration(project, hint)
+        if (generated == null) {
+            if (hint != null && schemaManager.markRequested(hint)) {
+                scheduleGeneration(project, hint)
+            }
+            return null
         }
 
-        val schemaUrl =
-            generated?.toURI()?.toString()
-                ?: javaClass.getResource(GTK_UI_XSD_PATH)?.toString()
-                ?: return null
-        val virtualFile = VirtualFileManager.getInstance().findFileByUrl(schemaUrl) ?: return null
+        val virtualFile =
+            VirtualFileManager.getInstance().findFileByUrl(generated.toURI().toString()) ?: return null
         return PsiManager.getInstance(project).findFile(virtualFile) as? XmlFile
     }
 
@@ -94,7 +96,7 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
     ): Set<String> = if (isAvailable(file)) setOf(GTK_INTERFACE_NAMESPACE) else emptySet()
 
     /**
-     * The schema is a static classpath resource; safe to serve while the project is being indexed.
+     * Serving a locally generated file schema is safe while the project is being indexed.
      */
     override fun isDumbAware(): Boolean = true
 
@@ -185,7 +187,6 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
     }
 
     private companion object {
-        const val GTK_UI_XSD_PATH = "/schemas/gtk-ui.xsd"
         const val GTK_INTERFACE_NAMESPACE = "urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"
         const val GTK_INTERFACE_ROOT = "interface"
         const val NOTIFICATION_GROUP_ID = "io.github.andrepg.flatpak.schema"

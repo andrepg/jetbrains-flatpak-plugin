@@ -15,8 +15,8 @@ import java.io.File
  *
  * - [FlatpakManifestReader] is the pure-JDK core: [FlatpakManifestReader.parseFields] takes
  *   manifest *content* as a string and returns the requested fields. It has no file-system or
- *   platform dependency, so it runs both inside the IDE and from the `generateBundledGtkSchema`
- *   Gradle task. The `readXxx(path)` overloads are JDK file-system conveniences used by standalone
+ *   platform dependency, so it runs both inside the IDE and from standalone tooling and hermetic
+ *   unit tests. The `readXxx(path)` overloads are JDK file-system conveniences used by standalone
  *   tooling and hermetic unit tests.
  * - [FlatpakManifestVfsReader] adapts the parser to the IntelliJ VFS ([VirtualFile], or a path via
  *   [LocalFileSystem]) for IDE glue.

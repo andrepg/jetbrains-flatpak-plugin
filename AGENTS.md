@@ -30,7 +30,6 @@
 ```bash
 ./gradlew runIde              # Launch sandbox IDE with plugin loaded
 ./gradlew build              # Build plugin ZIP in build/distributions/
-./gradlew generateBundledGtkSchema  # Regenerate bundled GTK schema (JSON + XSD) from GIR
 ```
 
 **Do NOT run `verifyPlugin` or `runPluginVerifier` unless explicitly asked.**
@@ -63,14 +62,9 @@
   - `BUILD_DIR`: Build directory for flatpak-builder
 
 ## GNOME/Adwaita UI support
-- `.ui`/`.glade` are served the generated **XSD** (`src/main/resources/schemas/gtk-ui.xsd`, no target namespace, root `<interface>`) — NOT the JSON schema: the bundled JSON schema feature (`com.jetbrains.jsonSchema`, EP `JavaScript.JsonSchema.ProviderFactory`) has **no XML support**, so it can never drive completion/validation in XML files.
+- `.ui`/`.glade` are served a generated **XSD** (no target namespace, root `<interface>`); there is **no bundled schema** — the XSD is generated at runtime from the project's installed GNOME SDK and cached in the plugin config dir.
 - The XSD is wired through the XML plugin's `com.intellij.xml.schemaProvider` EP (`XmlSchemaProvider`, see `src/main/kotlin/io/github/andrepg/gtk/schema/providers/GtkInterfaceXmlSchemaProvider.kt`); `.ui`/`.glade` are mapped to the XML file type via `<fileType name="XML" extensions="ui;glade"/>` in `plugin.xml`, so the files open as XML (highlighting, structure view) and get schema completion/validation. Plain `.xml` files are also served when their root element is `<interface>` (matches the schema) **and** the project is a recognized Flatpak project (gated in `getSchema` via the `SdkHint`).
-- `gtk-ui.xsd` is also registered as a **standard resource** in `plugin.xml`:
-  ```xml
-  <standardResource url="urn:io.github.andrepg:flatpak-support:schemas:gtk-ui" path="schemas/gtk-ui.xsd" version="1"/>
-  ```
-  `url` = canonical identifier, `path` = bundled resource path (both required). Note: standard resources only resolve documents that reference `url` — GtkBuilder `.ui` files carry no namespace/URL, so this registration is auxiliary; auto-association must come from the `XmlSchemaProvider`.
-- `gtk-ui-schema.json` (JSON Schema draft-07, `$defs`) stays on the classpath as an artifact of the generator but is **not** registered for `.ui` files.
+- Until the first successful generation (or when no SDK can be located) **no schema is served**; failures surface through the existing warning balloon.
 - LSP integration would require additional dependencies and configuration
 
 ## Configuration quirks
@@ -90,9 +84,9 @@
 
 ## GTK schema namespace
 - The GTK/Adwaita schema feature lives under `io.github.andrepg.gtk` (not the Flatpak namespace).
-- Core (`gtk/schema/`, `gtk/schema/gir/`, `gtk/schema/locator/`) is **JDK-only** (no IntelliJ/Flatpak imports) so it can run from the `generateBundledGtkSchema` Gradle task and from inside the IDE. `gtk/schema/providers/` is IDE glue and the composition root: it computes the `SdkHint` from `FlatpakManifestVfsReader.readFields(file, "sdk", "runtime")` via `FlatpakProjectDetector.findManifests()`, then delegates to `GtkSchemaManager`.
-- `GtkSchemaManager` resolves the project SDK's GIR dir via `GirSdkLocator` (flatpak CLI first, install-root glob fallback), generates `gtk-ui-<key>.xsd` into the plugin config dir (idempotent, background `executeOnPooledThread`), and falls back to the bundled classpath `/schemas/gtk-ui.xsd`.
-- Regenerate bundled artifacts (JSON + XSD, incl. GtkSource-5) with `./gradlew generateBundledGtkSchema` (provisions the bundled fallback — GNOME 50 basic support — for the phase-2 runtime schema feature; runtime per-project generation is the primary path). The extractor auto-detects the installed GNOME SDK or takes `-PgirDir=`/`-PschemaOut=`. CI pre-publish (`publish.yml`) runs it and auto-commits drift; never run it during app lifecycle.
+- Core (`gtk/schema/`, `gtk/schema/gir/`, `gtk/schema/locator/`) is **JDK-only** (no IntelliJ imports) so it runs inside the IDE and stays unit-testable. `gtk/schema/providers/` is IDE glue and the composition root: it computes the `SdkHint` from `FlatpakManifestVfsReader.readFields(file, "sdk", "runtime")` via `FlatpakProjectDetector.findManifests()`, then delegates to `GtkSchemaManager`.
+- `GtkSchemaManager` resolves the project SDK's GIR dir via `GirSdkLocator` (flatpak CLI first, install-root glob fallback) and generates `gtk-ui-<key>.xsd` into the plugin config dir (idempotent, background task). This runtime generation is the **only** schema source — there is no bundled fallback.
+- The extractor (`GirSchemaExtractor`) auto-detects nothing on its own: callers pass the GIR dir; missing optional GIR files (e.g. `GtkSource-5.gir`) are skipped with a warning. Never run schema generation during app lifecycle outside the background scheduling in `GtkInterfaceXmlSchemaProvider`.
 - The GTK snapshot preview renders `.ui` files via `gtk4-builder-tool` inside the GNOME SDK: `GtkBuilderToolRunner` (validate/render, JDK-only) + `AdwShimManager` (per-branch `adw_init()` constructor shim compiled with `cc`/`pkg-config`, cached in the config dir). Host `/tmp` is masked inside the flatpak sandbox, so test/preview files must live under `$HOME` (exposed via `--filesystem=host`).
 
 ## Next steps for full implementation
@@ -103,7 +97,7 @@
 
 ## CI/CD
 - `.github/workflows/ci.yml`: on PR/push — `./gradlew build` + `./gradlew test` (GTK tests are `@Ignore`'d, so this is the non-GTK gate).
-- `.github/workflows/publish.yml`: on `v*` tag / manual — regenerates the bundled GTK schema in a pinned Fedora + GNOME SDK 50 container, auto-commits drift, then `verifyPlugin` + `publishPlugin` (requires the `PUBLISH_TOKEN` secret).
+- `.github/workflows/publish.yml`: on `v*` tag / manual — `verifyPlugin`, then `publishPlugin` (requires the `PUBLISH_TOKEN` secret).
 
 ## Feature flags (runtime system properties)
 - `flatpak.gtk.preview.enabled` — enables the GTK preview/schema premium features (also the Marketplace `<with>` property).
