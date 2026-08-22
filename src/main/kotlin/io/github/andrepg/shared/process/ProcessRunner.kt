@@ -3,7 +3,10 @@ package io.github.andrepg.shared.process
 import java.io.File
 import java.io.IOException
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CompletionException
+import java.util.concurrent.ExecutionException
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /**
  * Minimal JDK-only process runner used by the flatpak-integrated tooling.
@@ -39,44 +42,50 @@ object ProcessRunner {
         return try {
             if (!process.waitFor(timeoutMs, TimeUnit.MILLISECONDS)) {
                 process.destroyForcibly()
+                reap(process)
                 null
             } else {
                 ProcessResult(
                     exitCode = process.exitValue(),
-                    stdout = stdoutFuture.get(STREAM_DRAIN_TIMEOUT_SECONDS, TimeUnit.SECONDS),
-                    stderr = stderrFuture.get(STREAM_DRAIN_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                    stdout = drain(stdoutFuture),
+                    stderr = drain(stderrFuture),
                 )
             }
-        } catch (e: Exception) {
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
             process.destroyForcibly()
+            reap(process)
+            null
+        } catch (e: ExecutionException) {
+            process.destroyForcibly()
+            reap(process)
+            null
+        } catch (e: CompletionException) {
+            // Unchecked counterpart of ExecutionException, thrown by the join() fallback in drain().
+            process.destroyForcibly()
+            reap(process)
             null
         }
     }
 
-    /** Result of a process execution. */
-    data class ProcessResult(
-        val exitCode: Int,
-        val stdout: String,
-        val stderr: String,
-    ) {
-        val succeeded: Boolean get() = exitCode == 0
+    /**
+     * Waits for the stream reader to finish. Process death guarantees EOF on both pipes,
+     * so a drain timeout only means the output was huge; fall back to an unbounded join
+     * rather than discarding an already-successful exit.
+     */
+    private fun drain(future: CompletableFuture<String>): String =
+        try {
+            future.get(STREAM_DRAIN_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        } catch (e: TimeoutException) {
+            future.join()
+        }
+
+    /** Best-effort wait so the reaper thread does not linger after a forced kill. */
+    private fun reap(process: Process) {
+        try {
+            process.waitFor(STREAM_DRAIN_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+        }
     }
 }
-
-/**
- * Injectable process-runner seam so the flatpak-integrated tooling can be tested
- * hermetically without a real flatpak/SDK installed. The default
- * [DefaultProcessRunner] shells out to [ProcessRunner].
- */
-fun interface CommandRunner {
-    fun run(
-        command: List<String>,
-        timeoutMs: Long,
-    ): ProcessRunner.ProcessResult?
-}
-
-/** Real [ProcessRunner]-backed implementation used in production. */
-val DefaultProcessRunner =
-    CommandRunner { command, timeoutMs ->
-        ProcessRunner.run(command, timeoutMs = timeoutMs)
-    }
