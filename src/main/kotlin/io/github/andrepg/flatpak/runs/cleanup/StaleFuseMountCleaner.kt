@@ -6,10 +6,16 @@ import java.io.File
 import java.util.concurrent.TimeUnit
 
 /**
- * Removes stale FUSE mounts left inside the build directory by an uncleanly
- * terminated flatpak-builder run (e.g. the IDE Stop button killing the process
- * tree mid-teardown). A dead rofiles-fuse mount makes every later build fail
- * with "Transport endpoint is not connected".
+ * Removes stale FUSE mounts left inside the project's flatpak-builder state
+ * dir by an uncleanly terminated build (e.g. the IDE Stop button killing the
+ * process tree mid-teardown). A dead rofiles-fuse mount makes every later
+ * build fail with "Transport endpoint is not connected".
+ *
+ * Scope: FUSE mounts under any of [clean]'s roots (the project root and/or the
+ * configured build dir) that contain the `/.flatpak-builder/` path segment —
+ * flatpak-builder's state territory, wherever it actually is. The state dir
+ * defaults to the process working directory (the project root), NOT the build
+ * dir, which is why scoping to `_build` alone misses every real mount.
  *
  * Pure JDK logic (no platform imports) so it is unit-testable; the runner wires
  * it as a quiet pre-step that stays silent unless it actually cleaned something
@@ -17,8 +23,7 @@ import java.util.concurrent.TimeUnit
  *
  * Fail-open by design: every environment limitation (unreadable /proc, sandboxed
  * IDE, missing unmount tools, refused unmount) degrades to a warning and never
- * aborts the chain. Only FUSE-type mounts (incl. flatpak's `rofiles-fuse`)
- * strictly under [buildDir] are ever touched.
+ * aborts the chain.
  */
 class StaleFuseMountCleaner(
     private val mountsSupplier: () -> String = { File(MOUNTS_FILE).readText() },
@@ -28,12 +33,13 @@ class StaleFuseMountCleaner(
     private val log = Log.getInstance(StaleFuseMountCleaner::class.java)
 
     /**
-     * Unmounts every stale FUSE mount under [buildDir], reporting each action
-     * through [report] (console SYSTEM output). Always returns true: failures
-     * are reported and logged, but must not block the user's explicit run.
+     * Unmounts every stale FUSE mount inside flatpak-builder state dirs under
+     * [scopeRoots], reporting each action through [report] (console SYSTEM
+     * output). Always returns true: failures are reported and logged, but must
+     * not block the user's explicit run.
      */
     fun clean(
-        buildDir: File,
+        scopeRoots: Collection<File>,
         report: (String) -> Unit,
     ): Boolean {
         if (sandboxDetector()) {
@@ -43,7 +49,7 @@ class StaleFuseMountCleaner(
 
         val stale =
             try {
-                staleFuseMounts(mountsSupplier(), buildDir)
+                staleFuseMounts(mountsSupplier(), scopeRoots)
             } catch (e: Exception) {
                 log.warn("Could not read the mount table; skipping stale FUSE mount sweep", e)
                 return true
@@ -53,7 +59,7 @@ class StaleFuseMountCleaner(
         val survivors: Set<String> =
             try {
                 unmountAll(stale)
-                staleFuseMounts(mountsSupplier(), buildDir).toSet()
+                staleFuseMounts(mountsSupplier(), scopeRoots).toSet()
             } catch (e: Exception) {
                 log.warn("Could not re-read the mount table after unmounting", e)
                 stale.toSet()
@@ -74,18 +80,19 @@ class StaleFuseMountCleaner(
         return true
     }
 
-    /** FUSE mount points strictly under [buildDir], in mount-table order. */
+    /** FUSE mounts inside flatpak-builder state dirs under any of [scopeRoots]. */
     private fun staleFuseMounts(
         mountsContent: String,
-        buildDir: File,
+        scopeRoots: Collection<File>,
     ): List<String> {
-        val base = buildDir.canonicalFile.path + File.separator
+        val bases = scopeRoots.map { it.canonicalFile.path + File.separator }
         return mountsContent
             .lineSequence()
             .mapNotNull { parseMountTypeAndPoint(it) }
             .filter { entry ->
-                entry.type.contains(FUSE_TYPE_MARKER) &&
-                    canonicalPath(entry.mountPoint).startsWith(base)
+                if (!entry.type.contains(FUSE_TYPE_MARKER)) return@filter false
+                val canonical = canonicalPath(entry.mountPoint)
+                STATE_DIR_SEGMENT in canonical && bases.any { canonical.startsWith(it) }
             }
             .map { it.mountPoint }
             .toList()
@@ -100,7 +107,15 @@ class StaleFuseMountCleaner(
         try {
             File(path).canonicalPath
         } catch (_: Exception) {
-            path
+            try {
+                // The leaf itself is dead (ENOTCONN on realpath), but its parent
+                // chain is alive: canonicalize the parents, rejoin the leaf. This
+                // keeps symlinked-root matching working for dead mounts too.
+                val file = File(path)
+                File(file.parentFile?.canonicalPath ?: "", file.name).path
+            } catch (_: Exception) {
+                path
+            }
         }
 
     private fun unmountAll(mountPoints: Collection<String>) {
@@ -122,6 +137,9 @@ class StaleFuseMountCleaner(
 
         /** Matches `fuse`, `fuse.sshfs` and flatpak's own `rofiles-fuse`. */
         private const val FUSE_TYPE_MARKER = "fuse"
+
+        /** Only ever touch mounts inside flatpak-builder's own state directory. */
+        internal const val STATE_DIR_SEGMENT = "/.flatpak-builder/"
 
         private val UNMOUNT_COMMANDS: List<(String) -> List<String>> =
             listOf(

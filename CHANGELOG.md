@@ -4,6 +4,17 @@
 
 ## Unreleased
 
+#### Fixed
+
+- The `UNMOUNT_STALE` pre-step introduced in 2026.1.4 scanned only the build directory, but
+  flatpak-builder creates its `.flatpak-builder` state dir in the working directory (the project
+  root), so real `rofiles-fuse` leftovers were never detected and builds kept failing with
+  "Transport endpoint is not connected" after Stop
+  - The sweep now covers the project root's state dir (plus the configured build dir) and only ever
+    touches mounts containing `.flatpak-builder/`, leaving unrelated FUSE mounts alone
+  - Dead mount points are matched through their canonicalized parent, surviving symlinked roots such
+    as Fedora Atomic's `/home` → `/var/home`
+
 #### Removed
 
 - The bundled GTK schema (`gtk-ui.xsd` + `gtk-ui-schema.json`) and the `generateBundledGtkSchema`

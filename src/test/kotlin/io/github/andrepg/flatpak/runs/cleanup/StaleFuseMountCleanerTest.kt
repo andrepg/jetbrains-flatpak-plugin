@@ -54,7 +54,7 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            val result = cleaner.clean(buildDir) { reports += it }
+            val result = cleaner.clean(listOf(buildDir)) { reports += it }
 
             assertTrue(result)
             assertTrue(reports.isEmpty())
@@ -80,11 +80,61 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            val result = cleaner.clean(buildDir) { reports += it }
+            val result = cleaner.clean(listOf(buildDir)) { reports += it }
 
             assertTrue(result)
             assertEquals(listOf(listOf("fusermount3", "-uz", mountPoint)), runner.invocations)
             assertTrue(reports.single().contains("removed stale FUSE mount at $mountPoint"))
+        }
+    }
+
+    @Test
+    fun `stale state-dir mount at project root is swept even outside the build dir`() {
+        // Regression: flatpak-builder's state dir defaults to the working
+        // directory (the project root), so real rofiles mounts live at
+        // <root>/.flatpak-builder/ and were invisible to the old _build-only sweep.
+        withTempBuildDir { buildDir ->
+            val projectRoot = buildDir.parentFile
+            val mountPoint = "${projectRoot.path}/.flatpak-builder/rofiles/rofiles-dead"
+            val runner =
+                FakeRunner().apply {
+                    succeeds = { it.first() == "fusermount3" }
+                }
+            val reports = mutableListOf<String>()
+            val cleaner =
+                StaleFuseMountCleaner(
+                    mountsSupplier = sequenced(
+                        mounts(fuseLine(mountPoint)),
+                        mounts(),
+                    ),
+                    unmountRunner = runner,
+                )
+
+            val result = cleaner.clean(listOf(projectRoot)) { reports += it }
+
+            assertTrue(result)
+            assertEquals(listOf(listOf("fusermount3", "-uz", mountPoint)), runner.invocations)
+            assertTrue(reports.single().contains("removed stale FUSE mount at $mountPoint"))
+        }
+    }
+
+    @Test
+    fun `fuse mounts outside flatpak-builder state dirs are never touched`() {
+        withTempBuildDir { buildDir ->
+            val projectRoot = buildDir.parentFile
+            val runner = FakeRunner()
+            val cleaner =
+                StaleFuseMountCleaner(
+                    mountsSupplier = {
+                        mounts(fuseLine("${projectRoot.path}/unrelated-mount"))
+                    },
+                    unmountRunner = runner,
+                )
+
+            val result = cleaner.clean(listOf(projectRoot)) { }
+
+            assertTrue(result)
+            assertTrue(runner.invocations.isEmpty())
         }
     }
 
@@ -104,7 +154,7 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            val result = cleaner.clean(buildDir) { }
+            val result = cleaner.clean(listOf(buildDir)) { }
 
             assertTrue(result)
             assertTrue(runner.invocations.isEmpty())
@@ -128,7 +178,7 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            cleaner.clean(buildDir) { }
+            cleaner.clean(listOf(buildDir)) { }
 
             assertEquals(
                 listOf(
@@ -154,7 +204,7 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            val result = cleaner.clean(buildDir) { reports += it }
+            val result = cleaner.clean(listOf(buildDir)) { reports += it }
 
             assertTrue("an unremovable mount must never abort the chain", result)
             assertEquals(3, runner.invocations.size)
@@ -179,7 +229,7 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            val result = cleaner.clean(buildDir) { reports += it }
+            val result = cleaner.clean(listOf(buildDir)) { reports += it }
 
             assertTrue(result)
             assertEquals(1, runner.invocations.size)
@@ -207,7 +257,7 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            val result = cleaner.clean(buildDir) { reports += it }
+            val result = cleaner.clean(listOf(buildDir)) { reports += it }
 
             assertTrue(result)
             assertEquals(listOf(listOf("fusermount3", "-uz", mountPoint)), runner.invocations)
@@ -228,7 +278,7 @@ class StaleFuseMountCleanerTest {
                     unmountRunner = runner,
                 )
 
-            val result = cleaner.clean(buildDir) { reports += it }
+            val result = cleaner.clean(listOf(buildDir)) { reports += it }
 
             assertTrue(result)
             assertTrue(reports.isEmpty())
@@ -248,7 +298,7 @@ class StaleFuseMountCleanerTest {
                     sandboxDetector = { true },
                 )
 
-            val result = cleaner.clean(buildDir) { reports += it }
+            val result = cleaner.clean(listOf(buildDir)) { reports += it }
 
             assertTrue(result)
             assertTrue(reports.isEmpty())

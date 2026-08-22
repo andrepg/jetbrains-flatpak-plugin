@@ -47,7 +47,7 @@ class FlatpakRunner(
             buildList {
                 add(
                     CommandChainProcessHandler.PreStep(PreStepType.UNMOUNT_STALE, quiet = true) { report ->
-                        StaleFuseMountCleaner().clean(resolveBuildDir(), report)
+                        StaleFuseMountCleaner().clean(sweepScopeRoots(), report)
                     },
                 )
                 if (config.enableDeepClean && config.command == UserVisibleCommand.BUILD) {
@@ -83,6 +83,18 @@ class FlatpakRunner(
             extraConfig.joinToString(" | "),
         )
     }
+
+    /**
+     * Sweep roots for the stale FUSE mount cleaner: the project root — where
+     * flatpak-builder's `.flatpak-builder` state dir actually lives, since
+     * commands run with the project as working directory — plus the resolved
+     * build dir for setups that redirect the state dir into it.
+     */
+    private fun sweepScopeRoots(): List<File> =
+        listOfNotNull(
+            environment.project.basePath?.let(::File),
+            resolveBuildDir(),
+        )
 
     /** Build dir resolved against the project root, mirroring [DeepCleanExecutor]. */
     private fun resolveBuildDir(): File {
