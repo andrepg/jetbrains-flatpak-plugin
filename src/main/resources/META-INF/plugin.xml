@@ -80,11 +80,6 @@
         <!-- GTK XML Bindings and schemas -->
         <fileType name="XML" extensions="ui;glade"/>
 
-        <standardResource
-                url="urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"
-                path="schemas/gtk-ui.xsd"
-                version="1"/>
-
         <xml.schemaProvider
                 id="flatpak-gtk-interface"
                 implementation="io.github.andrepg.gtk.schema.providers.GtkInterfaceXmlSchemaProvider"/>

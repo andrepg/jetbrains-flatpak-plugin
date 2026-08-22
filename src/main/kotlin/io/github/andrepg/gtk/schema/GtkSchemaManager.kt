@@ -10,15 +10,16 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Resolves the GtkBuilder XSD for the SDK declared by a project's manifest,
- * preferring a locally generated schema over the bundled one.
+ * generating it from the user's installed GNOME SDK.
  *
  * Resolution order:
  *  1. cached generated XSD in the config dir (`gtk-ui-<key>.xsd`)
  *  2. locate the SDK GIR dir, generate and cache the XSD (idempotent)
- *  3. return null so the caller falls back to the bundled classpath schema
+ *  3. return null so the caller serves no schema
  *
  * Generation is non-fatal: any discovery/parsing failure results in null and
- * the bundled schema keeps serving. JDK-only, no IntelliJ imports.
+ * no schema is served until a later attempt succeeds. JDK-only, no IntelliJ
+ * imports.
  *
  * @property configDir cache directory (e.g. the plugin config dir)
  * @property baseDirs Flatpak install roots used by [GirSdkLocator] (injectable for tests)
@@ -41,12 +42,12 @@ class GtkSchemaManager(
     /**
      * Locates the SDK GIR dir and generates the XSD into the cache. Idempotent:
      * returns the cached file when already generated; returns null when [hint]
-     * is null or the SDK cannot be found/generated (caller keeps the bundled schema).
+     * is null or the SDK cannot be found/generated (caller serves no schema).
      *
      * @param hint the desired GNOME SDK
      * @param flatpakBinary path of the flatpak CLI binary used for discovery
      * @param onProgress optional progress reporter; returning `false` aborts
-     *   the attempt (the bundled schema keeps serving)
+     *   the attempt (no schema is served)
      */
     fun generateSchema(
         hint: SdkHint?,
@@ -63,7 +64,7 @@ class GtkSchemaManager(
         if (onProgress?.report(GtkSchemaStep.Locating) == false) return null
         val girDir = GirSdkLocator.locate(hint.sdkAppId, hint.branch, flatpakBinary, baseDirs)
         if (girDir == null) {
-            log.warn("Could not locate GIR dir for ${hint.sdkAppId}@${hint.branch}; falling back to bundled schema")
+            log.warn("Could not locate GIR dir for ${hint.sdkAppId}@${hint.branch}; no schema will be served")
             return null
         }
         log.info("Locating GIR dir for ${hint.sdkAppId}@${hint.branch}: ${girDir.absolutePath}")
@@ -71,7 +72,7 @@ class GtkSchemaManager(
             try {
                 GirSchemaExtractor.generateXsd(girDir, onProgress)
             } catch (e: Exception) {
-                log.warn("Failed to generate GTK schema from $girDir; falling back to bundled schema", e)
+                log.warn("Failed to generate GTK schema from $girDir; no schema will be served", e)
                 return null
             }
         if (onProgress?.report(GtkSchemaStep.Caching) == false) return null

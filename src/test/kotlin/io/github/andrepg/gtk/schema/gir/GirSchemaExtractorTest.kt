@@ -112,21 +112,4 @@ class GirSchemaExtractorTest {
         }
         assertEquals(1, reported)
     }
-
-    @Test
-    fun `extract writes JSON schema and sibling XSD`() {
-        val output = File.createTempFile("gtk-ui-schema", ".json")
-        output.delete()
-        try {
-            GirSchemaExtractor.extract(girDir, output)
-            assertTrue(output.isFile)
-            assertTrue(output.readText().contains("\"GtkButton\""))
-            val xsd = File(output.parentFile, "gtk-ui.xsd")
-            assertTrue(xsd.isFile)
-            assertTrue(xsd.readText().contains("<xs:schema"))
-        } finally {
-            output.delete()
-            File(output.parentFile, "gtk-ui.xsd").delete()
-        }
-    }
 }

@@ -26,7 +26,7 @@ object GirSdkLocator {
 
     /**
      * Resolves the gir-1.0 directory for [sdkAppId], or null when no SDK is
-     * found (caller should then keep the bundled schema).
+     * found (caller then serves no schema).
      *
      * @param sdkAppId the SDK app-id to look for (e.g. `org.gnome.Sdk`); null/blank disables discovery
      * @param branchHint preferred branch (e.g. `50`); null falls back to the highest numeric branch

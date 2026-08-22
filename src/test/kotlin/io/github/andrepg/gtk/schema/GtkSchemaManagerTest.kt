@@ -88,7 +88,7 @@ class GtkSchemaManagerTest {
     }
 
     @Test
-    fun `generateSchema aborts on cancellation and keeps the bundled fallback`() {
+    fun `generateSchema aborts on cancellation and caches nothing`() {
         withTempDirs { configDir, baseDir ->
             val girDir =
                 baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
