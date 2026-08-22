@@ -4,7 +4,14 @@ name: Publish to JetBrains Marketplace
 # auto-commits any drift in src/main/resources/schemas/, then verifies and
 # publishes the plugin to the JetBrains Marketplace.
 #
-# Requires the PUBLISH_TOKEN repository secret.
+# Also informs Sentry about the release: creates flatpak-devtools@<version>
+# (unfinalized, commits associated) before publishing so errors during rollout
+# attribute correctly, then marks it released and records the production
+# deploy once the publish succeeds.
+#
+# Requires the GH_JETBRAINS_PUBLISH_TOKEN and SENTRY_AUTH_TOKEN repository
+# secrets (the latter also enables the Gradle Sentry plugin's source-context
+# upload during builds).
 on:
   workflow_dispatch:
   push:
@@ -16,17 +23,52 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GRADLE_OPTS: -Dorg.gradle.jvmargs=-Xmx3g
+      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6.1.0
+        with:
+          fetch-depth: 0
 
       - name: Setup project
         uses: ./.github/actions/setup-project
 
+      - name: Resolve Sentry release
+        run: |
+          VERSION=$(sed -n 's/^version[[:space:]]*=[[:space:]]*//p' gradle.properties)
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            TAG_VERSION="${GITHUB_REF_NAME#v}"
+            if [[ "$TAG_VERSION" != "$VERSION" ]]; then
+              echo "::error::Tag v$TAG_VERSION does not match gradle.properties version $VERSION"
+              exit 1
+            fi
+          fi
+          echo "SENTRY_RELEASE=flatpak-devtools@$VERSION" >> "$GITHUB_ENV"
+
       - name: Verify plugin compatibility
         run: ./gradlew verifyPlugin --no-daemon --stacktrace
+
+      - name: Inform Sentry about upcoming release
+        uses: getsentry/action-release@v3.7.0
+        env:
+          SENTRY_ORG: startap
+          SENTRY_PROJECT: jetbrains-flatpak-plugin
+        with:
+          release: ${{ env.SENTRY_RELEASE }}
+          set_commits: auto
+          finalize: false
 
       - name: Publish to JetBrains Marketplace
         env:
           PUBLISH_TOKEN: ${{ secrets.GH_JETBRAINS_PUBLISH_TOKEN }}
         run: ./gradlew publishPlugin --no-daemon --stacktrace
+
+      - name: Finalize Sentry release & record deploy
+        uses: getsentry/action-release@v3.7.0
+        env:
+          SENTRY_ORG: startap
+          SENTRY_PROJECT: jetbrains-flatpak-plugin
+        with:
+          release: ${{ env.SENTRY_RELEASE }}
+          environment: production
+          finalize: true
