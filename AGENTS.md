@@ -97,7 +97,7 @@
 
 ## CI/CD
 - `.github/workflows/ci.yml`: on PR/push — `./gradlew build` + `./gradlew test` (GTK tests are `@Ignore`'d, so this is the non-GTK gate).
-- `.github/workflows/publish.yml`: on `v*` tag / manual — `verifyPlugin`, then `publishPlugin` (requires the `PUBLISH_TOKEN` secret).
+- `.github/workflows/publish.yml`: on `v*` tag / manual — resolves the release name (`flatpak-devtools@<version>` from `gradle.properties`, fails on tag mismatch), `verifyPlugin`, creates the Sentry release via `getsentry/action-release` (unfinalized + auto commits), then `publishPlugin`, then finalizes the release with a `production` deploy record. Requires the `GH_JETBRAINS_PUBLISH_TOKEN` and `SENTRY_AUTH_TOKEN` secrets (the latter also enables the Gradle plugin's source-context upload).
 
 ## Feature flags (runtime system properties)
 - `flatpak.gtk.preview.enabled` — enables the GTK preview/schema premium features (also the Marketplace `<with>` property).
