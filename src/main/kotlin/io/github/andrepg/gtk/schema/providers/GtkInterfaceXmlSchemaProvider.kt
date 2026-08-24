@@ -113,6 +113,7 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
         hint: SdkHint,
     ) {
         if (project.isDisposed) return
+
         val generation =
             object : Task.Backgroundable(
                 project,
@@ -127,11 +128,11 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
                         schemaManager.generateSchema(hint, FlatpakSettings.flatpakBinary) { step ->
                             indicator.text = progressText(step, hint)
                             indicator.fraction = progressFraction(step)
-                            !indicator.isCanceled()
+                            !indicator.isCanceled
                         }
                     outcome =
                         when {
-                            indicator.isCanceled() -> GenerationOutcome.CANCELLED
+                            indicator.isCanceled -> GenerationOutcome.CANCELLED
                             generated != null -> GenerationOutcome.SUCCESS
                             else -> GenerationOutcome.FAILED
                         }
@@ -140,12 +141,19 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
                 override fun onFinished() {
                     if (project.isDisposed) return
                     when (outcome) {
-                        GenerationOutcome.SUCCESS -> notifyGeneration(project, hint, success = true)
-                        GenerationOutcome.FAILED -> notifyGeneration(project, hint, success = false)
+                        GenerationOutcome.SUCCESS -> {
+                            notifyGeneration(project, hint, success = true)
+                        }
+
+                        GenerationOutcome.FAILED -> {
+                            notifyGeneration(project, hint, success = false)
+                        }
+
                         GenerationOutcome.CANCELLED -> {}
                     }
                 }
             }
+
         ProgressManager.getInstance().run(generation)
     }
 
@@ -154,11 +162,21 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
         hint: SdkHint,
     ): String =
         when (step) {
-            GtkSchemaStep.Locating -> Localization.message("gtk.schema.generation.step.locating", hint.key)
-            is GtkSchemaStep.Parsing ->
+            GtkSchemaStep.Locating -> {
+                Localization.message("gtk.schema.generation.step.locating", hint.key)
+            }
+
+            is GtkSchemaStep.Parsing -> {
                 Localization.message("gtk.schema.generation.step.parsing", step.fileName, step.index, step.total)
-            GtkSchemaStep.Rendering -> Localization.message("gtk.schema.generation.step.rendering")
-            GtkSchemaStep.Caching -> Localization.message("gtk.schema.generation.step.caching")
+            }
+
+            GtkSchemaStep.Rendering -> {
+                Localization.message("gtk.schema.generation.step.rendering")
+            }
+
+            GtkSchemaStep.Caching -> {
+                Localization.message("gtk.schema.generation.step.caching")
+            }
         }
 
     private fun progressFraction(step: GtkSchemaStep): Double =
@@ -174,16 +192,17 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
         hint: SdkHint,
         success: Boolean,
     ) {
-        val key = if (success) "gtk.schema.generation.notification.success" else "gtk.schema.generation.notification.failure"
+        val key =
+            if (success) "gtk.schema.generation.notification.success" else "gtk.schema.generation.notification.failure"
         val type = if (success) NotificationType.INFORMATION else NotificationType.WARNING
-        NotificationGroupManager.getInstance()
+        NotificationGroupManager
+            .getInstance()
             .getNotificationGroup(NOTIFICATION_GROUP_ID)
             .createNotification(
                 Localization.message("gtk.schema.generation.title", hint.key),
                 Localization.message(key, hint.key),
                 type,
-            )
-            .notify(project)
+            ).notify(project)
     }
 
     private companion object {
