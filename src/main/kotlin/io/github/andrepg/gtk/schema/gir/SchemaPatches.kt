@@ -1,7 +1,7 @@
 package io.github.andrepg.gtk.schema.gir
 
+import io.github.andrepg.gtk.schema.gir.patches.ClassNameUnion
 import io.github.andrepg.gtk.schema.gir.patches.ElementPropertyValues
-import io.github.andrepg.gtk.schema.gir.patches.GenericWidgetProperties
 import io.github.andrepg.gtk.schema.gir.patches.SignalElementProperties
 import io.github.andrepg.gtk.schema.gir.patches.XsdPatch
 import io.github.andrepg.shared.text.EscapeTables
@@ -32,7 +32,7 @@ internal object SchemaPatches {
 
     val xsdPatches: List<XsdPatch> =
         listOf(
-            GenericWidgetProperties,
+            ClassNameUnion,
             ElementPropertyValues,
             SignalElementProperties,
         )
