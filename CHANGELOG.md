@@ -4,6 +4,13 @@
 
 ## Unreleased
 
+#### Added
+
+- Run configurations are now validated before launching, as a chain of named rules
+  (`runs/configuration/validation/`): manifest must parse and carry `app-id`/`id`, the
+  configured `flatpak` CLI must be locatable (absolute path or on `PATH`), and the CUSTOM
+  command now requires arguments
+
 #### Fixed
 
 - The `UNMOUNT_STALE` pre-step introduced in 2026.1.4 scanned only the build directory, but
