@@ -30,7 +30,7 @@
         <h2>GtkBuilder XML support</h2>
         <ul>
             <li><b>Code completion &amp; validation</b> — schema-driven completion and inline validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
-            <li><b>GNOME SDK autodetection</b> — the schema follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest; requires an installed supported SDK (<code>org.gnome.Sdk</code>, <code>org.freedesktop.Platform</code>)</li>
+            <li><b>GNOME SDK autodetection</b> — the schema follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest; requires an installed <code>org.gnome.Sdk</code> runtime</li>
             <li><code>.xml</code> files whose root element is <code>&lt;interface&gt;</code> are also supported once a Flatpak project is recognized</li>
             <li><i>Planned:</i> Basic window/widget preview directly from the IDE</li>
             <li><i>Planned:</i> Autodetected unregistered files from GResource</li>

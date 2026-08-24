@@ -26,7 +26,6 @@ object GirSdkLocator {
     internal val supportedSdks: List<String> =
         listOf(
             "org.gnome.Sdk",
-            "org.freedesktop.Platform",
         )
 
     /** One row of `flatpak list --runtime --columns=application,branch,installation`. */
