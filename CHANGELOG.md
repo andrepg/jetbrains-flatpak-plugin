@@ -24,12 +24,12 @@
 
 #### Removed
 
-- The bundled GTK schema (`gtk-ui.xsd` + `gtk-ui-schema.json`) and the `generateBundledGtkSchema`
-  Gradle task
+- Bundled GTK schema from build - we are now relying only at runtime
   - GtkBuilder `.ui` completion/validation is now generated exclusively at runtime from the user's
     installed GNOME SDK and cached in the plugin config dir
   - Projects without a discoverable installed SDK get no schema until generation succeeds; the
     existing warning balloon reports failures
+  - This is a safe change because the user it is supposed to have the SDK installed to build the app
 
 ## 2026.1.4 - 2026-08-21
 
