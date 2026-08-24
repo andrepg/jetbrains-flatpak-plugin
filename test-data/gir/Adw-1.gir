@@ -7,5 +7,9 @@
       <property name="title-widget" c:identifier="title_widget" readable="1" writable="1"/>
       <property name="show-back-button" c:identifier="show_back_button" readable="1" writable="1"/>
     </class>
+    <class name="Bin" c:type="AdwBin" glib:type-name="AdwBin" glib:get-type="adw_bin_get_type">
+      <implements name="Gtk.Buildable"/>
+      <property name="child" c:identifier="child" readable="1" writable="1"/>
+    </class>
   </namespace>
 </repository>

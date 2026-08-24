@@ -3,15 +3,21 @@ package io.github.andrepg.gtk.schema.gir.parser
 import io.github.andrepg.gtk.schema.gir.GtkSchemaProgress
 import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
 import io.github.andrepg.shared.log.Log
+import org.w3c.dom.Document
 import org.w3c.dom.Element
 import java.io.File
 import java.util.concurrent.CancellationException
+import javax.xml.XMLConstants
 import javax.xml.parsers.DocumentBuilderFactory
 
 /**
  * Parses GIR (GObject Introspection) XML files shipped with the GNOME SDK into
  * a [Registry] of classes/interfaces with their properties and signals,
  * flattened-ready for XSD rendering.
+ *
+ * Inheritance sources follow the GIR format: `parent` attributes and
+ * `<implements>` children on classes, `<prerequisite>` children on interfaces
+ * — all resolved across namespaces and GIR files by [Registry.flattened].
  *
  * JDK-only (no IntelliJ imports): it runs inside the IDE through
  * [io.github.andrepg.gtk.schema.GtkSchemaManager] and stays unit-testable.
@@ -37,16 +43,16 @@ object GirParser {
             "Gio-2.0.gir",
         )
 
-    private fun generateTypeEntry(
+    // ---------------------------------------------------------------- Parsing
+
+    private fun buildTypeEntry(
         namespace: String,
         element: Element,
-        implements: List<String>,
+        requires: List<String>,
     ): TypeEntry {
         val name = element.getAttribute("name")
         val cType = element.getAttributeNS(NS_C, "type").ifEmpty { namespace + name }
         val parent = element.getAttribute("parent").ifEmpty { null }
-
-//        val implements = children(element, NS_CORE, "implements").map { it.getAttribute("name") }
         val properties = children(element, NS_CORE, "property").map { it.getAttribute("name") }
         val signals = children(element, NS_GLIB, "signal").map { it.getAttribute("name") }
 
@@ -55,46 +61,34 @@ object GirParser {
             name = name,
             cType = cType,
             parent = parent,
-            requires = implements,
+            requires = requires,
             properties = properties.toSet(),
             signals = signals.toSet(),
         )
     }
 
-    // ---------------------------------------------------------------- Parsing
-
     private fun parseGir(file: File): List<TypeEntry> {
-        val factory = DocumentBuilderFactory.newInstance().apply { this.isNamespaceAware = true }
-        val document = factory.newDocumentBuilder().parse(file)
+        val document = newDocument(file)
 
         val namespace = children(document.documentElement, NS_CORE, "namespace").firstOrNull() ?: return emptyList()
         val namespaceName = namespace.getAttribute("name")
 
-        val entries = mutableListOf<TypeEntry>()
+        val classes = children(namespace, NS_CORE, "class")
+        val interfaces = children(namespace, NS_CORE, "interface")
 
-        val gtkClasses = children(namespace, NS_CORE, "class")
-        val gtkInterfaces = children(namespace, NS_CORE, "interface")
-
-        gtkClasses.forEach { cls ->
-            val implements =
-                children(cls, NS_CORE, "implements").map {
-                    it.getAttribute("name")
-                }
-
-            entries += generateTypeEntry(namespaceName, cls, implements)
+        return classes.map { cls ->
+            buildTypeEntry(namespaceName, cls, children(cls, NS_CORE, "implements").map { it.getAttribute("name") })
+        } + interfaces.map { iface ->
+            buildTypeEntry(namespaceName, iface, children(iface, NS_CORE, "prerequisite").map { it.getAttribute("name") })
         }
+    }
 
-        gtkInterfaces.forEach { cls ->
-            val requires =
-                buildList {
-                    cls.getAttribute("prerequisite").takeIf { it.isNotEmpty() }?.let { add(it) }
-                    children(cls, NS_CORE, "interface").forEach { add(it.getAttribute("name")) }
-                }
-
-            entries += generateTypeEntry(namespaceName, cls, requires)
-        }
-
-        return entries
+    private fun newDocument(file: File): Document {
+        val factory = DocumentBuilderFactory.newInstance()
+        factory.isNamespaceAware = true
+        runCatching { factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true) }
+        runCatching { factory.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true) }
+        return factory.newDocumentBuilder().parse(file)
     }
 
     private fun children(
@@ -131,7 +125,11 @@ object GirParser {
                     if (onProgress?.report(GtkSchemaStep.Parsing(name, index + 1, GIR_FILE_NAMES.size)) == false) {
                         throw CancellationException("GtkBuilder schema generation cancelled")
                     }
-                    parseGir(file)
+                    try {
+                        parseGir(file)
+                    } catch (e: Exception) {
+                        throw IllegalStateException("Failed to parse $name", e)
+                    }
                 }
             }
         return Registry(entries)
