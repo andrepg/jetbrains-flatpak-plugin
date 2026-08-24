@@ -52,6 +52,8 @@ class GirSdkLocatorTest {
     @Test
     fun `locate ignores SDKs outside the supported list`() {
         assertNull(GirSdkLocator.locate("org.example.Sdk", "50", "/nonexistent/flatpak"))
+        // Advertised in earlier versions but never reachable end-to-end; keep it out.
+        assertNull(GirSdkLocator.locate("org.freedesktop.Platform", "24.08", "/nonexistent/flatpak"))
     }
 
     @Test
