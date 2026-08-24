@@ -29,21 +29,15 @@
 
         <h2>GtkBuilder XML support</h2>
         <ul>
-            <li>Code completion and validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
-            <li><b>GNOME SDK autodetection</b> — the schema branch follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest, falling back to a bundled schema when no SDK is recognized</li>
+            <li><b>Code completion &amp; validation</b> — schema-driven completion and inline validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
+            <li><b>GNOME SDK autodetection</b> — the schema follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest; requires an installed supported SDK (<code>org.gnome.Sdk</code>, <code>org.freedesktop.Platform</code>)</li>
             <li><code>.xml</code> files whose root element is <code>&lt;interface&gt;</code> are also supported once a Flatpak project is recognized</li>
-        </ul>
-
-
-        <h3>GTK Support</h3>
-        <ul>
-            <li>Code completion and validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
             <li><i>Planned:</i> Basic window/widget preview directly from the IDE</li>
             <li><i>Planned:</i> Autodetected unregistered files from GResource</li>
             <li><i>Planned:</i> Blueprint format support</li>
         </ul>
 
-        <h3>Qt/KDE support</h3>
+        <h2>Qt/KDE support</h2>
         <p><i>Planned — future roadmap, no ETA yet.</i></p>
 
 
