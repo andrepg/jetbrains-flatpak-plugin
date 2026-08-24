@@ -156,7 +156,7 @@ class CommandExecutionEngineTest {
             config {
                 manifestPath = sampleManifestPath
                 buildDir = "/tmp/build"
-                customArguments = listOf("--arg1")
+                customArguments = listOf("--arg1", "--arg2")
             }
 
         assertEquals(
@@ -172,8 +172,30 @@ class CommandExecutionEngineTest {
             engine.buildCommand(InternalCommand.VALIDATE, config),
         )
         assertEquals(
-            listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "/tmp/build", sampleManifestPath, "--arg1"),
+            listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "/tmp/build", sampleManifestPath, "--arg1", "--arg2"),
             engine.buildCommand(InternalCommand.CUSTOM, config),
+        )
+    }
+
+    @Test
+    fun `custom command appends each user argument as a separate argv element`() {
+        val line =
+            engine.buildCommand(
+                InternalCommand.CUSTOM,
+                config {
+                    manifestPath = sampleManifestPath
+                    buildDir = "/tmp/build"
+                    customArguments = listOf("--share=network", "-e", "VERBOSE=1")
+                },
+            )
+
+        assertEquals(
+            listOf(
+                "/usr/bin/flatpak", "run", "org.flatpak.Builder",
+                "/tmp/build", sampleManifestPath,
+                "--share=network", "-e", "VERBOSE=1",
+            ),
+            line,
         )
     }
 }
