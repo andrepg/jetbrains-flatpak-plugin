@@ -8,6 +8,15 @@ import io.github.andrepg.shared.log.Log
 import java.io.File
 import java.util.concurrent.ConcurrentHashMap
 
+/** Log message templates used by [GtkSchemaManager]. */
+private object Messages {
+    const val CACHED_SCHEMA = "Using cached generated GTK schema: %s"
+    const val GIR_DIR_NOT_FOUND = "Could not locate GIR dir for %s; no schema will be served"
+    const val GIR_DIR_LOCATED = "Located GIR dir for %s: %s"
+    const val GENERATION_FAILED = "Failed to generate GTK schema from %s; no schema will be served"
+    const val GENERATED_CACHED = "Generated and cached GTK schema: %s"
+}
+
 /**
  * Resolves the GtkBuilder XSD for the SDK declared by a project's manifest,
  * generating it from the user's installed GNOME SDK.
@@ -22,11 +31,9 @@ import java.util.concurrent.ConcurrentHashMap
  * imports.
  *
  * @property configDir cache directory (e.g. the plugin config dir)
- * @property baseDirs Flatpak install roots used by [GirSdkLocator] (injectable for tests)
  */
 class GtkSchemaManager(
     private val configDir: File,
-    private val baseDirs: List<File> = GirSdkLocator.defaultBaseDirs(),
 ) {
     private val requested = ConcurrentHashMap<String, Boolean>()
     private val log = Log.getInstance(GtkSchemaManager::class.java)
@@ -56,31 +63,20 @@ class GtkSchemaManager(
     ): File? {
         if (hint == null) return null
 
-        cachedSchema(hint)?.let {
-            log.info("Using cached generated GTK schema: ${it.absolutePath}")
-            return it
+        cachedSchema(hint)?.let { cached ->
+            log.info(Messages.CACHED_SCHEMA.format(cached.absolutePath))
+            return cached
         }
 
         if (onProgress?.report(GtkSchemaStep.Locating) == false) return null
-        val girDir = GirSdkLocator.locate(hint.sdkAppId, hint.branch, flatpakBinary, baseDirs)
-        if (girDir == null) {
-            log.warn("Could not locate GIR dir for ${hint.sdkAppId}@${hint.branch}; no schema will be served")
-            return null
-        }
-        log.info("Locating GIR dir for ${hint.sdkAppId}@${hint.branch}: ${girDir.absolutePath}")
-        val xsd =
-            try {
-                GirSchemaExtractor.generateXsd(girDir, onProgress)
-            } catch (e: Exception) {
-                log.warn("Failed to generate GTK schema from $girDir; no schema will be served", e)
-                return null
-            }
+
+        val girDir = locateGirDir(hint, flatpakBinary) ?: return null
+
+        val xsd = extractXsd(girDir, onProgress) ?: return null
+
         if (onProgress?.report(GtkSchemaStep.Caching) == false) return null
-        configDir.mkdirs()
-        val target = File(configDir, "gtk-ui-${hint.key}.xsd")
-        target.writeText(xsd)
-        log.info("Generated and cached GTK schema: ${target.absolutePath}")
-        return target
+
+        return cacheXsd(hint, xsd)
     }
 
     /**
@@ -93,4 +89,45 @@ class GtkSchemaManager(
         val key = hint?.key ?: return false
         return requested.putIfAbsent(key, true) == null
     }
+
+    /**
+     * Locates the GIR dir for [hint], logging success or failure.
+     */
+    private fun locateGirDir(hint: SdkHint, flatpakBinary: String): File? {
+        val girDir = GirSdkLocator.locate(hint.sdkAppId, hint.branch, flatpakBinary)
+        if (girDir == null) {
+            log.warn(Messages.GIR_DIR_NOT_FOUND.format(describe(hint)))
+        } else {
+            log.info(Messages.GIR_DIR_LOCATED.format(describe(hint), girDir.absolutePath))
+        }
+        return girDir
+    }
+
+    /**
+     * Runs the GIR → XSD extraction, treating any failure as non-fatal.
+     */
+    private fun extractXsd(
+        girDir: File,
+        onProgress: GtkSchemaProgress?,
+    ): String? =
+        try {
+            GirSchemaExtractor.generateXsd(girDir, onProgress)
+        } catch (e: Exception) {
+            log.warn(Messages.GENERATION_FAILED.format(girDir.absolutePath), e)
+            null
+        }
+
+    /**
+     * Writes [xsd] into the cache dir under [hint]'s key.
+     */
+    private fun cacheXsd(hint: SdkHint, xsd: String): File {
+        configDir.mkdirs()
+        val target = File(configDir, "gtk-ui-${hint.key}.xsd")
+        target.writeText(xsd)
+
+        log.info(Messages.GENERATED_CACHED.format(target.absolutePath))
+        return target
+    }
+
+    private fun describe(hint: SdkHint): String = "${hint.sdkAppId}@${hint.branch}"
 }
