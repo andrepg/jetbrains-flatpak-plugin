@@ -6,6 +6,10 @@ import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
 import io.github.andrepg.gtk.schema.locator.GirSdkLocator
 import io.github.andrepg.shared.log.Log
 import java.io.File
+import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
 import java.util.concurrent.ConcurrentHashMap
 
 /** Log message templates used by [GtkSchemaManager]. */
@@ -14,6 +18,7 @@ private object Messages {
     const val GIR_DIR_NOT_FOUND = "Could not locate GIR dir for %s; no schema will be served"
     const val GIR_DIR_LOCATED = "Located GIR dir for %s: %s"
     const val GENERATION_FAILED = "Failed to generate GTK schema from %s; no schema will be served"
+    const val CACHE_WRITE_FAILED = "Failed to cache GTK schema at %s; no schema will be served"
     const val GENERATED_CACHED = "Generated and cached GTK schema: %s"
 }
 
@@ -118,12 +123,39 @@ class GtkSchemaManager(
         }
 
     /**
-     * Writes [xsd] into the cache dir under [hint]'s key.
+     * Writes [xsd] into the cache dir under [hint]'s key, atomically replacing
+     * any previous file so a crash never leaves a truncated XSD behind.
+     *
+     * @return the cached file, or null when the cache dir is not writable
+     *   (caller serves no schema)
      */
-    private fun cacheXsd(hint: SdkHint, xsd: String): File {
-        configDir.mkdirs()
+    private fun cacheXsd(hint: SdkHint, xsd: String): File? {
+        if (!configDir.isDirectory && !configDir.mkdirs()) {
+            log.warn(Messages.CACHE_WRITE_FAILED.format(configDir.absolutePath))
+            return null
+        }
+
         val target = File(configDir, "gtk-ui-${hint.key}.xsd")
-        target.writeText(xsd)
+        val temp =
+            try {
+                File.createTempFile(target.nameWithoutExtension, ".tmp", configDir)
+            } catch (e: IOException) {
+                log.warn(Messages.CACHE_WRITE_FAILED.format(target.absolutePath), e)
+                return null
+            }
+        try {
+            temp.writeText(xsd)
+            try {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE)
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        } catch (e: IOException) {
+            log.warn(Messages.CACHE_WRITE_FAILED.format(target.absolutePath), e)
+            return null
+        } finally {
+            runCatching { Files.deleteIfExists(temp.toPath()) }
+        }
 
         log.info(Messages.GENERATED_CACHED.format(target.absolutePath))
         return target

@@ -84,6 +84,16 @@ class GtkSchemaManagerTest {
     }
 
     @Test
+    fun `generateSchema returns null when the cache dir cannot be created`() {
+        withTempDirs { parent, work ->
+            val notADir = parent.resolve("config").apply { writeText("occupies the path") }
+            val (manager, flatpak) = managerWithInstalledSdk(notADir, work)
+
+            assertNull(manager.generateSchema(hint, flatpak.absolutePath))
+        }
+    }
+
+    @Test
     fun `generateSchema reports locating and caching progress steps`() {
         withTempDirs { configDir, work ->
             val (manager, flatpak) = managerWithInstalledSdk(configDir, work)
