@@ -3,7 +3,12 @@
   <include name="GObject" version="2.0" c:identifier="GObject"/>
   <namespace name="Gtk" version="4.0" shared-library="libgtk-4.so.1">
     <interface name="Actionable" c:type="GtkActionable">
+      <prerequisite name="Widget"/>
       <property name="action-name" c:identifier="action_name" readable="1" writable="1"/>
+    </interface>
+    <interface name="Buildable" c:type="GtkBuildable">
+      <prerequisite name="GObject.Object"/>
+      <property name="buildable-id" c:identifier="buildable_id" readable="1" writable="1"/>
     </interface>
     <class name="Widget" c:type="GtkWidget" glib:type-name="GtkWidget" glib:get-type="gtk_widget_get_type">
       <property name="name" c:identifier="name" readable="1" writable="1"/>
