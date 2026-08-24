@@ -20,7 +20,8 @@ import java.util.regex.Matcher.quoteReplacement
  *
  * Each patch is named and documented so it can be reviewed, extended or
  * dropped independently of the data-driven generation. `applyXsd` splices
- * XSD fragments into marker lines emitted by the raw generator.
+ * XSD fragments into the `gb-patch:<id>` marker lines of
+ * [XsdSkeleton][io.github.andrepg.gtk.schema.gir.builder.XsdSkeleton.RAW].
  */
 internal object SchemaPatches {
     /** GIR-derived name lists injected into XSD patch fragments. */
