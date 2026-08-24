@@ -1,5 +1,9 @@
 package io.github.andrepg.gtk.schema.gir
 
+import io.github.andrepg.gtk.schema.gir.patches.ElementPropertyValues
+import io.github.andrepg.gtk.schema.gir.patches.GenericWidgetProperties
+import io.github.andrepg.gtk.schema.gir.patches.SignalElementProperties
+import io.github.andrepg.gtk.schema.gir.patches.XsdPatch
 import io.github.andrepg.shared.text.EscapeTables
 import java.util.regex.Matcher.quoteReplacement
 
@@ -26,112 +30,11 @@ internal object SchemaPatches {
         val signalNames: List<String>,
     )
 
-    // ---------------------------------------------------------------- XSD
-
-    data class XsdPatch(
-        val id: String,
-        val description: String,
-        val fragment: String,
-    )
-
     val xsdPatches: List<XsdPatch> =
         listOf(
-            XsdPatch(
-                id = "class-name-union",
-                description = "class/parent attributes accept known GIR classes or any app-defined class name (identifier pattern).",
-                fragment =
-                    """
-                |  <xs:simpleType name="className">
-                |    <xs:union>
-                |      <xs:simpleType>
-                |        <xs:restriction base="xs:string">
-                ${'$'}{classEnums}
-                |        </xs:restriction>
-                |      </xs:simpleType>
-                |      <xs:simpleType>
-                |        <xs:restriction base="xs:string">
-                |          <xs:pattern value="[A-Za-z_][A-Za-z0-9_.]*"/>
-                |        </xs:restriction>
-                |      </xs:simpleType>
-                |    </xs:union>
-                |  </xs:simpleType>
-                    """.trimMargin(),
-            ),
-            XsdPatch(
-                id = "property-element",
-                description =
-                    "Widget-valued properties may contain a nested <object>; translatable properties " +
-                        "carry translatable/context/comments.",
-                fragment =
-                    """
-                |  <xs:element name="property">
-                |    <xs:complexType mixed="true">
-                |      <xs:sequence minOccurs="0" maxOccurs="1">
-                |        <xs:element ref="object"/>
-                |      </xs:sequence>
-                |      <xs:attribute name="name" use="required">
-                |        <xs:simpleType>
-                |          <xs:restriction base="xs:string">
-                ${'$'}{propertyEnums}
-                |          </xs:restriction>
-                |        </xs:simpleType>
-                |      </xs:attribute>
-                |      <xs:attribute name="translatable">
-                |        <xs:simpleType>
-                |          <xs:restriction base="xs:string">
-                |            <xs:enumeration value="yes"/>
-                |            <xs:enumeration value="no"/>
-                |            <xs:enumeration value="true"/>
-                |            <xs:enumeration value="false"/>
-                |          </xs:restriction>
-                |        </xs:simpleType>
-                |      </xs:attribute>
-                |      <xs:attribute name="context" type="xs:string"/>
-                |      <xs:attribute name="comments" type="xs:string"/>
-                |    </xs:complexType>
-                |  </xs:element>
-                    """.trimMargin(),
-            ),
-            XsdPatch(
-                id = "signal-element",
-                description = "Signals expose handler/object/swapped/after alongside the name enum.",
-                fragment =
-                    """
-                |  <xs:element name="signal">
-                |    <xs:complexType mixed="true">
-                |      <xs:attribute name="name" use="required">
-                |        <xs:simpleType>
-                |          <xs:restriction base="xs:string">
-                ${'$'}{signalEnums}
-                |          </xs:restriction>
-                |        </xs:simpleType>
-                |      </xs:attribute>
-                |      <xs:attribute name="handler" type="xs:string"/>
-                |      <xs:attribute name="object" type="xs:string"/>
-                |      <xs:attribute name="swapped">
-                |        <xs:simpleType>
-                |          <xs:restriction base="xs:string">
-                |            <xs:enumeration value="yes"/>
-                |            <xs:enumeration value="no"/>
-                |            <xs:enumeration value="true"/>
-                |            <xs:enumeration value="false"/>
-                |          </xs:restriction>
-                |        </xs:simpleType>
-                |      </xs:attribute>
-                |      <xs:attribute name="after">
-                |        <xs:simpleType>
-                |          <xs:restriction base="xs:string">
-                |            <xs:enumeration value="yes"/>
-                |            <xs:enumeration value="no"/>
-                |            <xs:enumeration value="true"/>
-                |            <xs:enumeration value="false"/>
-                |          </xs:restriction>
-                |        </xs:simpleType>
-                |      </xs:attribute>
-                |    </xs:complexType>
-                |  </xs:element>
-                    """.trimMargin(),
-            ),
+            GenericWidgetProperties,
+            ElementPropertyValues,
+            SignalElementProperties,
         )
 
     /**
@@ -156,10 +59,10 @@ internal object SchemaPatches {
                 "signalEnums" to enumLines(enums.signalNames, indent = 12),
             )
         for ((name, lines) in enumPlaceholders) {
-            out = out.replace(Regex("""(?m)^[ \t]*\$\{$name\}[ \t]*\r?\n"""), quoteReplacement(lines + "\n"))
+            out = out.replace(Regex("""(?m)^[ \t]*\$\{$name}[ \t]*\r?\n"""), quoteReplacement(lines + "\n"))
         }
         check("gb-patch:" !in out) { "Unresolved GtkBuilder patch markers remain in the generated XSD" }
-        check("\${" !in out) { "Unresolved GIR enum placeholders remain in the generated XSD" }
+        check($$"${" !in out) { "Unresolved GIR enum placeholders remain in the generated XSD" }
         return out
     }
 
