@@ -1,12 +1,12 @@
 package io.github.andrepg.gtk.schema.locator
 
 import com.intellij.util.io.delete
+import io.github.andrepg.gtk.schema.FakeFlatpakCli
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import java.io.File
 import kotlin.io.path.createTempDirectory
-import kotlin.io.path.deleteIfExists
 
 class GirSdkLocatorTest {
     private val sampleOutput =
@@ -50,79 +50,61 @@ class GirSdkLocatorTest {
     }
 
     @Test
-    fun `resolveFromBaseDir finds gir-1_0 and verifies Gtk gir`() {
-        withTempDir { dir ->
-            val girDir = dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
-            girDir.resolve("Gtk-4.0.gir").writeText("<x/>")
-            assertEquals(girDir, GirSdkLocator.resolveFromBaseDir(dir, "org.gnome.Sdk", "50"))
-            assertNull(GirSdkLocator.resolveFromBaseDir(dir, "org.gnome.Sdk", "49"))
-        }
-    }
-
-    @Test
-    fun `locate uses the glob fallback when the flatpak CLI is unavailable`() {
-        withTempDir { dir ->
-            dir
-                .resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0")
-                .apply { mkdirs() }
-                .resolve("Gtk-4.0.gir")
-                .writeText("<x/>")
-
-            val found =
-                GirSdkLocator.locate(
-                    sdkAppId = "org.gnome.Sdk",
-                    branchHint = "50",
-                    flatpakBinary = "/nonexistent/flatpak",
-                    baseDirs = listOf(dir),
-                )
-            assertEquals(
-                dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0"),
-                found,
-            )
-        }
-    }
-
-    @Test
-    fun `locate scans for the highest branch when no hint is given`() {
-        withTempDir { dir ->
-            dir
-                .resolve("runtime/org.gnome.Sdk/x86_64/49/active/files/share/gir-1.0")
-                .apply { mkdirs() }
-                .resolve("Gtk-4.0.gir")
-                .writeText("<x/>")
-            dir
-                .resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0")
-                .apply { mkdirs() }
-                .resolve("Gtk-4.0.gir")
-                .writeText("<x/>")
-
-            val found =
-                GirSdkLocator.locate(
-                    sdkAppId = "org.gnome.Sdk",
-                    branchHint = null,
-                    flatpakBinary = "/nonexistent/flatpak",
-                    baseDirs = listOf(dir),
-                )
-            assertEquals(
-                dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0"),
-                found,
-            )
-        }
-    }
-
-    @Test
-    fun `locate returns null when no SDK is installed`() {
-        withTempDir { dir ->
-            assertNull(
-                GirSdkLocator.locate("org.gnome.Sdk", null, "/nonexistent/flatpak", listOf(dir)),
-            )
-        }
+    fun `locate ignores SDKs outside the supported list`() {
+        assertNull(GirSdkLocator.locate("org.example.Sdk", "50", "/nonexistent/flatpak"))
     }
 
     @Test
     fun `locate returns null for blank or missing app ids`() {
         assertNull(GirSdkLocator.locate(null, null, "/nonexistent/flatpak"))
         assertNull(GirSdkLocator.locate("", null, "/nonexistent/flatpak"))
+    }
+
+    @Test
+    fun `locate returns null when the flatpak CLI is unavailable`() {
+        assertNull(GirSdkLocator.locate("org.gnome.Sdk", "50", "/nonexistent/flatpak"))
+    }
+
+    @Test
+    fun `locate resolves the gir dir through the flatpak CLI`() {
+        withTempDir { dir ->
+            val installRoot =
+                dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active").apply { mkdirs() }
+            val girDir = installRoot.resolve("files/share/gir-1.0").apply { mkdirs() }
+            girDir.resolve("Gtk-4.0.gir").writeText("<x/>")
+
+            val flatpak = FakeFlatpakCli.install(dir, runtimes = "org.gnome.Sdk\t50\tuser", location = installRoot)
+
+            assertEquals(girDir, GirSdkLocator.locate("org.gnome.Sdk", "50", flatpak.absolutePath))
+        }
+    }
+
+    @Test
+    fun `locate picks the highest installed branch without a hint`() {
+        withTempDir { dir ->
+            val girDirs =
+                listOf("49", "50").map { branch ->
+                    dir
+                        .resolve("runtime/org.gnome.Sdk/x86_64/$branch/active/files/share/gir-1.0")
+                        .apply { mkdirs() }
+                        .also { it.resolve("Gtk-4.0.gir").writeText("<x/>") }
+                }
+            val runtimes = "org.gnome.Sdk\t49\tsystem\norg.gnome.Sdk\t50\tuser"
+            val active50 = dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active")
+            val flatpak = FakeFlatpakCli.install(dir, runtimes = runtimes, location = active50)
+
+            assertEquals(girDirs[1], GirSdkLocator.locate("org.gnome.Sdk", null, flatpak.absolutePath))
+        }
+    }
+
+    @Test
+    fun `locate returns null when Gtk gir is missing at the resolved location`() {
+        withTempDir { dir ->
+            val installRoot = dir.resolve("runtime/org.gnome.Sdk/x86_64/50/active").apply { mkdirs() }
+            val flatpak = FakeFlatpakCli.install(dir, runtimes = "org.gnome.Sdk\t50\tuser", location = installRoot)
+
+            assertNull(GirSdkLocator.locate("org.gnome.Sdk", "50", flatpak.absolutePath))
+        }
     }
 
     private inline fun withTempDir(block: (File) -> Unit) {

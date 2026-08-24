@@ -13,7 +13,7 @@ class GtkSchemaManagerTest {
     @Test
     fun `cachedSchema returns null before any generation`() {
         withTempDirs { configDir, _ ->
-            val manager = GtkSchemaManager(configDir, emptyList())
+            val manager = GtkSchemaManager(configDir)
             assertNull(manager.cachedSchema(hint))
             assertNull(manager.cachedSchema(null))
         }
@@ -21,13 +21,10 @@ class GtkSchemaManagerTest {
 
     @Test
     fun `generateSchema generates and caches the XSD for an installed SDK`() {
-        withTempDirs { configDir, baseDir ->
-            val girDir =
-                baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
-            copyFixture(girDir)
+        withTempDirs { configDir, work ->
+            val (manager, flatpak) = managerWithInstalledSdk(configDir, work)
 
-            val manager = GtkSchemaManager(configDir, listOf(baseDir))
-            val generated = manager.generateSchema(hint, "/nonexistent/flatpak")
+            val generated = manager.generateSchema(hint, flatpak.absolutePath)
 
             val expected = configDir.resolve("gtk-ui-org.gnome.Sdk-50.xsd")
             assertNotNull(generated)
@@ -40,10 +37,10 @@ class GtkSchemaManagerTest {
 
     @Test
     fun `generateSchema serves a pre-existing cache file without regeneration`() {
-        withTempDirs { configDir, baseDir ->
+        withTempDirs { configDir, _ ->
             val cached = configDir.resolve("gtk-ui-org.gnome.Sdk-50.xsd").apply { writeText("<cached/>") }
 
-            val manager = GtkSchemaManager(configDir, listOf(baseDir))
+            val manager = GtkSchemaManager(configDir)
             assertEquals(cached, manager.generateSchema(hint, "/nonexistent/flatpak"))
             assertEquals(cached, manager.cachedSchema(hint))
         }
@@ -51,32 +48,49 @@ class GtkSchemaManagerTest {
 
     @Test
     fun `generateSchema returns null when no SDK is installed`() {
-        withTempDirs { configDir, baseDir ->
-            val manager = GtkSchemaManager(configDir, listOf(baseDir))
-            assertNull(manager.generateSchema(hint, "/nonexistent/flatpak"))
+        withTempDirs { configDir, work ->
+            val flatpak = FakeFlatpakCli.install(work)
+
+            val manager = GtkSchemaManager(configDir)
+            assertNull(manager.generateSchema(hint, flatpak.absolutePath))
             assertFalse(configDir.resolve("gtk-ui-org.gnome.Sdk-50.xsd").exists())
         }
     }
 
     @Test
+    fun `generateSchema returns null when the SDK is unsupported`() {
+        withTempDirs { configDir, work ->
+            val girRoot = FakeFlatpakCli.girRoot(work.resolve("sdk"))
+            FakeFlatpakCli.copyFixtures(girRoot)
+            val flatpak =
+                FakeFlatpakCli.install(
+                    work,
+                    runtimes = "org.example.Sdk\t50\tuser",
+                    location = work.resolve("sdk"),
+                )
+
+            val manager = GtkSchemaManager(configDir)
+            assertNull(manager.generateSchema(SdkHint(sdkAppId = "org.example.Sdk", branch = "50"), flatpak.absolutePath))
+            assertFalse(configDir.resolve("gtk-ui-org.example.Sdk-50.xsd").exists())
+        }
+    }
+
+    @Test
     fun `generateSchema returns null for a null hint`() {
-        withTempDirs { configDir, baseDir ->
-            val manager = GtkSchemaManager(configDir, listOf(baseDir))
+        withTempDirs { configDir, _ ->
+            val manager = GtkSchemaManager(configDir)
             assertNull(manager.generateSchema(null, "/nonexistent/flatpak"))
         }
     }
 
     @Test
     fun `generateSchema reports locating and caching progress steps`() {
-        withTempDirs { configDir, baseDir ->
-            val girDir =
-                baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
-            copyFixture(girDir)
+        withTempDirs { configDir, work ->
+            val (manager, flatpak) = managerWithInstalledSdk(configDir, work)
 
-            val manager = GtkSchemaManager(configDir, listOf(baseDir))
             val steps = mutableListOf<GtkSchemaStep>()
             assertNotNull(
-                manager.generateSchema(hint, "/nonexistent/flatpak") {
+                manager.generateSchema(hint, flatpak.absolutePath) {
                     steps += it
                     true
                 },
@@ -89,13 +103,10 @@ class GtkSchemaManagerTest {
 
     @Test
     fun `generateSchema aborts on cancellation and caches nothing`() {
-        withTempDirs { configDir, baseDir ->
-            val girDir =
-                baseDir.resolve("runtime/org.gnome.Sdk/x86_64/50/active/files/share/gir-1.0").apply { mkdirs() }
-            copyFixture(girDir)
+        withTempDirs { configDir, work ->
+            val (manager, flatpak) = managerWithInstalledSdk(configDir, work)
 
-            val manager = GtkSchemaManager(configDir, listOf(baseDir))
-            assertNull(manager.generateSchema(hint, "/nonexistent/flatpak") { it is GtkSchemaStep.Parsing })
+            assertNull(manager.generateSchema(hint, flatpak.absolutePath) { it is GtkSchemaStep.Parsing })
             assertFalse(configDir.resolve("gtk-ui-org.gnome.Sdk-50.xsd").exists())
         }
     }
@@ -103,7 +114,7 @@ class GtkSchemaManagerTest {
     @Test
     fun `markRequested returns true once per key`() {
         withTempDirs { configDir, _ ->
-            val manager = GtkSchemaManager(configDir, emptyList())
+            val manager = GtkSchemaManager(configDir)
             assertTrue(manager.markRequested(hint))
             assertFalse(manager.markRequested(hint))
             assertTrue(manager.markRequested(SdkHint("org.gnome.Sdk", null)))
@@ -112,19 +123,27 @@ class GtkSchemaManagerTest {
         }
     }
 
-    private fun copyFixture(girDir: File) {
-        File("test-data/gir").listFiles()?.forEach { girDir.resolve(it.name).writeText(it.readText()) }
+    /** Installs a fake flatpak CLI whose supported SDK ships the hermetic GIR fixtures. */
+    private fun managerWithInstalledSdk(
+        configDir: File,
+        work: File,
+    ): Pair<GtkSchemaManager, File> {
+        val girRoot = FakeFlatpakCli.girRoot(work.resolve("sdk"))
+        FakeFlatpakCli.copyFixtures(girRoot)
+        val flatpak =
+            FakeFlatpakCli.install(work, runtimes = "org.gnome.Sdk\t50\tuser", location = work.resolve("sdk"))
+        return GtkSchemaManager(configDir) to flatpak
     }
 
     private fun withTempDirs(block: (File, File) -> Unit) {
         val configDir = createTempDirectory()
-        val baseDir = createTempDirectory(configDir)
+        val workDir = createTempDirectory()
 
         try {
-            block(configDir.toFile(), baseDir.toFile())
+            block(configDir.toFile(), workDir.toFile())
         } finally {
             configDir.delete(true)
-            baseDir.delete(true)
+            workDir.delete(true)
         }
     }
 }
