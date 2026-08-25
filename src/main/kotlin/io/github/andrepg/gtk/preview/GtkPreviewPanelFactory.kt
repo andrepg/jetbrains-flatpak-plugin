@@ -7,11 +7,12 @@ import com.intellij.ui.content.ContentFactory
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRefreshAction
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPremiumGatePanel
+import io.github.andrepg.shared.license.PremiumFeatureGate
 
 class GtkPreviewPanelFactory : ToolWindowFactory {
-    val enablePreview: Boolean = false // PremiumFeatureGate.isPremiumAvailable()
+    val enablePreview: Boolean = PremiumFeatureGate.isPremiumAvailable()
 
-    val contentFactory = ContentFactory.SERVICE.getInstance()
+    val contentFactory: ContentFactory = ContentFactory.getInstance()
 
     val previewActions =
         listOf(
