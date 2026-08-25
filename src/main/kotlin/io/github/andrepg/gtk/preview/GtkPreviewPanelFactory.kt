@@ -5,6 +5,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRefreshAction
+import io.github.andrepg.gtk.preview.actions.GtkPreviewRenderAction
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPremiumGatePanel
 import io.github.andrepg.shared.license.PremiumFeatureGate
@@ -12,22 +13,25 @@ import io.github.andrepg.shared.license.PremiumFeatureGate
 class GtkPreviewPanelFactory : ToolWindowFactory {
     val enablePreview: Boolean = PremiumFeatureGate.isPremiumAvailable()
 
-    val contentFactory: ContentFactory = ContentFactory.getInstance()
-
-    val previewActions =
-        listOf(
-            GtkPreviewRefreshAction(),
-        )
-
     override fun createToolWindowContent(
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        val previewPanel = if (enablePreview) GtkPreviewPanel().panel() else GtkPreviewPremiumGatePanel().panel()
-        val contentPanel = contentFactory.createContent(previewPanel, "", false)
+        val contentFactory = ContentFactory.getInstance()
 
-        toolWindow.contentManager.addContent(contentPanel)
+        if (enablePreview) {
+            val panel = GtkPreviewPanel()
+            val renderAction = GtkPreviewRenderAction(panel)
+            val refreshAction = GtkPreviewRefreshAction(panel)
 
-        if (enablePreview) toolWindow.setTitleActions(previewActions)
+            toolWindow.contentManager.addContent(
+                contentFactory.createContent(panel.panel(), "", false),
+            )
+            toolWindow.setTitleActions(listOf(renderAction, refreshAction))
+        } else {
+            toolWindow.contentManager.addContent(
+                contentFactory.createContent(GtkPreviewPremiumGatePanel().panel(), "", false),
+            )
+        }
     }
 }
