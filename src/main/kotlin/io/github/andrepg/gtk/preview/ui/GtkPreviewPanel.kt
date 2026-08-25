@@ -1,14 +1,43 @@
 package io.github.andrepg.gtk.preview.ui
 
-import com.intellij.ui.components.JBLabel
 import java.awt.BorderLayout
 import javax.swing.BorderFactory
 import javax.swing.JPanel
 
 class GtkPreviewPanel {
-    fun panel(): JPanel =
+    private var hasFailed: Boolean = false
+    private var isLoading: Boolean = false
+
+    private val root: JPanel =
         JPanel(BorderLayout()).apply {
             border = BorderFactory.createEmptyBorder()
-            add(JBLabel("Preview"), BorderLayout.CENTER)
         }
+
+    init {
+        refresh()
+    }
+
+    fun setFailed(failed: Boolean) {
+        hasFailed = failed
+    }
+
+    fun setLoading(loading: Boolean) {
+        isLoading = loading
+    }
+
+    fun refresh() {
+        root.removeAll()
+        root.add(
+            when {
+                isLoading -> GtkPreviewLoadingPanel().panel()
+                hasFailed -> GtkPreviewErrorPanel().panel()
+                else -> GtkPreviewContentPanel().panel()
+            },
+            BorderLayout.CENTER,
+        )
+        root.revalidate()
+        root.repaint()
+    }
+
+    fun panel(): JPanel = root
 }
