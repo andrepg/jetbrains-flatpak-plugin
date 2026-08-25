@@ -90,6 +90,12 @@
                 bundle="messages.Messages"
                 key="gtk.schema.generation.title"/>
 
+        <!--  GTK Preview panel -->
+        <toolWindow
+                id="GtkPreviewPanel"
+                factoryClass="io.github.andrepg.gtk.preview.GtkPreviewPanelFactory"
+                anchor="right"/>
+
     </extensions>
 
     <!-- Flatpak JSON Schema Provider -->
