@@ -1,4 +1,4 @@
-package io.github.andrepg.gtk.preview
+package io.github.andrepg.gtk.preview.actions
 
 import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
