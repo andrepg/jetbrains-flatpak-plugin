@@ -2,6 +2,8 @@ package io.github.andrepg.gtk.schema.locator
 
 import com.intellij.util.io.delete
 import io.github.andrepg.gtk.schema.FakeFlatpakCli
+import io.github.andrepg.shared.process.FlatpakRuntimeRow
+import io.github.andrepg.shared.process.parseFlatpakRuntimeList
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -18,34 +20,34 @@ class GirSdkLocatorTest {
         """.trimIndent()
 
     @Test
-    fun `parseRuntimeRows skips blanks and partial lines`() {
-        val rows = GirSdkLocator.parseRuntimeRows("\n${sampleOutput}\n\nbogus\t\n")
+    fun `parseFlatpakRuntimeList skips blanks and partial lines`() {
+        val rows = parseFlatpakRuntimeList("\n${sampleOutput}\n\nbogus\t\n")
         assertEquals(4, rows.size)
-        assertEquals(GirSdkLocator.RuntimeRow("org.gnome.Sdk", "50", "user"), rows[0])
+        assertEquals(FlatpakRuntimeRow("org.gnome.Sdk", "50", "user"), rows[0])
     }
 
     @Test
     fun `pickBranch prefers the hint`() {
-        val rows = GirSdkLocator.parseRuntimeRows(sampleOutput)
+        val rows = parseFlatpakRuntimeList(sampleOutput)
         assertEquals("50", GirSdkLocator.pickBranch(rows, "org.gnome.Sdk", "50"))
         assertEquals("49", GirSdkLocator.pickBranch(rows, "org.gnome.Sdk", "49"))
     }
 
     @Test
     fun `pickBranch falls back to the highest numeric branch`() {
-        val rows = GirSdkLocator.parseRuntimeRows(sampleOutput)
+        val rows = parseFlatpakRuntimeList(sampleOutput)
         assertEquals("50", GirSdkLocator.pickBranch(rows, "org.gnome.Sdk", null))
     }
 
     @Test
     fun `pickBranch breaks ties in favor of user installations`() {
-        val rows = GirSdkLocator.parseRuntimeRows(sampleOutput)
+        val rows = parseFlatpakRuntimeList(sampleOutput)
         assertEquals("50", GirSdkLocator.pickBranch(rows, "org.gnome.Sdk", "50"))
     }
 
     @Test
     fun `pickBranch returns null when the SDK is not installed`() {
-        val rows = GirSdkLocator.parseRuntimeRows(sampleOutput)
+        val rows = parseFlatpakRuntimeList(sampleOutput)
         assertNull(GirSdkLocator.pickBranch(rows, "org.example.Sdk", null))
     }
 
