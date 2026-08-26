@@ -1,7 +1,9 @@
 package io.github.andrepg.gtk.schema.locator
 
 import io.github.andrepg.shared.log.Log
+import io.github.andrepg.shared.process.FlatpakRuntimeRow
 import io.github.andrepg.shared.process.ProcessRunner
+import io.github.andrepg.shared.process.parseFlatpakRuntimeList
 import java.io.File
 
 /**
@@ -27,13 +29,6 @@ object GirSdkLocator {
         listOf(
             "org.gnome.Sdk",
         )
-
-    /** One row of `flatpak list --runtime --columns=application,branch,installation`. */
-    data class RuntimeRow(
-        val appId: String,
-        val branch: String,
-        val installation: String,
-    )
 
     /**
      * Resolves the gir-1.0 directory for [sdkAppId], or null when no supported
@@ -65,7 +60,7 @@ object GirSdkLocator {
             return null
         }
 
-        val branch = pickBranch(parseRuntimeRows(flatpakRuntimes), sdkAppId, branchHint)
+        val branch = pickBranch(parseFlatpakRuntimeList(flatpakRuntimes), sdkAppId, branchHint)
         if (branch == null) {
             log.debug("No installed runtime for $sdkAppId; no schema will be served")
             return null
@@ -77,29 +72,12 @@ object GirSdkLocator {
     }
 
     /**
-     * Parses tab-separated `flatpak list --runtime` output.
-     *
-     * @param flatpakRuntimes raw stdout of the flatpak command
-     * @return the parsed runtime rows, skipping blank/partial lines
-     */
-    internal fun parseRuntimeRows(flatpakRuntimes: String): List<RuntimeRow> =
-        flatpakRuntimes
-            .lineSequence()
-            .map { it.trim() }
-            .filter { it.isNotEmpty() }
-            .mapNotNull { line ->
-                val columns = line.split('\t')
-                if (columns.size < 2) return@mapNotNull null
-                RuntimeRow(columns[0], columns[1], columns.getOrNull(2).orEmpty())
-            }.toList()
-
-    /**
      * Selects the branch to use for [sdkAppId]: the [branchHint] when one of the
      * installed rows matches it, otherwise the highest numeric branch. Ties are
      * broken in favor of user installations. Returns null when no row matches.
      */
     internal fun pickBranch(
-        rows: List<RuntimeRow>,
+        rows: List<FlatpakRuntimeRow>,
         sdkAppId: String,
         branchHint: String?,
     ): String? {
@@ -127,7 +105,7 @@ object GirSdkLocator {
         return girDir.takeIf { File(it, "Gtk-4.0.gir").isFile }
     }
 
-    private fun installRank(row: RuntimeRow): Int = if (row.installation == "user") 0 else 1
+    private fun installRank(row: FlatpakRuntimeRow): Int = if (row.installation == "user") 0 else 1
 
     private fun numericBranch(branch: String): Int = branch.toIntOrNull() ?: -1
 

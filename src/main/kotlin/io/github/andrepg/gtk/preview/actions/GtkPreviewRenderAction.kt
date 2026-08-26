@@ -4,12 +4,28 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.fileEditor.FileEditorManager
 import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import io.github.andrepg.gtk.preview.GtkBuilderToolRunner
+import io.github.andrepg.gtk.preview.GtkPreviewNotifications
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
+import io.github.andrepg.shared.log.Log
+import java.nio.file.Files
+import java.nio.file.Paths
+import java.util.concurrent.atomic.AtomicLong
 
+/**
+ * Renders the currently active `.ui` file to a PNG and displays it
+ * in the GTK Preview panel.
+ *
+ * [triggerRender] is the single entry point for both user-triggered
+ * actions (toolbar button) and automatic re-renders (file save listener).
+ * Each invocation is generation-stamped so stale renders never overwrite
+ * a newer one.
+ */
 class GtkPreviewRenderAction(
     private val panel: GtkPreviewPanel,
 ) : AnAction(
@@ -17,8 +33,24 @@ class GtkPreviewRenderAction(
         "Render the current GTK preview",
         AllIcons.Actions.Execute,
     ) {
+    private val log = Log.getInstance(GtkPreviewRenderAction::class.java)
+
     override fun actionPerformed(e: AnActionEvent) {
-        val project: Project = e.project ?: return
+        val project = e.project ?: return
+        triggerRender(project)
+    }
+
+    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+
+    /**
+     * Compiles the renderer (if needed) and renders the active `.ui`
+     * file to a PNG displayed in [panel].
+     */
+    fun triggerRender(project: Project) {
+        if (project.isDisposed) return
+
+        val generation = renderGeneration.incrementAndGet()
+
         panel.setFailed(false)
         panel.setLoading(true)
         panel.refresh()
@@ -27,12 +59,14 @@ class GtkPreviewRenderAction(
             object : Task.Backgroundable(project, "Rendering GTK preview", true) {
                 override fun run(indicator: ProgressIndicator) {
                     indicator.isIndeterminate = true
-                    // TODO: actual render logic
+                    doRender(project, indicator, generation)
                 }
 
                 override fun onFinished() {
                     if (project.isDisposed) return
-                    panel.setLoading(false)
+                    applyIfCurrent(generation) {
+                        setLoading(false)
+                    }
                     panel.refresh()
                 }
             }
@@ -40,5 +74,66 @@ class GtkPreviewRenderAction(
         ProgressManager.getInstance().run(task)
     }
 
-    override fun getActionUpdateThread() = ActionUpdateThread.BGT
+    private fun doRender(
+        project: Project,
+        indicator: ProgressIndicator,
+        generation: Long,
+    ) {
+        try {
+            val uiFile = findActiveUiFile(project)
+            if (uiFile == null) {
+                applyIfCurrent(generation) {
+                    setFailed(true)
+                    errorMessage = "No .ui file open"
+                }
+                return
+            }
+
+            val toolRunner = GtkBuilderToolRunner()
+            if (!toolRunner.isCompiled()) {
+                GtkPreviewNotifications.compilationStarted(project)
+            }
+            indicator.text = "Compiling renderer\u2026"
+            val binary = toolRunner.compile()
+
+            indicator.text = "Rendering ${uiFile.fileName}\u2026"
+            val outputPng = Files.createTempFile(configDir(), "preview-", ".png")
+            toolRunner.render(binary, uiFile, outputPng)
+
+            applyIfCurrent(generation) {
+                renderedImage = outputPng
+            }
+        } catch (e: Exception) {
+            log.warn("Preview render failed", e)
+            applyIfCurrent(generation) {
+                setFailed(true)
+                errorMessage = e.message ?: "Render failed"
+            }
+            GtkPreviewNotifications.compilationFailed(project, e.message ?: "Unknown error")
+        }
+    }
+
+    private fun applyIfCurrent(
+        generation: Long,
+        block: GtkPreviewPanel.() -> Unit,
+    ) {
+        if (generation == renderGeneration.get()) {
+            panel.block()
+        }
+    }
+
+    private fun findActiveUiFile(project: Project): java.nio.file.Path? {
+        val file = FileEditorManager.getInstance(project).selectedEditor?.file ?: return null
+        val ext = file.extension?.lowercase()
+        if (ext != "ui" && ext != "glade") return null
+        return Paths.get(file.path)
+    }
+
+    private fun configDir(): java.nio.file.Path =
+        io.github.andrepg.gtk.preview.GtkPreviewConfig.configDir
+            .toPath()
+
+    private companion object {
+        val renderGeneration = AtomicLong(0)
+    }
 }
