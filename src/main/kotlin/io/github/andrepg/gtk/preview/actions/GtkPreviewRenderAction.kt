@@ -90,7 +90,7 @@ class GtkPreviewRenderAction(
             }
 
             val toolRunner = GtkBuilderToolRunner()
-            if (!toolRunner.isCompiled()) {
+            if (toolRunner.needsCompilation()) {
                 GtkPreviewNotifications.compilationStarted(project)
             }
             indicator.text = "Compiling renderer\u2026"

@@ -30,24 +30,39 @@ class GtkBuilderToolRunner(
     private val log = Log.getInstance(GtkBuilderToolRunner::class.java)
 
     /**
-     * Returns `true` when the compiled renderer binary already exists
-     * in the config directory and is executable.
+     * Returns `true` when a binary matching the *current* C source is already
+     * cached: the binary exists, is executable, and its recorded source hash
+     * equals the hash of the classpath resource.  If the shipped source
+     * changes (e.g. a plugin update), the stale binary is recompiled.
      */
-    fun isCompiled(): Boolean = configDir.resolve(BINARY_NAME).canExecute()
+    private fun isCurrentBinary(binary: File): Boolean {
+        if (!binary.canExecute()) return false
+        val hashFile = configDir.resolve(HASH_NAME)
+        if (!hashFile.exists()) return false
+        val recorded = runCatching { hashFile.readText().trim() }.getOrNull() ?: return false
+        return recorded == sourceHash()
+    }
+
+    /**
+     * Returns `true` when the renderer must be (re)compiled: the binary is
+     * missing, not executable, or was built from a different source version.
+     */
+    fun needsCompilation(): Boolean = !isCurrentBinary(configDir.resolve(BINARY_NAME))
 
     /**
      * Ensures the renderer binary is compiled and returns its path.
      *
-     * If the binary already exists in the cache directory it is returned
-     * immediately.  Otherwise the C source is extracted from the classpath
-     * resources and compiled inside the GNOME SDK.
+     * If the binary already exists in the cache directory and was built from
+     * the current source it is returned immediately.  Otherwise the C source
+     * is extracted from the classpath resources and compiled inside the GNOME
+     * SDK.
      *
      * @return path to the compiled binary
      * @throws IllegalStateException if the SDK cannot be found or compilation fails
      */
     fun compile(): File {
         val binary = configDir.resolve(BINARY_NAME)
-        if (binary.canExecute()) return binary
+        if (isCurrentBinary(binary)) return binary
 
         log.info("Compiling GTK preview renderer")
         extractSource()
@@ -64,6 +79,7 @@ class GtkBuilderToolRunner(
         if (!binary.canExecute()) {
             error("Compilation succeeded but binary is not executable: ${binary.absolutePath}")
         }
+        configDir.resolve(HASH_NAME).writeText(sourceHash())
         log.info("GTK preview renderer compiled: ${binary.absolutePath}")
         return binary
     }
@@ -143,6 +159,23 @@ class GtkBuilderToolRunner(
                 ?: error("Renderer source not found on classpath: $SOURCE_RESOURCE")
         stream.use { input ->
             target.outputStream().use { output -> input.copyTo(output) }
+        }
+    }
+
+    /** SHA-256 of the shipped C source, used to detect stale cache binaries. */
+    private fun sourceHash(): String {
+        val stream =
+            javaClass.getResourceAsStream(SOURCE_RESOURCE)
+                ?: error("Renderer source not found on classpath: $SOURCE_RESOURCE")
+        return stream.use { input ->
+            val digest = java.security.MessageDigest.getInstance("SHA-256")
+            val buffer = ByteArray(8 * 1024)
+            while (true) {
+                val read = input.read(buffer)
+                if (read < 0) break
+                if (read > 0) digest.update(buffer, 0, read)
+            }
+            digest.digest().joinToString("") { "%02x".format(it) }
         }
     }
 
@@ -230,6 +263,7 @@ class GtkBuilderToolRunner(
     companion object {
         private const val SOURCE_RESOURCE = "/gtk-preview-render.c"
         private const val BINARY_NAME = "gtk-preview-render"
+        private const val HASH_NAME = "gtk-preview-render.hash"
         private const val TIMEOUT_MS = 30_000L
         private const val PKG_CONFIG_PATH =
             "/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
