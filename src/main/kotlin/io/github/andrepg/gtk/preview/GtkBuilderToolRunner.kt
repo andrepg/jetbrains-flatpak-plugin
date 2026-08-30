@@ -71,8 +71,10 @@ class GtkBuilderToolRunner(
     /**
      * Renders a `.ui` file to a PNG image.
      *
-     * The compiled renderer runs inside the same SDK to guarantee
-     * library compatibility.
+     * A headless Mutter compositor is started on the host with a virtual
+     * monitor of exactly [width] × [height].  The compiled renderer runs
+     * inside the GNOME SDK Flatpak and connects to the private Wayland
+     * display — no window appears on the user's desktop.
      *
      * @param binary  path to the compiled renderer (from [compile])
      * @param uiFile  the `.ui` file to render
@@ -80,7 +82,7 @@ class GtkBuilderToolRunner(
      * @param width   render width in pixels (default 800)
      * @param height  render height in pixels (default 600)
      * @return [outputPng] on success
-     * @throws IllegalStateException if the renderer process fails
+     * @throws IllegalStateException if mutter or the renderer fails
      */
     fun render(
         binary: File,
@@ -93,34 +95,45 @@ class GtkBuilderToolRunner(
             detectSdkBranch()
                 ?: error("No org.gnome.Sdk installation found")
 
-        log.info("Rendering ${uiFile.fileName} → ${outputPng.fileName}")
+        val compositor = MutterHeadlessCompositor()
+        try {
+            compositor.start(width, height)
 
-        val cmd =
-            flatpakRun(
-                env = mapOf("GDK_BACKEND" to "headless"),
-                command = binary.absolutePath,
-                branch = branch,
-                args =
-                    arrayOf(
-                        uiFile.toAbsolutePath().toString(),
-                        outputPng.toAbsolutePath().toString(),
-                        width.toString(),
-                        height.toString(),
-                    ),
-            )
+            log.info("Rendering ${uiFile.fileName} → ${outputPng.fileName}")
 
-        val result = runner.run(cmd, timeoutMs = TIMEOUT_MS)
-        if (result == null) {
-            error("Renderer process timed out or could not be started")
-        }
-        if (!result.succeeded) {
-            error("Renderer failed (exit ${result.exitCode}): ${result.stderr.ifBlank { result.stdout }}")
-        }
-        if (!outputPng.toFile().exists()) {
-            error("Renderer exited successfully but output file was not created: $outputPng")
-        }
+            val cmd =
+                flatpakRun(
+                    env =
+                        mapOf(
+                            "WAYLAND_DISPLAY" to compositor.display,
+                        ),
+                    extraFilesystems = listOf(compositor.runtimeDir),
+                    command = binary.absolutePath,
+                    branch = branch,
+                    args =
+                        arrayOf(
+                            uiFile.toAbsolutePath().toString(),
+                            outputPng.toAbsolutePath().toString(),
+                            width.toString(),
+                            height.toString(),
+                        ),
+                )
 
-        return outputPng
+            val result = runner.run(cmd, timeoutMs = TIMEOUT_MS)
+            if (result == null) {
+                error("Renderer process timed out or could not be started")
+            }
+            if (!result.succeeded) {
+                error("Renderer failed (exit ${result.exitCode}): ${result.stderr.ifBlank { result.stdout }}")
+            }
+            if (!outputPng.toFile().exists()) {
+                error("Renderer exited successfully but output file was not created: $outputPng")
+            }
+
+            return outputPng
+        } finally {
+            compositor.stop()
+        }
     }
 
     private fun extractSource() {
@@ -198,6 +211,7 @@ class GtkBuilderToolRunner(
      */
     private fun flatpakRun(
         env: Map<String, String> = emptyMap(),
+        extraFilesystems: List<String> = emptyList(),
         command: String,
         branch: String,
         vararg args: String,
@@ -206,6 +220,7 @@ class GtkBuilderToolRunner(
             add(flatpakBinary)
             add("run")
             add("--filesystem=home")
+            extraFilesystems.forEach { fs -> add("--filesystem=$fs") }
             env.forEach { (k, v) -> add("--env=$k=$v") }
             add("--command=$command")
             add("org.gnome.Sdk//$branch")
