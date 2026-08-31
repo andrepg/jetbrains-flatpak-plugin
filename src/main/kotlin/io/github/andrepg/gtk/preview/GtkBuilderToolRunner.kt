@@ -11,12 +11,18 @@ import java.nio.file.Path
 /**
  * Compiles and invokes the headless GTK4 `.ui` → PNG renderer.
  *
- * The renderer is a small C program (`gtk-preview-render.c`) shipped as a
- * classpath resource.  On first use it is extracted and compiled inside the
- * GNOME Flatpak SDK via `flatpak run`, which provides the GTK4/libadwaita
- * headers and libraries without requiring `-devel` packages on the host.
- * The resulting binary is cached in [configDir] so subsequent invocations
- * skip compilation entirely.
+ * The renderer is a small C program split across three source modules:
+ *   - `gtk-preview-render.c` — CLI entry point
+ *   - `preview-render.c` — GTK4 load/present/snapshot pipeline
+ *   - `ui-xml.c` — pure-GLib XML preprocessing (template rewrite, drop rules)
+ *
+ * All sources are shipped as classpath resources.  On first use they are
+ * extracted and compiled together inside the GNOME Flatpak SDK via
+ * `flatpak run`, which provides the GTK4/libadwaita headers and libraries
+ * without requiring `-devel` packages on the host.  The resulting binary
+ * is cached in [configDir] so subsequent invocations skip compilation
+ * entirely.  A SHA-256 over all source files detects stale caches after
+ * a plugin update.
  *
  * @property runner process runner used to execute flatpak and shell commands
  * @property flatpakBinary path to the `flatpak` CLI binary (from plugin settings)
@@ -65,7 +71,7 @@ class GtkBuilderToolRunner(
         if (isCurrentBinary(binary)) return binary
 
         log.info("Compiling GTK preview renderer")
-        extractSource()
+        extractSources()
 
         val branch =
             detectSdkBranch()
@@ -152,44 +158,51 @@ class GtkBuilderToolRunner(
         }
     }
 
-    private fun extractSource() {
-        val target = configDir.resolve("gtk-preview-render.c")
-        val stream =
-            javaClass.getResourceAsStream(SOURCE_RESOURCE)
-                ?: error("Renderer source not found on classpath: $SOURCE_RESOURCE")
-        stream.use { input ->
-            target.outputStream().use { output -> input.copyTo(output) }
+    private fun extractSources() {
+        for (resource in SOURCE_RESOURCES) {
+            val fileName = resource.removePrefix("/")
+            val target = configDir.resolve(fileName)
+            val stream =
+                javaClass.getResourceAsStream(resource)
+                    ?: error("Renderer source not found on classpath: $resource")
+            stream.use { input ->
+                target.outputStream().use { output -> input.copyTo(output) }
+            }
         }
     }
 
-    /** SHA-256 of the shipped C source, used to detect stale cache binaries. */
+    /** SHA-256 of all shipped source files, used to detect stale cache binaries. */
     private fun sourceHash(): String {
-        val stream =
-            javaClass.getResourceAsStream(SOURCE_RESOURCE)
-                ?: error("Renderer source not found on classpath: $SOURCE_RESOURCE")
-        return stream.use { input ->
-            val digest = java.security.MessageDigest.getInstance("SHA-256")
-            val buffer = ByteArray(8 * 1024)
-            while (true) {
-                val read = input.read(buffer)
-                if (read < 0) break
-                if (read > 0) digest.update(buffer, 0, read)
+        val digest = java.security.MessageDigest.getInstance("SHA-256")
+        val buffer = ByteArray(8 * 1024)
+        for (resource in SOURCE_RESOURCES) {
+            val stream =
+                javaClass.getResourceAsStream(resource)
+                    ?: error("Renderer source not found on classpath: $resource")
+            stream.use { input ->
+                while (true) {
+                    val read = input.read(buffer)
+                    if (read < 0) break
+                    if (read > 0) digest.update(buffer, 0, read)
+                }
             }
-            digest.digest().joinToString("") { "%02x".format(it) }
         }
+        return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
     private fun compileInSdk(
         binary: File,
         branch: String,
     ) {
-        val source = configDir.resolve("gtk-preview-render.c")
+        val sourceFiles = SOURCE_RESOURCES
+            .filter { it.endsWith(".c") }
+            .joinToString(" ") { configDir.resolve(it.removePrefix("/")).absolutePath }
         val compileScript =
             buildString {
                 append("gcc -o ")
                 append(binary.absolutePath)
                 append(" ")
-                append(source.absolutePath)
+                append(sourceFiles)
                 append(" \$(pkg-config --cflags gtk4 libadwaita-1)")
                 append(" ")
                 append("\$(pkg-config --libs gtk4 libadwaita-1)")
@@ -261,7 +274,14 @@ class GtkBuilderToolRunner(
         }
 
     companion object {
-        private const val SOURCE_RESOURCE = "/gtk-preview-render.c"
+        /** All shipped source files, in a fixed order (used for hashing). */
+        private val SOURCE_RESOURCES = listOf(
+            "/ui-xml.h",
+            "/ui-xml.c",
+            "/preview-render.h",
+            "/preview-render.c",
+            "/gtk-preview-render.c",
+        )
         private const val BINARY_NAME = "gtk-preview-render"
         private const val HASH_NAME = "gtk-preview-render.hash"
         private const val TIMEOUT_MS = 30_000L
