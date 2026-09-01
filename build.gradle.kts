@@ -6,7 +6,7 @@ plugins {
     id("org.jetbrains.intellij.platform")
     // Source-context upload for Sentry crash reporting.
     // Read more: https://docs.sentry.io/platforms/java/source-context/
-    id("io.sentry.jvm.gradle") version "6.19.0"
+    id("io.sentry.jvm.gradle") version "6.20.0"
     // Kotlin code style checking
     id("org.jlleitschuh.gradle.ktlint") version "14.2.0"
 }
