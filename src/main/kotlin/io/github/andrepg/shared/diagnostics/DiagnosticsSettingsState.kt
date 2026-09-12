@@ -13,6 +13,9 @@ class DiagnosticsSettingsState : BaseState() {
     /** Opt-in anonymous error reporting via Sentry (off by default). */
     var sentryEnabled: Boolean by property(false)
 
+    /** Whether the opt-in invitation was dismissed forever ("Dismiss forever"). */
+    var sentryInvitationForgotten: Boolean by property(false)
+
     /** Verbose `io.github.andrepg.*` logging into the IDE log (off by default). */
     var debugLoggingEnabled: Boolean by property(false)
 }

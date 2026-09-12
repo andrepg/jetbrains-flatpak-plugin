@@ -16,6 +16,10 @@ object DiagnosticsSettings {
     val sentryEnabled: Boolean
         get() = state()?.sentryEnabled ?: false
 
+    /** Whether the opt-in invitation was dismissed forever. */
+    val sentryInvitationForgotten: Boolean
+        get() = state()?.sentryInvitationForgotten ?: false
+
     /** Verbose plugin logging into the IDE log. */
     val debugLoggingEnabled: Boolean
         get() = state()?.debugLoggingEnabled ?: false

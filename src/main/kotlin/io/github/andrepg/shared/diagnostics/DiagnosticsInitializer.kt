@@ -30,6 +30,12 @@ class DiagnosticsInitializer : AppLifecycleListener {
     private val enableSentry = DiagnosticsSettings.sentryEnabled
 
     /**
+     * Holds if user opted out from Sentry definitely by disabling
+     * and forgetting the baloon notification shwon at startup
+     */
+    private val userDisabledNotification = DiagnosticsSettings.sentryInvitationForgotten
+
+    /**
      * Defines if your Debug logging is enabled based on current
      * build flags - this should almost never be true in production
      */
@@ -39,17 +45,17 @@ class DiagnosticsInitializer : AppLifecycleListener {
         applyRuntimeConfiguration()
     }
 
-    /** Applies the current debug-logging and Sentry settings. */
+    /**
+     * Check current User's Sentry reporting preference and if notification
+     * baloon was already dismissed and forgotten. If opt-out was not
+     * forgotten yet, we will fire a notification asking user to opt-in.
+     */
     fun applyRuntimeConfiguration() {
-        LogConfiguration.setDebugEnabled(
-            enableDebug || LogConfiguration.isDebugRequested(),
-        )
+        LogConfiguration.setDebugEnabled(enableDebug || LogConfiguration.isDebugRequested())
 
         if (enableSentry) {
-            SentryGuard.run("Sentry initialization") {
-                SentryInitializer.reconfigure()
-            }
-        } else {
+            SentryGuard.run("Sentry initialization") { SentryInitializer.reconfigure() }
+        } else if (!userDisabledNotification) {
             SentryOptInNotification().notify(null)
         }
 
