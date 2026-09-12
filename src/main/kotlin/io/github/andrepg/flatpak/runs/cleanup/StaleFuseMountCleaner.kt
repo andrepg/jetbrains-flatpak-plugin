@@ -2,8 +2,8 @@ package io.github.andrepg.flatpak.runs.cleanup
 
 import io.github.andrepg.flatpak.runs.steps.PreStepType
 import io.github.andrepg.shared.log.Log
+import io.github.andrepg.shared.process.DefaultProcessRunner
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 /**
  * Removes stale FUSE mounts left inside the project's flatpak-builder state
@@ -166,21 +166,18 @@ class StaleFuseMountCleaner(
                 .replace("\\012", "\n")
                 .replace("\\134", "\\")
 
-        private fun runUnmountCommand(command: List<String>): Boolean =
-            try {
-                val process =
-                    ProcessBuilder(command)
-                        .redirectOutput(ProcessBuilder.Redirect.DISCARD)
-                        .redirectError(ProcessBuilder.Redirect.DISCARD)
-                        .start()
-                val finished = process.waitFor(UNMOUNT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
-                if (!finished) process.destroyForcibly()
-                finished && process.exitValue() == 0
-            } catch (e: Exception) {
+        private fun runUnmountCommand(command: List<String>): Boolean {
+            val result =
+                DefaultProcessRunner.run(
+                    command,
+                    timeoutMs = UNMOUNT_TIMEOUT_SECONDS * 1000L,
+                )
+            if (result == null) {
                 Log.getInstance(StaleFuseMountCleaner::class.java)
-                    .debug("Unmount command failed: ${command.joinToString(" ")}", e)
-                false
+                    .debug("Unmount command failed: ${command.joinToString(" ")}")
             }
+            return result?.exitCode == 0
+        }
 
         private const val UNMOUNT_TIMEOUT_SECONDS = 10L
     }

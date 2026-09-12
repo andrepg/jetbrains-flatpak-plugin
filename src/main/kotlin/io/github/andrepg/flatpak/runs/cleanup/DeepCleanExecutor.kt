@@ -38,11 +38,7 @@ class DeepCleanExecutor {
     fun deepCleanTargets(
         project: Project,
         settings: FlatpakRunSettings,
-    ): List<File> {
-        val buildDir = File(settings.buildDir)
-        val resolvedBuildDir = if (buildDir.isAbsolute) buildDir else File(project.basePath, settings.buildDir)
-        return listOf(resolvedBuildDir, flatpakBuilderCache())
-    }
+    ): List<File> = listOf(settings.buildDirFile(project.basePath), flatpakBuilderCache())
 
     private fun flatpakBuilderCache(): File {
         val home = System.getProperty("user.home").orEmpty()

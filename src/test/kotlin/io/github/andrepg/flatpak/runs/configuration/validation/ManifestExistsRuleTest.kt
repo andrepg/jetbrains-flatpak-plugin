@@ -36,7 +36,11 @@ class ManifestExistsRuleTest {
 
     @Test
     fun `directory as manifest is reported`() {
-        val dir = File.createTempFile("manifest-rule", ".dir").apply { delete(); mkdirs() }
+        val dir =
+            File.createTempFile("manifest-rule", ".dir").apply {
+                delete()
+                mkdirs()
+            }
         try {
             val errors = rule.check(config(dir.path), null)
             assertTrue(errors.single().contains("is a directory, not a file"))

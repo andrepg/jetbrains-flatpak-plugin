@@ -24,12 +24,4 @@ object FlatpakSettings {
     /** The configured flatpak-builder invocation (binary or flatpak run id). */
     val builderBinary: String
         get() = state()?.flatpakBuilderBinaryPath ?: DefaultFlatpakPaths.BUILDER_BINARY
-
-    /** Opt-in anonymous error reporting via Sentry. */
-    val sentryEnabled: Boolean
-        get() = state()?.sentryEnabled ?: false
-
-    /** Verbose plugin logging into the IDE log. */
-    val debugLoggingEnabled: Boolean
-        get() = state()?.debugLoggingEnabled ?: false
 }

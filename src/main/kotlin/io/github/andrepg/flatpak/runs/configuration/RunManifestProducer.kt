@@ -3,14 +3,12 @@ package io.github.andrepg.flatpak.runs.configuration
 import com.intellij.execution.actions.ConfigurationContext
 import com.intellij.execution.actions.LazyRunConfigurationProducer
 import com.intellij.execution.configurations.ConfigurationFactory
-import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.project.DumbAware
 import com.intellij.openapi.util.Ref
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.psi.PsiElement
 import io.github.andrepg.flatpak.detection.FlatpakProjectDetector
-import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.shared.log.Log
 
 /**
@@ -27,10 +25,7 @@ class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), 
         val file = findManifestFile(context, sourceElement) ?: return false
         val appId = FlatpakProjectDetector.isFlatpakManifest(file) ?: return false
 
-        configuration.command = UserVisibleCommand.BUILD
-        configuration.manifestPath = file.path
-        configuration.buildDir = FlatpakRunSettingsAttributes().buildDir ?: "_build"
-        configuration.name = FlatpakRunGenerator.formatRunName(UserVisibleCommand.BUILD, appId)
+        FlatpakRunGenerator.configureForManifest(configuration, file, appId)
 
         log.debug("Produced '[build] $appId' configuration for ${file.path}")
         return true
@@ -53,9 +48,5 @@ class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), 
         return sourceElement?.get()?.containingFile?.virtualFile
     }
 
-    override fun getConfigurationFactory(): ConfigurationFactory {
-        return ConfigurationTypeUtil.findConfigurationType(FlatpakRunSettingsType::class.java)
-            .configurationFactories
-            .first()
-    }
+    override fun getConfigurationFactory(): ConfigurationFactory = FlatpakRunGenerator.factory()
 }

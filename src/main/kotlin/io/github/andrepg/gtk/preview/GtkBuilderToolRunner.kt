@@ -1,6 +1,8 @@
 package io.github.andrepg.gtk.preview
 
+import io.github.andrepg.flatpak.runs.commands.FlatpakSandboxRunner
 import io.github.andrepg.flatpak.settings.FlatpakSettings
+import io.github.andrepg.gtk.schema.locator.GirSdkLocator
 import io.github.andrepg.shared.log.Log
 import io.github.andrepg.shared.process.CommandRunner
 import io.github.andrepg.shared.process.DefaultProcessRunner
@@ -226,8 +228,9 @@ class GtkBuilderToolRunner(
     }
 
     /**
-     * Detects the installed `org.gnome.Sdk` branch by querying the flatpak CLI.
-     * Returns the highest numeric branch, or null when no SDK is found.
+     * Detects the installed [GirSdkLocator.SDK_APP_ID] branch by querying the
+     * flatpak CLI, reusing [GirSdkLocator.pickBranch] so the schema locator
+     * and the preview tool select the same branch.
      */
     private fun detectSdkBranch(): String? {
         val cached = detectedBranch
@@ -235,16 +238,16 @@ class GtkBuilderToolRunner(
 
         val result =
             runner.run(
-                listOf(flatpakBinary, "list", "--runtime", "--columns=application,branch"),
+                listOf(flatpakBinary, "list", "--runtime", "--columns=application,branch,installation"),
                 timeoutMs = 5_000,
             ) ?: return null
 
         val branch =
-            parseFlatpakRuntimeList(result.stdout)
-                .filter { it.appId == "org.gnome.Sdk" }
-                .mapNotNull { it.branch.toIntOrNull() }
-                .maxOrNull()
-                ?.toString()
+            GirSdkLocator.pickBranch(
+                parseFlatpakRuntimeList(result.stdout),
+                GirSdkLocator.SDK_APP_ID,
+                null,
+            )
 
         detectedBranch = branch
         return branch
@@ -253,7 +256,8 @@ class GtkBuilderToolRunner(
     private var detectedBranch: String? = null
 
     /**
-     * Builds a `flatpak run` command targeting the GNOME SDK.
+     * Builds a `flatpak run` command targeting the GNOME SDK via the shared
+     * [FlatpakSandboxRunner] so every sandboxed invocation stays consistent.
      */
     private fun flatpakRun(
         env: Map<String, String> = emptyMap(),
@@ -262,16 +266,18 @@ class GtkBuilderToolRunner(
         branch: String,
         vararg args: String,
     ): List<String> =
-        buildList {
-            add(flatpakBinary)
-            add("run")
-            add("--filesystem=home")
-            extraFilesystems.forEach { fs -> add("--filesystem=$fs") }
-            env.forEach { (k, v) -> add("--env=$k=$v") }
-            add("--command=$command")
-            add("org.gnome.Sdk//$branch")
-            addAll(args)
-        }
+        FlatpakSandboxRunner.run(
+            flatpakBinary = flatpakBinary,
+            appRef = "${GirSdkLocator.SDK_APP_ID}//$branch",
+            flatpakOptions =
+                buildList {
+                    add("--filesystem=home")
+                    extraFilesystems.forEach { fs -> add("--filesystem=$fs") }
+                    env.forEach { (k, v) -> add("--env=$k=$v") }
+                    add("--command=$command")
+                },
+            refArguments = args.toList(),
+        )
 
     companion object {
         /** All shipped source files, in a fixed order (used for hashing). */

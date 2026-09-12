@@ -1,8 +1,7 @@
 package io.github.andrepg.shared.sentry
 
 import com.intellij.openapi.application.ApplicationInfo
-import com.intellij.openapi.components.service
-import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
+import io.github.andrepg.shared.diagnostics.DiagnosticsSettings
 import io.github.andrepg.shared.license.PremiumFeatureGate
 import io.github.andrepg.shared.log.Log
 import io.github.andrepg.shared.log.LogConfiguration
@@ -130,7 +129,7 @@ object SentryInitializer {
 
     private fun isConsented(): Boolean =
         System.getProperty(ENABLED_PROPERTY)?.toBoolean() == true ||
-            service<FlatpakGlobalSettingsState>().sentryEnabled
+            DiagnosticsSettings.sentryEnabled
 
     private fun resolveDsn(): String? =
         System.getProperty(DSN_PROPERTY)?.takeIf { it.isNotBlank() }
@@ -138,12 +137,7 @@ object SentryInitializer {
             ?: DSN.takeIf { it.isNotBlank() }
 
     private val environment: String
-        get() =
-            if (System.getProperty(PremiumFeatureGate.DEV_OVERRIDE_PROPERTY)?.toBoolean() == true) {
-                "development"
-            } else {
-                "production"
-            }
+        get() = if (PremiumFeatureGate.isDevelopmentBypass()) "development" else "production"
 
     private val release: String
         get() = RELEASE_PREFIX + pluginVersion

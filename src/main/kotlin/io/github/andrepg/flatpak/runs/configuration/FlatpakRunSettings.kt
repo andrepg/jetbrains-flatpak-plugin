@@ -10,10 +10,12 @@ import com.intellij.execution.configurations.RuntimeConfigurationError
 import com.intellij.execution.runners.ExecutionEnvironment
 import com.intellij.openapi.options.SettingsEditor
 import com.intellij.openapi.project.Project
+import io.github.andrepg.flatpak.runs.FlatpakDefaults
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.steps.FlatpakRunner
 import io.github.andrepg.flatpak.runs.ui.FlatpakRunSettingsPanel
 import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
+import java.io.File
 
 class FlatpakRunSettings(
     project: Project,
@@ -34,28 +36,42 @@ class FlatpakRunSettings(
 
     /** Path to the Flatpak manifest file used by the command. */
     var manifestPath: String
-        get() = flatpakState.flatpakManifest ?: "flatpak.json"
+        get() = flatpakState.flatpakManifest ?: FlatpakDefaults.MANIFEST_FILE.value
         set(value) {
             flatpakState.flatpakManifest = value
         }
 
     /** Build directory used by flatpak-builder. */
     var buildDir: String
-        get() = flatpakState.buildDir ?: "_build"
+        get() = flatpakState.buildDir ?: FlatpakDefaults.BUILD_DIR.value
         set(value) {
             flatpakState.buildDir = value
         }
 
-    /** Extra arguments appended to the generated command line. */
+    /**
+     * Extra arguments appended to the generated command line, one per line.
+     * Stored newline-delimited to match the editor's one-argument-per-line
+     * contract (arguments containing spaces survive the round-trip).
+     */
     var customArguments: List<String>
         get() =
             flatpakState.customArguments
                 .orEmpty()
-                .split(" ")
+                .split("\n")
                 .filter { it.isNotBlank() }
         set(value) {
-            flatpakState.customArguments = value.joinToString(" ")
+            flatpakState.customArguments = value.joinToString("\n")
         }
+
+    /**
+     * Build dir resolved against the project base path; absolute paths are
+     * kept as-is. Shared by the deep-cleaner and the run state, which both
+     * need the physical directory behind [buildDir].
+     */
+    fun buildDirFile(basePath: String?): File {
+        val build = File(buildDir)
+        return if (build.isAbsolute) build else File(basePath, buildDir)
+    }
 
     /** Whether to clean the build directory before build. */
     var enableForceClean: Boolean

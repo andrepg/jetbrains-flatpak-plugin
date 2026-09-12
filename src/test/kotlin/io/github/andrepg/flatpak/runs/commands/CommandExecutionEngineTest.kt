@@ -1,7 +1,6 @@
 package io.github.andrepg.flatpak.runs.commands
 
 import com.intellij.openapi.project.Project
-import io.github.andrepg.flatpak.runs.InternalCommand
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import org.junit.Assert.assertEquals
@@ -16,7 +15,10 @@ class CommandExecutionEngineTest {
 
     private fun config(configure: FlatpakRunSettings.() -> Unit = {}): FlatpakRunSettings {
         val configuration = FlatpakRunSettings(mock(Project::class.java), null, null)
-        configuration.loadState(io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettingsAttributes())
+        configuration.loadState(
+            io.github.andrepg.flatpak.runs.configuration
+                .FlatpakRunSettingsAttributes(),
+        )
         configure(configuration)
         return configuration
     }
@@ -39,7 +41,7 @@ class CommandExecutionEngineTest {
     fun `build run command uses manifest command and no force-clean`() {
         val line =
             engine.buildCommand(
-                InternalCommand.RUN,
+                UserVisibleCommand.RUN,
                 config {
                     command = UserVisibleCommand.RUN
                     manifestPath = sampleManifestPath
@@ -48,9 +50,15 @@ class CommandExecutionEngineTest {
             )
         assertEquals(
             listOf(
-                "/usr/bin/flatpak", "run", "org.flatpak.Builder", "--run",
-                "--socket=session-bus", "--socket=system-bus",
-                "/tmp/build", sampleManifestPath, "my-app.sh",
+                "/usr/bin/flatpak",
+                "run",
+                "org.flatpak.Builder",
+                "--run",
+                "--socket=session-bus",
+                "--socket=system-bus",
+                "/tmp/build",
+                sampleManifestPath,
+                "my-app.sh",
             ),
             line,
         )
@@ -60,7 +68,7 @@ class CommandExecutionEngineTest {
     fun `build run command injects portal sandbox options before positional args`() {
         val line =
             engine.buildCommand(
-                InternalCommand.RUN,
+                UserVisibleCommand.RUN,
                 config {
                     command = UserVisibleCommand.RUN
                     manifestPath = sampleManifestPath
@@ -97,7 +105,7 @@ class CommandExecutionEngineTest {
         val engineWithoutBus = CommandExecutionEngine(mock(Project::class.java)) { false }
         val line =
             engineWithoutBus.buildCommand(
-                InternalCommand.RUN,
+                UserVisibleCommand.RUN,
                 config {
                     command = UserVisibleCommand.RUN
                     manifestPath = sampleManifestPath
@@ -114,7 +122,7 @@ class CommandExecutionEngineTest {
         val noCommandManifest = manifest("""{"id":"org.example.MyApp","sdk":"org.gnome.Sdk//50"}""")
         val line =
             engine.buildCommand(
-                InternalCommand.RUN,
+                UserVisibleCommand.RUN,
                 config {
                     command = UserVisibleCommand.RUN
                     manifestPath = noCommandManifest
@@ -134,7 +142,7 @@ class CommandExecutionEngineTest {
             }
         assertTrue(
             "expected --force-clean for BUILD",
-            engine.buildCommand(InternalCommand.BUILD, buildConfig).contains("--force-clean"),
+            engine.buildCommand(UserVisibleCommand.BUILD, buildConfig).contains("--force-clean"),
         )
 
         val exportConfig =
@@ -146,7 +154,7 @@ class CommandExecutionEngineTest {
             }
         assertFalse(
             "expected no --force-clean for EXPORT",
-            engine.buildCommand(InternalCommand.EXPORT, exportConfig).contains("--force-clean"),
+            engine.buildCommand(UserVisibleCommand.EXPORT, exportConfig).contains("--force-clean"),
         )
     }
 
@@ -161,19 +169,19 @@ class CommandExecutionEngineTest {
 
         assertEquals(
             listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "/tmp/build", sampleManifestPath),
-            engine.buildCommand(InternalCommand.BUILD, config),
+            engine.buildCommand(UserVisibleCommand.BUILD, config),
         )
         assertEquals(
             listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "--repo=repo-build", "/tmp/build", sampleManifestPath),
-            engine.buildCommand(InternalCommand.EXPORT, config),
+            engine.buildCommand(UserVisibleCommand.EXPORT, config),
         )
         assertEquals(
             listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "--show-manifest", sampleManifestPath),
-            engine.buildCommand(InternalCommand.VALIDATE, config),
+            engine.buildCommand(UserVisibleCommand.VALIDATE, config),
         )
         assertEquals(
             listOf("/usr/bin/flatpak", "run", "org.flatpak.Builder", "/tmp/build", sampleManifestPath, "--arg1", "--arg2"),
-            engine.buildCommand(InternalCommand.CUSTOM, config),
+            engine.buildCommand(UserVisibleCommand.CUSTOM, config),
         )
     }
 
@@ -181,7 +189,7 @@ class CommandExecutionEngineTest {
     fun `custom command appends each user argument as a separate argv element`() {
         val line =
             engine.buildCommand(
-                InternalCommand.CUSTOM,
+                UserVisibleCommand.CUSTOM,
                 config {
                     manifestPath = sampleManifestPath
                     buildDir = "/tmp/build"
@@ -191,9 +199,14 @@ class CommandExecutionEngineTest {
 
         assertEquals(
             listOf(
-                "/usr/bin/flatpak", "run", "org.flatpak.Builder",
-                "/tmp/build", sampleManifestPath,
-                "--share=network", "-e", "VERBOSE=1",
+                "/usr/bin/flatpak",
+                "run",
+                "org.flatpak.Builder",
+                "/tmp/build",
+                sampleManifestPath,
+                "--share=network",
+                "-e",
+                "VERBOSE=1",
             ),
             line,
         )

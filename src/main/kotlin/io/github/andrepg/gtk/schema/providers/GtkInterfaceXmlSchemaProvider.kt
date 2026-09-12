@@ -1,6 +1,5 @@
 package io.github.andrepg.gtk.schema.providers
 
-import com.intellij.notification.NotificationGroupManager
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.module.Module
@@ -14,9 +13,10 @@ import com.intellij.psi.PsiManager
 import com.intellij.psi.xml.XmlFile
 import com.intellij.xml.XmlSchemaProvider
 import io.github.andrepg.flatpak.settings.FlatpakSettings
+import io.github.andrepg.gtk.GtkNotifications
+import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.schema.GtkSchemaManager
 import io.github.andrepg.gtk.schema.SdkHint
-import io.github.andrepg.gtk.schema.gir.GtkSchemaStep
 import io.github.andrepg.shared.Localization
 
 /**
@@ -38,7 +38,6 @@ import io.github.andrepg.shared.Localization
  * manifest domain and delegates schema resolution to [GtkSchemaManager].
  */
 class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
-    private val interfaceFileRegex = Regex(""".*\.(ui|glade)$""", RegexOption.IGNORE_CASE)
     private val xmlFileRegex = Regex(""".*\.xml$""", RegexOption.IGNORE_CASE)
 
     private val schemaManager = GtkSchemaManager(PathManager.getConfigDir().resolve("flatpak-schemas").toFile())
@@ -48,7 +47,7 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
      * files whose root element is `<interface>` (they match the served schema)
      */
     override fun isAvailable(file: XmlFile): Boolean {
-        if (file.name.matches(interfaceFileRegex)) return true
+        if (isGtkUiFile(file.name)) return true
         if (!file.name.matches(xmlFileRegex)) return false
         return file.rootTag?.name == GTK_INTERFACE_ROOT
     }
@@ -126,8 +125,8 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
                     indicator.isIndeterminate = false
                     val generated =
                         schemaManager.generateSchema(hint, FlatpakSettings.flatpakBinary) { step ->
-                            indicator.text = progressText(step, hint)
-                            indicator.fraction = progressFraction(step)
+                            indicator.text = GtkSchemaProgressUi.text(step, hint)
+                            indicator.fraction = GtkSchemaProgressUi.fraction(step)
                             !indicator.isCanceled
                         }
                     outcome =
@@ -157,36 +156,6 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
         ProgressManager.getInstance().run(generation)
     }
 
-    private fun progressText(
-        step: GtkSchemaStep,
-        hint: SdkHint,
-    ): String =
-        when (step) {
-            GtkSchemaStep.Locating -> {
-                Localization.message("gtk.schema.generation.step.locating", hint.key)
-            }
-
-            is GtkSchemaStep.Parsing -> {
-                Localization.message("gtk.schema.generation.step.parsing", step.fileName, step.index, step.total)
-            }
-
-            GtkSchemaStep.Rendering -> {
-                Localization.message("gtk.schema.generation.step.rendering")
-            }
-
-            GtkSchemaStep.Caching -> {
-                Localization.message("gtk.schema.generation.step.caching")
-            }
-        }
-
-    private fun progressFraction(step: GtkSchemaStep): Double =
-        when (step) {
-            GtkSchemaStep.Locating -> 0.05
-            is GtkSchemaStep.Parsing -> 0.1 + 0.8 * (step.index.toDouble() / step.total)
-            GtkSchemaStep.Rendering -> 0.95
-            GtkSchemaStep.Caching -> 1.0
-        }
-
     private fun notifyGeneration(
         project: Project,
         hint: SdkHint,
@@ -195,20 +164,18 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
         val key =
             if (success) "gtk.schema.generation.notification.success" else "gtk.schema.generation.notification.failure"
         val type = if (success) NotificationType.INFORMATION else NotificationType.WARNING
-        NotificationGroupManager
-            .getInstance()
-            .getNotificationGroup(NOTIFICATION_GROUP_ID)
-            .createNotification(
-                Localization.message("gtk.schema.generation.title", hint.key),
-                Localization.message(key, hint.key),
-                type,
-            ).notify(project)
+        GtkNotifications.notify(
+            project,
+            GtkNotifications.SCHEMA_GROUP_ID,
+            Localization.message("gtk.schema.generation.title", hint.key),
+            Localization.message(key, hint.key),
+            type,
+        )
     }
 
     private companion object {
         const val GTK_INTERFACE_NAMESPACE = "urn:io.github.andrepg:flatpak-support:schemas:gtk-ui"
         const val GTK_INTERFACE_ROOT = "interface"
-        const val NOTIFICATION_GROUP_ID = "io.github.andrepg.flatpak.schema"
     }
 
     private enum class GenerationOutcome { SUCCESS, FAILED, CANCELLED }

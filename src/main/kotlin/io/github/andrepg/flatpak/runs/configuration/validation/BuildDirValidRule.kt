@@ -1,7 +1,6 @@
 package io.github.andrepg.flatpak.runs.configuration.validation
 
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
-import java.io.File
 
 /**
  * The build directory must be set and, when it already exists, be a writable

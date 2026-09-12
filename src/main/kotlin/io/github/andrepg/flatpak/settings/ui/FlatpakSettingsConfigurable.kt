@@ -13,6 +13,7 @@ import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.UiRows.browseTextFieldRow
 import io.github.andrepg.shared.UiRows.textFieldRow
 import io.github.andrepg.shared.diagnostics.DiagnosticsInitializer
+import io.github.andrepg.shared.diagnostics.DiagnosticsSettingsState
 import javax.swing.JComponent
 
 /**
@@ -25,6 +26,7 @@ import javax.swing.JComponent
  */
 class FlatpakSettingsConfigurable : Configurable {
     private val settings = service<FlatpakGlobalSettingsState>()
+    private val diagnostics = service<DiagnosticsSettingsState>()
 
     private lateinit var flatpakField: TextFieldWithBrowseButton
     private lateinit var builderField: JBTextField
@@ -70,17 +72,17 @@ class FlatpakSettingsConfigurable : Configurable {
     override fun isModified(): Boolean =
         flatpakField.text.orEmpty() != settings.flatpakBinaryPath.orEmpty() ||
             builderField.text.orEmpty() != settings.flatpakBuilderBinaryPath.orEmpty() ||
-            sentryCheck.isSelected != settings.sentryEnabled ||
-            debugCheck.isSelected != settings.debugLoggingEnabled
+            sentryCheck.isSelected != diagnostics.sentryEnabled ||
+            debugCheck.isSelected != diagnostics.debugLoggingEnabled
 
     override fun apply() {
         settings.flatpakBinaryPath = flatpakField.text.orEmpty()
         settings.flatpakBuilderBinaryPath = builderField.text.orEmpty()
 
-        val sentryChanged = sentryCheck.isSelected != settings.sentryEnabled
-        val debugChanged = debugCheck.isSelected != settings.debugLoggingEnabled
-        settings.sentryEnabled = sentryCheck.isSelected
-        settings.debugLoggingEnabled = debugCheck.isSelected
+        val sentryChanged = sentryCheck.isSelected != diagnostics.sentryEnabled
+        val debugChanged = debugCheck.isSelected != diagnostics.debugLoggingEnabled
+        diagnostics.sentryEnabled = sentryCheck.isSelected
+        diagnostics.debugLoggingEnabled = debugCheck.isSelected
 
         if (sentryChanged || debugChanged) {
             // Reconfigure without blocking the Settings dialog on Sentry's async startup.
@@ -93,8 +95,8 @@ class FlatpakSettingsConfigurable : Configurable {
     override fun reset() {
         flatpakField.text = settings.flatpakBinaryPath.orEmpty()
         builderField.text = settings.flatpakBuilderBinaryPath.orEmpty()
-        sentryCheck.isSelected = settings.sentryEnabled
-        debugCheck.isSelected = settings.debugLoggingEnabled
+        sentryCheck.isSelected = diagnostics.sentryEnabled
+        debugCheck.isSelected = diagnostics.debugLoggingEnabled
     }
 
     override fun disposeUIResources() {

@@ -32,5 +32,5 @@ object PremiumFeatureGate {
 
     fun requestAccess(message: String) = LicenseCheck.requestLicense(message)
 
-    private fun isDevelopmentBypass(): Boolean = System.getProperty(DEV_OVERRIDE_PROPERTY)?.toBoolean() == true
+    internal fun isDevelopmentBypass(): Boolean = System.getProperty(DEV_OVERRIDE_PROPERTY)?.toBoolean() == true
 }

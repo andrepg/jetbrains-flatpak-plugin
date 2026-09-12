@@ -7,11 +7,13 @@ import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
+import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRefreshAction
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRenderAction
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPremiumGatePanel
 import io.github.andrepg.shared.license.PremiumFeatureGate
+import javax.swing.JPanel
 
 /**
  * Factory for the GTK Preview tool window.
@@ -32,33 +34,32 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
         toolWindow: ToolWindow,
     ) {
         if (!enablePreview) {
-            showPremiumGate(toolWindow)
+            createContentWindow(toolWindow, GtkPreviewPremiumGatePanel().panel())
             return
         }
 
-        val panel = GtkPreviewPanel()
-        val renderAction = GtkPreviewRenderAction(panel)
+        val gtkPreviewPanel = GtkPreviewPanel()
+        val gtkPreviewRenderAction = GtkPreviewRenderAction(gtkPreviewPanel)
+
+        createContentWindow(toolWindow, gtkPreviewPanel.panel())
+
         val refreshAction =
             GtkPreviewRefreshAction { e ->
-                e.project?.let { renderAction.triggerRender(it) }
+                e.project?.let { gtkPreviewRenderAction.triggerRender(it) }
             }
 
-        toolWindow.contentManager.addContent(
-            ContentFactory.getInstance().createContent(panel.panel(), "", false),
-        )
         toolWindow.setTitleActions(listOf(refreshAction))
 
-        registerFileListener(project, toolWindow, renderAction)
-        renderAction.triggerRender(project)
+        registerFileListener(project, toolWindow, gtkPreviewRenderAction)
+        gtkPreviewRenderAction.triggerRender(project)
     }
 
-    private fun showPremiumGate(toolWindow: ToolWindow) {
-        toolWindow.contentManager.addContent(
-            ContentFactory.getInstance().createContent(
-                GtkPreviewPremiumGatePanel().panel(),
-                "",
-                false,
-            ),
+    private fun createContentWindow(
+        window: ToolWindow,
+        panel: JPanel,
+    ) {
+        window.contentManager.addContent(
+            ContentFactory.getInstance().createContent(panel, null, false),
         )
     }
 
@@ -83,8 +84,5 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
         )
     }
 
-    private fun isPreviewableFile(name: String): Boolean {
-        val ext = name.substringAfterLast('.', "").lowercase()
-        return ext == "ui" || ext == "glade"
-    }
+    private fun isPreviewableFile(name: String): Boolean = isGtkUiFile(name)
 }

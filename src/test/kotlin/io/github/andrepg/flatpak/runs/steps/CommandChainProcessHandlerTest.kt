@@ -5,7 +5,7 @@ import com.intellij.execution.process.ProcessEvent
 import com.intellij.execution.process.ProcessListener
 import com.intellij.openapi.util.Key
 import com.intellij.testFramework.fixtures.BasePlatformTestCase
-import io.github.andrepg.flatpak.runs.InternalCommand
+import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.commands.CommandExecutionEngine
 import java.io.File
 import java.util.concurrent.CountDownLatch
@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit
 class CommandChainProcessHandlerTest : BasePlatformTestCase() {
     private fun runToTermination(
         commandLines: List<GeneralCommandLine>,
-        commandSteps: List<InternalCommand> = commandLines.map { InternalCommand.CUSTOM },
+        commandSteps: List<UserVisibleCommand> = commandLines.map { UserVisibleCommand.CUSTOM },
         preSteps: List<CommandChainProcessHandler.PreStep> = emptyList(),
     ): Int {
         val handler =
@@ -88,7 +88,7 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
             val handler =
                 CommandChainProcessHandler(
                     commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "touch '${marker.path}'"))),
-                    commandSteps = listOf(InternalCommand.BUILD),
+                    commandSteps = listOf(UserVisibleCommand.BUILD),
                     engine = CommandExecutionEngine(project),
                     preSteps =
                         listOf(
@@ -124,7 +124,7 @@ class CommandChainProcessHandlerTest : BasePlatformTestCase() {
         val handler =
             CommandChainProcessHandler(
                 commandLines = listOf(GeneralCommandLine(listOf("sh", "-c", "exit 0"))),
-                commandSteps = listOf(InternalCommand.BUILD),
+                commandSteps = listOf(UserVisibleCommand.BUILD),
                 engine = CommandExecutionEngine(project),
                 preSteps =
                     listOf(

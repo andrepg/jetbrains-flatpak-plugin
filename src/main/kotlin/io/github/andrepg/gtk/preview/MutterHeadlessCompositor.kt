@@ -1,6 +1,7 @@
 package io.github.andrepg.gtk.preview
 
 import io.github.andrepg.shared.log.Log
+import io.github.andrepg.shared.process.DefaultProcessRunner
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
@@ -119,14 +120,10 @@ class MutterHeadlessCompositor {
 
         // Fallback: resolve UID via `id -u` (portable across Linux distros)
         val uid =
-            try {
-                val proc = ProcessBuilder("id", "-u").start()
-                val result = proc.inputStream.bufferedReader().readText().trim()
-                proc.waitFor(2, TimeUnit.SECONDS)
-                result.ifBlank { null }
-            } catch (_: Exception) {
-                null
-            }
+            DefaultProcessRunner.run(listOf("id", "-u"), timeoutMs = 2_000)
+                ?.stdout
+                ?.trim()
+                ?.takeIf { it.isNotBlank() }
                 ?: error(
                     "Cannot determine XDG_RUNTIME_DIR. " +
                         "Set XDG_RUNTIME_DIR or ensure `id` is available.",

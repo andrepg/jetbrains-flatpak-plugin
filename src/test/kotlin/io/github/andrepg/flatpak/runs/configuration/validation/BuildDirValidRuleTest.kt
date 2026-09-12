@@ -4,7 +4,6 @@ import com.intellij.openapi.project.Project
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettingsAttributes
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -25,7 +24,11 @@ class BuildDirValidRuleTest {
     fun `blank build dir falls back to the default and missing default is valid`() {
         // FlatpakRunSettings normalizes blank to the _build default; a missing
         // directory stays valid wherever it resolves.
-        val emptyBase = File.createTempFile("builddir-rule", ".dir").apply { delete(); mkdirs() }
+        val emptyBase =
+            File.createTempFile("builddir-rule", ".dir").apply {
+                delete()
+                mkdirs()
+            }
         try {
             assertTrue(rule.check(config(""), emptyBase.path).isEmpty())
         } finally {
@@ -40,7 +43,11 @@ class BuildDirValidRuleTest {
 
     @Test
     fun `existing writable directory is valid`() {
-        val dir = File.createTempFile("builddir-rule", ".dir").apply { delete(); mkdirs() }
+        val dir =
+            File.createTempFile("builddir-rule", ".dir").apply {
+                delete()
+                mkdirs()
+            }
         try {
             assertTrue(rule.check(config(dir.path), null).isEmpty())
         } finally {
@@ -61,7 +68,11 @@ class BuildDirValidRuleTest {
 
     @Test
     fun `unwritable existing build dir is reported`() {
-        val dir = File.createTempFile("builddir-rule", ".dir").apply { delete(); mkdirs() }
+        val dir =
+            File.createTempFile("builddir-rule", ".dir").apply {
+                delete()
+                mkdirs()
+            }
         try {
             // Root ignores file permissions, so this case only applies to regular users.
             if (!dir.setWritable(false) || dir.canWrite()) return
