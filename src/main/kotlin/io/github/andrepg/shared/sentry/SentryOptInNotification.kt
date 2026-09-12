@@ -3,9 +3,12 @@ package io.github.andrepg.shared.sentry
 import com.intellij.notification.Notification
 import com.intellij.notification.NotificationAction
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
+import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.diagnostics.DiagnosticsInitializer
+import io.github.andrepg.shared.diagnostics.DiagnosticsSettingsState
 import io.github.andrepg.shared.log.Log
 import kotlinx.coroutines.Runnable
 
@@ -37,6 +40,13 @@ class SentryOptInNotification {
         createAction(
             Localization.message("sentry.analytics-invitation.accept"),
         ) {
+            service<DiagnosticsSettingsState>().sentryEnabled = true
+            // Reconfigure without blocking the editor thread on Sentry's async startup.
+            ApplicationManager.getApplication().executeOnPooledThread {
+                SentryGuard.run("Sentry initialization") {
+                    SentryInitializer.reconfigure()
+                }
+            }
             log.info(Localization.message("sentry.analytics-invitation.accept"))
         }
 
@@ -44,6 +54,7 @@ class SentryOptInNotification {
         createAction(
             Localization.message("sentry.analytics-invitation.forget"),
         ) {
+            service<DiagnosticsSettingsState>().sentryInvitationForgotten = true
             log.info(Localization.message("sentry.analytics-invitation.forget"))
         }
 
@@ -57,5 +68,8 @@ class SentryOptInNotification {
     private fun createAction(
         title: String,
         action: Runnable,
-    ): NotificationAction = NotificationAction.createSimple(title) { action.run() }
+    ): NotificationAction =
+        NotificationAction.createSimple(title) {
+            action.run { notification.expire() }
+        }
 }
