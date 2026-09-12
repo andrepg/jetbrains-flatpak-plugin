@@ -5,6 +5,7 @@ import io.github.andrepg.shared.log.Log
 import io.github.andrepg.shared.log.LogConfiguration
 import io.github.andrepg.shared.sentry.SentryGuard
 import io.github.andrepg.shared.sentry.SentryInitializer
+import io.github.andrepg.shared.sentry.SentryOptInNotification
 
 /**
  * Plugin-wide diagnostics bootstrap, wired as an
@@ -22,26 +23,36 @@ import io.github.andrepg.shared.sentry.SentryInitializer
 class DiagnosticsInitializer : AppLifecycleListener {
     private val log = Log.getInstance(DiagnosticsInitializer::class.java)
 
+    /**
+     * Defines if the Sentry logging is enabled based on User's preference
+     * configured at IDE settings
+     */
+    private val enableSentry = DiagnosticsSettings.sentryEnabled
+
+    /**
+     * Defines if your Debug logging is enabled based on current
+     * build flags - this should almost never be true in production
+     */
+    private val enableDebug = DiagnosticsSettings.debugLoggingEnabled
+
     override fun appFrameCreated(commandLineArgs: MutableList<String>) {
         applyRuntimeConfiguration()
     }
 
     /** Applies the current debug-logging and Sentry settings. */
     fun applyRuntimeConfiguration() {
-        val debugEnabled =
-            LogConfiguration.isDebugRequested() ||
-                DiagnosticsSettings.debugLoggingEnabled
-        LogConfiguration.setDebugEnabled(debugEnabled)
+        LogConfiguration.setDebugEnabled(
+            enableDebug || LogConfiguration.isDebugRequested(),
+        )
 
-        var sentryActive = false
-        SentryGuard.run("Sentry initialization") {
-            SentryInitializer.reconfigure()
-            sentryActive = SentryInitializer.isActive
+        if (enableSentry) {
+            SentryGuard.run("Sentry initialization") {
+                SentryInitializer.reconfigure()
+            }
+        } else {
+            SentryOptInNotification().notify(null)
         }
 
-        log.info(
-            "Flatpak DevTools initialized: debug logging=${if (debugEnabled) "on" else "off"}, " +
-                "sentry error reporting=${if (sentryActive) "on" else "off"}",
-        )
+        log.info("Initializing diagnostics module [Sentry: $enableSentry | Debug: $enableDebug]")
     }
 }
