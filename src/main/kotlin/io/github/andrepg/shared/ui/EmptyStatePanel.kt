@@ -10,6 +10,7 @@ import java.awt.GridBagLayout
 import java.awt.event.ActionListener
 import javax.swing.Box
 import javax.swing.BoxLayout
+import javax.swing.JLabel
 import javax.swing.JPanel
 
 /**
@@ -33,51 +34,69 @@ class EmptyStatePanel(
     onAction: () -> Unit,
     shortcut: String? = null,
 ) {
+    /**
+     * Label based on `EmptyStatePanel(title)` parameter
+     */
+    private val labelTitle =
+        JBLabel(title).apply {
+            font = JBFont.regular().asBold()
+            isAllowAutoWrapping = true
+            alignmentX = Component.CENTER_ALIGNMENT
+        }
+
+    /**
+     * Label based on `EmptyStatePanel(description)` parameter
+     */
+    private val labelDescription =
+        JBLabel(description).apply {
+            isAllowAutoWrapping = true
+            alignmentX = Component.CENTER_ALIGNMENT
+        }
+
+    /**
+     * Label based on `EmptyStatePanel(shortcut)` parameter
+     */
+    private val labelShortcut =
+        JLabel(shortcut).apply {
+            font = font.deriveFont((font.size - 1).toFloat())
+        }
+
+    /**
+     * Panel containing both the action and related shortcut
+     * provided when building the Empty State entity
+     */
+    private val actionPanel =
+        JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.Y_AXIS)
+            alignmentX = Component.CENTER_ALIGNMENT
+
+            add(ActionLink(actionText, ActionListener { onAction() }))
+
+            if (!shortcut.isNullOrEmpty()) {
+                add(Box.createHorizontalStrut(8))
+                add(labelShortcut)
+            }
+        }
+
+    /**
+     * Root panel containing label, description and actions
+     * given by constructor, allowing to embed in a main panel
+     */
     private val root: JPanel =
-        JPanel(GridBagLayout()).apply {
-            border = JBUI.Borders.empty(16)
-            add(
-                JPanel().apply {
-                    layout = BoxLayout(this, BoxLayout.Y_AXIS)
+        JPanel().apply {
+            layout = BoxLayout(this, BoxLayout.Y_AXIS)
 
-                    add(
-                        JBLabel(title).apply {
-                            font = JBFont.regular().asBold()
-                            alignmentX = Component.CENTER_ALIGNMENT
-                        },
-                    )
-                    add(Box.createVerticalStrut(8))
-
-                    add(
-                        JBLabel(description).apply {
-                            isAllowAutoWrapping = true
-                            alignmentX = Component.CENTER_ALIGNMENT
-                        },
-                    )
-                    add(Box.createVerticalStrut(12))
-
-                    add(
-                        JPanel().apply {
-                            layout = BoxLayout(this, BoxLayout.X_AXIS)
-                            alignmentX = Component.CENTER_ALIGNMENT
-                            add(ActionLink(actionText, ActionListener { onAction() }))
-                            if (shortcut != null) {
-                                add(Box.createHorizontalStrut(8))
-                                add(
-                                    JBLabel(shortcut).apply {
-                                        font = font.deriveFont((font.size - 1).toFloat())
-                                    },
-                                )
-                            }
-                        },
-                    )
-                },
-                GridBagConstraints().apply {
-                    anchor = GridBagConstraints.CENTER
-                },
-            )
+            add(labelTitle)
+            add(Box.createVerticalStrut(8))
+            add(labelDescription)
+            add(Box.createVerticalStrut(12))
+            add(actionPanel)
         }
 
     /** Returns the assembled [JPanel]. */
-    fun panel(): JPanel = root
+    fun panel(): JPanel =
+        JPanel(GridBagLayout()).apply {
+            border = JBUI.Borders.empty(16)
+            add(root, GridBagConstraints().apply { anchor = GridBagConstraints.CENTER })
+        }
 }
