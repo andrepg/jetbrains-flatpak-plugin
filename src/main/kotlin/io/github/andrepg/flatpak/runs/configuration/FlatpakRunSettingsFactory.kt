@@ -7,12 +7,12 @@ import com.intellij.openapi.components.BaseState
 import com.intellij.openapi.project.Project
 import org.jetbrains.annotations.NonNls
 
-class FlatpakRunSettingsFactory(type: ConfigurationType) : ConfigurationFactory(type) {
+class FlatpakRunSettingsFactory(
+    type: ConfigurationType,
+) : ConfigurationFactory(type) {
     override fun getId(): @NonNls String = RunConfiguration.DATA_KEY.name
 
     override fun getOptionsClass(): Class<out BaseState> = FlatpakRunSettingsAttributes::class.java
 
-    override fun createTemplateConfiguration(project: Project): RunConfiguration {
-        return FlatpakRunSettings(project, this, id)
-    }
+    override fun createTemplateConfiguration(project: Project): RunConfiguration = FlatpakRunSettings(project, this, id)
 }

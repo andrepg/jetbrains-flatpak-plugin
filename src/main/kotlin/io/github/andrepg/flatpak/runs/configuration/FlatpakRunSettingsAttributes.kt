@@ -1,8 +1,8 @@
 package io.github.andrepg.flatpak.runs.configuration
 
 import com.intellij.util.xmlb.annotations.Attribute
-import com.intellij.execution.configurations.RunConfigurationOptions as BaseOptions
 import io.github.andrepg.flatpak.runs.FlatpakDefaults
+import com.intellij.execution.configurations.RunConfigurationOptions as BaseOptions
 
 /**
  * Options for [FlatpakRunSettings], following the documented

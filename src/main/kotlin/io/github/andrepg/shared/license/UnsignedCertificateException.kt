@@ -11,6 +11,7 @@ import io.github.andrepg.shared.Localization
  * (e.g. a headless bootstrap), the DynamicBundle falls back to the key itself,
  * which is still readable.
  */
-class UnsignedCertificateException : Exception(
-    Localization.message("licensing.errors.unsigned_notification"),
-)
+class UnsignedCertificateException :
+    Exception(
+        Localization.message("licensing.errors.unsigned_notification"),
+    )

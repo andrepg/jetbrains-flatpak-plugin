@@ -145,9 +145,14 @@ object SentryInitializer {
     private val pluginVersion: String
         get() {
             val stream = javaClass.classLoader.getResourceAsStream("META-INF/plugin.xml") ?: return "dev"
-            return stream.use { it.bufferedReader().readText() }
-                .let { javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(it.toByteArray().inputStream()) }
-                .getElementsByTagName("version")
+            return stream
+                .use { it.bufferedReader().readText() }
+                .let {
+                    javax.xml.parsers.DocumentBuilderFactory
+                        .newInstance()
+                        .newDocumentBuilder()
+                        .parse(it.toByteArray().inputStream())
+                }.getElementsByTagName("version")
                 .item(0)
                 .textContent
                 .takeIf { it.isNotBlank() && !it.startsWith("\$") }

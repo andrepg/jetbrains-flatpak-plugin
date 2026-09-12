@@ -21,7 +21,9 @@ const val FLATPAK_MANIFEST_PATH = "https://www.schemastore.org/flatpak-manifest.
  * Implements [JsonSchemaFileProvider] to expose a remote JSON Schema draft-07 schema
  * for files that look like Flatpak manifests.
  */
-class FlatpakJsonSchemaProvider(private val project: Project) : JsonSchemaFileProvider {
+class FlatpakJsonSchemaProvider(
+    private val project: Project,
+) : JsonSchemaFileProvider {
     private val log = Log.getInstance(FlatpakJsonSchemaProvider::class.java)
 
     /**

@@ -113,7 +113,8 @@ class GtkPreviewRenderAction(
                 val resolved = UiTemplateResolver.resolve(original, projectBase)
                 if (resolved != original) {
                     renderInput =
-                        Files.createTempFile(configDir(), "resolved-", ".ui")
+                        Files
+                            .createTempFile(configDir(), "resolved-", ".ui")
                             .also { it.toFile().writeText(resolved) }
                 }
             }

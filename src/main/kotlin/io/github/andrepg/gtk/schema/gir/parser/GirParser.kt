@@ -78,9 +78,10 @@ object GirParser {
 
         return classes.map { cls ->
             buildTypeEntry(namespaceName, cls, children(cls, NS_CORE, "implements").map { it.getAttribute("name") })
-        } + interfaces.map { iface ->
-            buildTypeEntry(namespaceName, iface, children(iface, NS_CORE, "prerequisite").map { it.getAttribute("name") })
-        }
+        } +
+            interfaces.map { iface ->
+                buildTypeEntry(namespaceName, iface, children(iface, NS_CORE, "prerequisite").map { it.getAttribute("name") })
+            }
     }
 
     private fun newDocument(file: File): Document {

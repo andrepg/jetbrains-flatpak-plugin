@@ -52,7 +52,8 @@ class RunPostStartupDetection : ProjectActivity {
         manifests: List<Pair<VirtualFile, String>>,
     ) {
         val notification =
-            NotificationGroupManager.getInstance()
+            NotificationGroupManager
+                .getInstance()
                 .getNotificationGroup(NOTIFICATION_GROUP_ID)
                 .createNotification(
                     Localization.message("detection.notification.title"),

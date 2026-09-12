@@ -21,7 +21,9 @@ import io.github.andrepg.shared.log.Log
  * changes, so it never goes stale while staying event-driven.
  */
 @Service(Service.Level.PROJECT)
-class FlatpakManifestCacheService(private val project: Project) : Disposable {
+class FlatpakManifestCacheService(
+    private val project: Project,
+) : Disposable {
     private val log = Log.getInstance(FlatpakManifestCacheService::class.java)
 
     @Volatile

@@ -28,7 +28,5 @@ internal object Localization {
             @PropertyKey(resourceBundle = BUNDLE)
             String,
         vararg params: Any?,
-    ): @Nls String {
-        return instance.getMessage(key, *params)
-    }
+    ): @Nls String = instance.getMessage(key, *params)
 }

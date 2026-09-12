@@ -12,7 +12,11 @@ sealed interface GtkSchemaStep {
     data object Locating : GtkSchemaStep
 
     /** Parsing one GIR file; [index] is 1-based, [total] the number of files. */
-    data class Parsing(val fileName: String, val index: Int, val total: Int) : GtkSchemaStep
+    data class Parsing(
+        val fileName: String,
+        val index: Int,
+        val total: Int,
+    ) : GtkSchemaStep
 
     /** Assembling the XSD from the parsed registry. */
     data object Rendering : GtkSchemaStep

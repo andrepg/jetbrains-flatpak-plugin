@@ -167,8 +167,7 @@ object FlatpakManifestVfsReader {
      * @param file The VirtualFile of the Flatpak manifest
      * @return The application ID if found, or null if the file cannot be read or parsed
      */
-    fun readAppId(file: VirtualFile): String? =
-        FlatpakManifestReader.pickAppId(readFields(file, "app-id", "id"))
+    fun readAppId(file: VirtualFile): String? = FlatpakManifestReader.pickAppId(readFields(file, "app-id", "id"))
 
     /**
      * Reads the application ID via [readFields]' path-based resolution.

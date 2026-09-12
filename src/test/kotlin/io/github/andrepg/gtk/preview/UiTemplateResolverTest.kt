@@ -7,7 +7,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import java.io.File
 import java.nio.file.Path
-import java.nio.file.Files
 
 class UiTemplateResolverTest {
     @get:Rule
@@ -15,16 +14,19 @@ class UiTemplateResolverTest {
 
     private fun projectBase(): Path = tmp.root.toPath()
 
-    private fun writeFile(relativePath: String, content: String): File {
+    private fun writeFile(
+        relativePath: String,
+        content: String,
+    ): File {
         val file = File(tmp.root, relativePath)
         file.parentFile.mkdirs()
         file.writeText(content)
         return file
     }
 
-    /* ----------------------------------------------------------------- */
-    /*  1. No templates → passthrough                                    */
-    /* ----------------------------------------------------------------- */
+    // -----------------------------------------------------------------
+    // 1. No templates → passthrough
+    // -----------------------------------------------------------------
 
     @Test
     fun `passthrough when project has no template definitions`() {
@@ -65,9 +67,9 @@ class UiTemplateResolverTest {
         assertFalse(result.contains("MyWidget"))
     }
 
-    /* ----------------------------------------------------------------- */
-    /*  2. Simple template expansion                                     */
-    /* ----------------------------------------------------------------- */
+    // -----------------------------------------------------------------
+    // 2. Simple template expansion
+    // -----------------------------------------------------------------
 
     @Test
     fun `simple template expands object to parent class with children inlined`() {
@@ -110,9 +112,9 @@ class UiTemplateResolverTest {
         assertTrue(result.contains("GtkLabel"))
     }
 
-    /* ----------------------------------------------------------------- */
-    /*  3. Nested templates + cycle guard                                */
-    /* ----------------------------------------------------------------- */
+    // -----------------------------------------------------------------
+    // 3. Nested templates + cycle guard
+    // -----------------------------------------------------------------
 
     @Test
     fun `nested templates are expanded recursively`() {
@@ -197,9 +199,9 @@ class UiTemplateResolverTest {
         assertTrue("cycle halted, parent class present", result.contains("GtkBox"))
     }
 
-    /* ----------------------------------------------------------------- */
-    /*  4. Property override                                             */
-    /* ----------------------------------------------------------------- */
+    // -----------------------------------------------------------------
+    // 4. Property override
+    // -----------------------------------------------------------------
 
     @Test
     fun `target property overrides template property with same name`() {
@@ -234,9 +236,9 @@ class UiTemplateResolverTest {
         assertFalse("template margin 12 dropped", result.contains(">12<"))
     }
 
-    /* ----------------------------------------------------------------- */
-    /*  5. Id stripping                                                  */
-    /* ----------------------------------------------------------------- */
+    // -----------------------------------------------------------------
+    // 5. Id stripping
+    // -----------------------------------------------------------------
 
     @Test
     fun `inlined template inner objects have ids stripped`() {
@@ -265,9 +267,9 @@ class UiTemplateResolverTest {
         assertTrue("inner object present", result.contains("GtkEntry"))
     }
 
-    /* ----------------------------------------------------------------- */
-    /*  Edge cases                                                        */
-    /* ----------------------------------------------------------------- */
+    // -----------------------------------------------------------------
+    // Edge cases
+    // -----------------------------------------------------------------
 
     @Test
     fun `malformed project ui files are skipped quietly`() {
