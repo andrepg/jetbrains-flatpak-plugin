@@ -131,6 +131,11 @@ class GtkBuilderToolRunner(
                 flatpakRun(
                     env =
                         mapOf(
+                            // Pin the Wayland backend so GTK fails instead of
+                            // falling back to the user's session display (which
+                            // would pop windows onto their desktop) whenever the
+                            // private headless socket is unavailable.
+                            "GDK_BACKEND" to "wayland",
                             "WAYLAND_DISPLAY" to compositor.display,
                         ),
                     extraFilesystems = listOf(compositor.runtimeDir),
