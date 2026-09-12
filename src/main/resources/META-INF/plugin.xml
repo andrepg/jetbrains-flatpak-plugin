@@ -94,6 +94,12 @@
                 id="io.github.andrepg.flatpak.preview"
                 bundle="messages.Messages"
                 key="gtk.preview.compilation.title"/>
+        <notificationGroup
+                displayType="BALLOON"
+                id="io.github.andrepg.shared.diagnostics"
+                bundle="messages.Messages"
+                key="sentry.analytics-invitation.title"/>
+
 
         <!--  GTK Preview panel -->
         <toolWindow
