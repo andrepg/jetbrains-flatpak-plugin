@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project
 import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.GtkBuilderToolRunner
 import io.github.andrepg.gtk.preview.GtkPreviewNotifications
+import io.github.andrepg.gtk.preview.UiTemplateResolver
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.shared.log.Log
 import java.nio.file.Files
@@ -99,7 +100,27 @@ class GtkPreviewRenderAction(
 
             indicator.text = "Rendering ${uiFile.fileName}\u2026"
             val outputPng = Files.createTempFile(configDir(), "preview-", ".png")
-            toolRunner.render(binary, uiFile, outputPng)
+
+            // Resolve project templates (custom widget classes) into plain
+            // GTK4 objects so the C renderer can display them.  Skip zero work
+            // when the project has no template definitions or none match.
+            var renderInput = uiFile
+            val projectBase = project.basePath?.let { Paths.get(it) }
+            if (projectBase != null) {
+                val original = Files.readString(uiFile)
+                val resolved = UiTemplateResolver.resolve(original, projectBase)
+                if (resolved != original) {
+                    renderInput =
+                        Files.createTempFile(configDir(), "resolved-", ".ui")
+                            .also { it.toFile().writeText(resolved) }
+                }
+            }
+
+            try {
+                toolRunner.render(binary, renderInput, outputPng)
+            } finally {
+                if (renderInput != uiFile) Files.deleteIfExists(renderInput)
+            }
 
             applyIfCurrent(generation) {
                 renderedImage = outputPng
