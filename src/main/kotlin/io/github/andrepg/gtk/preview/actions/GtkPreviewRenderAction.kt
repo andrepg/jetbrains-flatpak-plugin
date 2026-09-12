@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project
 import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.GtkBuilderToolRunner
 import io.github.andrepg.gtk.preview.GtkPreviewNotifications
+import io.github.andrepg.gtk.preview.RenderDimensions
 import io.github.andrepg.gtk.preview.UiTemplateResolver
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.shared.log.Log
@@ -30,6 +31,7 @@ import java.util.concurrent.atomic.AtomicLong
  */
 class GtkPreviewRenderAction(
     private val panel: GtkPreviewPanel,
+    private val portraitSide: () -> Boolean = { true },
 ) : AnAction(
         "Render Preview",
         "Render the current GTK preview",
@@ -117,7 +119,8 @@ class GtkPreviewRenderAction(
             }
 
             try {
-                toolRunner.render(binary, renderInput, outputPng)
+                val (width, height) = RenderDimensions.renderSize(portraitSide())
+                toolRunner.render(binary, renderInput, outputPng, width, height)
             } finally {
                 if (renderInput != uiFile) Files.deleteIfExists(renderInput)
             }
