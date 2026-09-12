@@ -12,7 +12,7 @@ import com.intellij.ui.dsl.builder.RowLayout
 /**
  * Shared JetBrains UI DSL building blocks used by the plugin's forms.
  *
- * Both the Settings pages ([FlatpakSettingsConfigurable]) and the run configuration editor
+ * Both the Settings pages ([DevToolsSettingsConfigurable]) and the run configuration editor
  * ([RunConfigurationSettingsPanel]) build their forms with these rows, keeping the
  * label + optional comment + input layout consistent across the plugin.
  */
