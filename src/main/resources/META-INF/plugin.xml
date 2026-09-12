@@ -43,7 +43,7 @@
 
         <h2>Basic privacy</h2>
         <p>
-            This plugin contains a special opt-in section to enable Sentry reports under Settings | Languages & Frameworks | Flatpak Binaries.
+            This plugin contains a special opt-in section to enable Sentry reports under Settings | Languages &amp; Frameworks | Flatpak DevTools.
             We appreciate the use of this options, since it is the way we have to track bugs and problems. No personal
             data or identification is collected.
         </p>
@@ -63,13 +63,13 @@
 
         <postStartupActivity implementation="io.github.andrepg.flatpak.runs.configuration.RunPostStartupDetection"/>
 
-        <!--  Flatpak binaries settings (Settings / Language) -->
+        <!--  Flatpak binaries & diagnostics settings (IDE level: Settings / Language) -->
         <projectConfigurable
                 parentId="language"
-                id="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
-                instance="io.github.andrepg.flatpak.settings.ui.FlatpakSettingsConfigurable"
+                id="io.github.andrepg.flatpak.settings.ui.DevToolsSettingsConfigurable"
+                instance="io.github.andrepg.flatpak.settings.ui.DevToolsSettingsConfigurable"
                 bundle="messages.Messages"
-                key="settings.flatpak.binaries.title"/>
+                key="settings.devtools.title"/>
 
         <!-- GTK XML Bindings and schemas -->
         <fileType name="XML" extensions="ui;glade"/>
