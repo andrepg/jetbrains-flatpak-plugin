@@ -171,6 +171,7 @@ class GtkBuilderToolRunner(
         for (resource in SOURCE_RESOURCES) {
             val fileName = resource.removePrefix("/")
             val target = configDir.resolve(fileName)
+            target.parentFile?.mkdirs()
             val stream =
                 javaClass.getResourceAsStream(resource)
                     ?: error("Renderer source not found on classpath: $resource")
@@ -206,7 +207,7 @@ class GtkBuilderToolRunner(
         val makeArgs =
             arrayOf(
                 "-C",
-                configDir.absolutePath,
+                configDir.resolve("compiler").absolutePath,
                 "TARGET=${binary.absolutePath}",
             )
 
