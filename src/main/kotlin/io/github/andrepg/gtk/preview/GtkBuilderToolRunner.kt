@@ -13,18 +13,20 @@ import java.nio.file.Path
 /**
  * Compiles and invokes the headless GTK4 `.ui` → PNG renderer.
  *
- * The renderer is a small C program split across three source modules:
+ * The renderer is a small C program split across three source modules plus a
+ * Makefile:
  *   - `gtk-preview-render.c` — CLI entry point
  *   - `preview-render.c` — GTK4 load/present/snapshot pipeline
  *   - `ui-xml.c` — pure-GLib XML preprocessing (template rewrite, drop rules)
+ *   - `Makefile` — compiles the three sources inside the SDK via `make`
  *
  * All sources are shipped as classpath resources.  On first use they are
  * extracted and compiled together inside the GNOME Flatpak SDK via
- * `flatpak run`, which provides the GTK4/libadwaita headers and libraries
- * without requiring `-devel` packages on the host.  The resulting binary
- * is cached in [configDir] so subsequent invocations skip compilation
- * entirely.  A SHA-256 over all source files detects stale caches after
- * a plugin update.
+ * `flatpak run --command=make`, which provides the GTK4/libadwaita headers
+ * and libraries without requiring `-devel` packages on the host.  The
+ * resulting binary is cached in [configDir] so subsequent invocations skip
+ * compilation entirely.  A SHA-256 over all source files detects stale
+ * caches after a plugin update.
  *
  * @property runner process runner used to execute flatpak and shell commands
  * @property flatpakBinary path to the `flatpak` CLI binary (from plugin settings)
@@ -196,26 +198,19 @@ class GtkBuilderToolRunner(
         binary: File,
         branch: String,
     ) {
-        val sourceFiles = SOURCE_RESOURCES
-            .filter { it.endsWith(".c") }
-            .joinToString(" ") { configDir.resolve(it.removePrefix("/")).absolutePath }
-        val compileScript =
-            buildString {
-                append("gcc -o ")
-                append(binary.absolutePath)
-                append(" ")
-                append(sourceFiles)
-                append(" \$(pkg-config --cflags gtk4 libadwaita-1)")
-                append(" ")
-                append("\$(pkg-config --libs gtk4 libadwaita-1)")
-            }
+        val makeArgs =
+            arrayOf(
+                "-C",
+                configDir.absolutePath,
+                "TARGET=${binary.absolutePath}",
+            )
 
         val cmd =
             flatpakRun(
                 env = mapOf("PKG_CONFIG_PATH" to PKG_CONFIG_PATH),
-                command = "/usr/bin/bash",
+                command = "/usr/bin/make",
                 branch = branch,
-                args = arrayOf("-c", compileScript),
+                args = makeArgs,
             )
 
         val result = runner.run(cmd, timeoutMs = TIMEOUT_MS)
@@ -281,13 +276,15 @@ class GtkBuilderToolRunner(
 
     companion object {
         /** All shipped source files, in a fixed order (used for hashing). */
-        private val SOURCE_RESOURCES = listOf(
-            "/ui-xml.h",
-            "/ui-xml.c",
-            "/preview-render.h",
-            "/preview-render.c",
-            "/gtk-preview-render.c",
-        )
+        private val SOURCE_RESOURCES =
+            listOf(
+                "/compiler/Makefile",
+                "/compiler/ui-xml.h",
+                "/compiler/ui-xml.c",
+                "/compiler/preview-render.h",
+                "/compiler/preview-render.c",
+                "/compiler/gtk-preview-render.c",
+            )
         private const val BINARY_NAME = "gtk-preview-render"
         private const val HASH_NAME = "gtk-preview-render.hash"
         private const val TIMEOUT_MS = 30_000L
