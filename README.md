@@ -44,9 +44,9 @@ Features like **Autocompletion**, **Program Execution & Build**, code validation
 ---
 ## Installation
 
-This plugin can be installed from the JetBrains Marketplace or from your IDE plugin manager.
-
-<iframe width="245px" height="48px" src="https://plugins.jetbrains.com/embeddable/install/33572"></iframe>
+This plugin can be installed from the 
+[JetBrains Marketplace](https://plugins.jetbrains.com/plugin/33572-flatpak-devtools) or 
+from your IDE plugin manager.
 
 ## Plugin Development
 
@@ -54,7 +54,7 @@ The plugin development is made in Kotlin and Gradle. You are welcome to make PRs
 
 ### System & IDE prerequisites
 
-- Intellij IDEA 2026.1
+- IntelliJ IDEA 2026.1
 - Grade 9.6 / Groovy 4.0
 - [Plugin DevKit](https://plugins.jetbrains.com/plugin/22851-plugin-devkit)
 - [Ktlint](https://plugins.jetbrains.com/plugin/15057-ktlint)
