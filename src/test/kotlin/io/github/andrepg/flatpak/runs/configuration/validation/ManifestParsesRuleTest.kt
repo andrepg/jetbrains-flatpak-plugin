@@ -8,6 +8,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
 import java.io.File
+
 class ManifestParsesRuleTest {
     private val rule = ManifestParsesRule()
 
@@ -72,7 +73,11 @@ class ManifestParsesRuleTest {
         name: String = "org.example.App.json",
         block: (File) -> Unit,
     ) {
-        val dir = File.createTempFile("parses-rule", ".dir").apply { delete(); mkdirs() }
+        val dir =
+            File.createTempFile("parses-rule", ".dir").apply {
+                delete()
+                mkdirs()
+            }
         try {
             block(File(dir, name).apply { writeText(content) })
         } finally {

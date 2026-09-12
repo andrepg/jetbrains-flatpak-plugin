@@ -9,6 +9,7 @@ import com.intellij.openapi.progress.ProgressIndicator
 import com.intellij.openapi.progress.ProgressManager
 import com.intellij.openapi.progress.Task
 import com.intellij.openapi.project.Project
+import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.GtkBuilderToolRunner
 import io.github.andrepg.gtk.preview.GtkPreviewNotifications
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
@@ -124,8 +125,7 @@ class GtkPreviewRenderAction(
 
     private fun findActiveUiFile(project: Project): java.nio.file.Path? {
         val file = FileEditorManager.getInstance(project).selectedEditor?.file ?: return null
-        val ext = file.extension?.lowercase()
-        if (ext != "ui" && ext != "glade") return null
+        if (!isGtkUiFile(file.name)) return null
         return Paths.get(file.path)
     }
 

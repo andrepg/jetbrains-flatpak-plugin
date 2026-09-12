@@ -8,7 +8,6 @@ import io.github.andrepg.flatpak.runs.cleanup.DeepCleanExecutor
 import io.github.andrepg.flatpak.runs.cleanup.StaleFuseMountCleaner
 import io.github.andrepg.flatpak.runs.commands.CommandExecutionArguments
 import io.github.andrepg.flatpak.runs.commands.CommandExecutionEngine
-import io.github.andrepg.flatpak.runs.commands.CommandExecutionStrategy
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
 import io.github.andrepg.shared.log.Log
 import java.io.File
@@ -27,7 +26,7 @@ class FlatpakRunner(
     private val log = Log.getInstance(FlatpakRunner::class.java)
 
     private val engine = CommandExecutionEngine(environment.project)
-    private val strategy = CommandExecutionStrategy().mapUserCommandToInternal(config.command)
+    private val command: UserVisibleCommand get() = config.command
 
     /**
      * Composes the Flatpak command line and starts the underlying process chain.
@@ -37,7 +36,7 @@ class FlatpakRunner(
     override fun startProcess(): ProcessHandler {
         log.info(generateArgumentsLogString(config))
 
-        val commandLine = engine.buildCommand(strategy, config)
+        val commandLine = engine.buildCommand(command, config)
         val generalCommandLine =
             engine
                 .toGeneralCommandLine(commandLine)
@@ -61,7 +60,7 @@ class FlatpakRunner(
 
         return CommandChainProcessHandler(
             commandLines = listOf(generalCommandLine),
-            commandSteps = listOf(strategy),
+            commandSteps = listOf(command),
             engine = engine,
             preSteps = preSteps,
         )
@@ -93,12 +92,6 @@ class FlatpakRunner(
     private fun sweepScopeRoots(): List<File> =
         listOfNotNull(
             environment.project.basePath?.let(::File),
-            resolveBuildDir(),
+            config.buildDirFile(environment.project.basePath),
         )
-
-    /** Build dir resolved against the project root, mirroring [DeepCleanExecutor]. */
-    private fun resolveBuildDir(): File {
-        val buildDir = File(config.buildDir)
-        return if (buildDir.isAbsolute) buildDir else File(environment.project.basePath, config.buildDir)
-    }
 }

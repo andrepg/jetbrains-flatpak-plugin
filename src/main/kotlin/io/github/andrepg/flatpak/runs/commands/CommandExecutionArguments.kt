@@ -33,7 +33,7 @@ data object CommandExecutionArguments {
      * session or system bus at all (flatpak-builder's `--run` starts with an
      * empty context). `flatpak run` maps `--socket=session-bus` to the host's
      * flatpak bus proxy, so the sockets only work when the host actually
-     * exposes one (see [hostHasFlatpakBus]). [RunCommandFactory] adds them
+     * exposes one (see [hostHasFlatpakBus]). The engine adds them to the RUN
      * before the opt-in flags when the bus is available, and skips them
      * otherwise — the app then gets flatpak's filtered default bus, matching
      * what GNOME Builder does.

@@ -1,8 +1,9 @@
 package io.github.andrepg.gtk.schema.locator
 
 import io.github.andrepg.shared.log.Log
+import io.github.andrepg.shared.process.CommandRunner
+import io.github.andrepg.shared.process.DefaultProcessRunner
 import io.github.andrepg.shared.process.FlatpakRuntimeRow
-import io.github.andrepg.shared.process.ProcessRunner
 import io.github.andrepg.shared.process.parseFlatpakRuntimeList
 import java.io.File
 
@@ -19,6 +20,9 @@ import java.io.File
 object GirSdkLocator {
     private val log = Log.getInstance(GirSdkLocator::class.java)
 
+    /** Canonical application-id of the GNOME SDK shipped with the schema files. */
+    internal const val SDK_APP_ID = "org.gnome.Sdk"
+
     /**
      * SDK runtimes known to ship the GIR files the schema generator needs.
      * Curated like [io.github.andrepg.gtk.schema.gir.SchemaPatches]: anything
@@ -27,7 +31,7 @@ object GirSdkLocator {
      */
     internal val supportedSdks: List<String> =
         listOf(
-            "org.gnome.Sdk",
+            SDK_APP_ID,
         )
 
     /**
@@ -37,11 +41,13 @@ object GirSdkLocator {
      * @param sdkAppId the SDK app-id to look for (e.g. `org.gnome.Sdk`); null/blank disables discovery
      * @param branchHint preferred branch (e.g. `50`); null falls back to the highest numeric branch
      * @param flatpakBinary path of the flatpak CLI binary
+     * @param runner process runner used for the flatpak CLI invocations
      */
     fun locate(
         sdkAppId: String?,
         branchHint: String?,
         flatpakBinary: String,
+        runner: CommandRunner = DefaultProcessRunner,
     ): File? {
         if (sdkAppId.isNullOrBlank()) return null
         if (sdkAppId !in supportedSdks) {
@@ -54,6 +60,7 @@ object GirSdkLocator {
         val flatpakRuntimes =
             runProcess(
                 listOf(flatpakBinary, "list", "--runtime", "--columns=application,branch,installation"),
+                runner,
             )
         if (flatpakRuntimes == null) {
             log.debug("flatpak CLI unavailable; no schema will be served")
@@ -66,7 +73,7 @@ object GirSdkLocator {
             return null
         }
 
-        return cliGirDir(sdkAppId, branch, flatpakBinary).also { girDir ->
+        return cliGirDir(sdkAppId, branch, flatpakBinary, runner).also { girDir ->
             if (girDir != null) log.info("Resolved $sdkAppId@$branch via flatpak CLI")
         }
     }
@@ -95,9 +102,10 @@ object GirSdkLocator {
         sdkAppId: String,
         branch: String,
         flatpakBinary: String,
+        runner: CommandRunner = DefaultProcessRunner,
     ): File? {
         val location =
-            runProcess(listOf(flatpakBinary, "info", "--show-location", "$sdkAppId//$branch"))
+            runProcess(listOf(flatpakBinary, "info", "--show-location", "$sdkAppId//$branch"), runner)
                 ?.trim()
                 ?.takeIf { it.isNotEmpty() }
                 ?: return null
@@ -109,7 +117,8 @@ object GirSdkLocator {
 
     private fun numericBranch(branch: String): Int = branch.toIntOrNull() ?: -1
 
-    private fun runProcess(command: List<String>): String? = ProcessRunner.run(command, timeoutMs = TIMEOUT_MS)?.stdout
+    private fun runProcess(command: List<String>, runner: CommandRunner): String? =
+        runner.run(command, TIMEOUT_MS)?.stdout
 
     private const val TIMEOUT_MS = 10_000L
 }

@@ -5,6 +5,7 @@ import com.intellij.openapi.roots.ProjectRootManager
 import com.intellij.openapi.vfs.VfsUtilCore
 import com.intellij.openapi.vfs.VirtualFile
 import com.intellij.openapi.vfs.VirtualFileVisitor
+import io.github.andrepg.flatpak.runs.FlatpakDefaults
 import io.github.andrepg.flatpak.utils.FlatpakManifestReader
 import io.github.andrepg.flatpak.utils.FlatpakManifestVfsReader
 import io.github.andrepg.shared.log.Log
@@ -30,7 +31,7 @@ object FlatpakProjectDetector {
         setOf(
             ".git",
             "build",
-            "_build",
+            FlatpakDefaults.BUILD_DIR.value,
             "out",
             "node_modules",
             "target",

@@ -6,6 +6,7 @@ import com.intellij.execution.configurations.ConfigurationTypeUtil
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.VirtualFile
 import io.github.andrepg.flatpak.exception.FlatpakConfigurationException
+import io.github.andrepg.flatpak.runs.FlatpakDefaults
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.log.Log
@@ -40,6 +41,22 @@ class FlatpakRunGenerator {
         ): String = Localization.message("runs.configuration.name", command.name.lowercase(), appId)
 
         /**
+         * Populates a newly created Flatpak run configuration for [file].
+         * Shared by [createForManifest] and the run-configuration producer so
+         * both entry points build the same `[build] <app-id>` configuration.
+         */
+        fun configureForManifest(
+            configuration: FlatpakRunSettings,
+            file: VirtualFile,
+            appId: String,
+        ) {
+            configuration.command = UserVisibleCommand.BUILD
+            configuration.manifestPath = file.path
+            configuration.buildDir = FlatpakDefaults.BUILD_DIR.value
+            configuration.name = formatRunName(UserVisibleCommand.BUILD, appId)
+        }
+
+        /**
          * Creates a `[build] <app-id>` run configuration for [file], reusing the existing one when a
          * configuration with the same [VirtualFile] is already registered.
          *
@@ -63,9 +80,7 @@ class FlatpakRunGenerator {
                     factory(),
                 )
             val configuration = settings.configuration as FlatpakRunSettings
-            configuration.command = UserVisibleCommand.BUILD
-            configuration.manifestPath = file.path
-            configuration.buildDir = FlatpakRunSettingsAttributes().buildDir ?: "_build"
+            configureForManifest(configuration, file, appId)
             runManager.addConfiguration(settings)
             log.info("Created run configuration '$name' for ${file.path}")
             return settings

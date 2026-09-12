@@ -8,7 +8,7 @@ import com.intellij.execution.process.ProcessListener
 import com.intellij.execution.process.ProcessOutputTypes
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
-import io.github.andrepg.flatpak.runs.InternalCommand
+import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.commands.CommandExecutionEngine
 import io.github.andrepg.shared.log.Log
 import java.io.OutputStream
@@ -26,7 +26,7 @@ import java.io.OutputStream
 class CommandChainProcessHandler(
     private val commandLines: List<GeneralCommandLine>,
     private val engine: CommandExecutionEngine,
-    private val commandSteps: List<InternalCommand>,
+    private val commandSteps: List<UserVisibleCommand>,
     private val preSteps: List<PreStep> = emptyList(),
 ) : ProcessHandler() {
     private val log = Log.getInstance(CommandChainProcessHandler::class.java)
@@ -92,7 +92,7 @@ class CommandChainProcessHandler(
             return
         }
 
-        val label = commandSteps.getOrElse(currentIndex) { InternalCommand.CUSTOM }.name
+        val label = commandSteps.getOrElse(currentIndex) { UserVisibleCommand.CUSTOM }.name
         notifyTextAvailable(
             "Running $label: ${commandLines[currentIndex].commandLineString}\n",
             ProcessOutputTypes.SYSTEM,

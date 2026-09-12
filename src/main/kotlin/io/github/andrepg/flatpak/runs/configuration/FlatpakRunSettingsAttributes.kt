@@ -2,6 +2,7 @@ package io.github.andrepg.flatpak.runs.configuration
 
 import com.intellij.util.xmlb.annotations.Attribute
 import com.intellij.execution.configurations.RunConfigurationOptions as BaseOptions
+import io.github.andrepg.flatpak.runs.FlatpakDefaults
 
 /**
  * Options for [FlatpakRunSettings], following the documented
@@ -10,10 +11,10 @@ import com.intellij.execution.configurations.RunConfigurationOptions as BaseOpti
  */
 class FlatpakRunSettingsAttributes : BaseOptions() {
     @get:Attribute("flatpakManifest")
-    var flatpakManifest: String? by string("flatpak.json")
+    var flatpakManifest: String? by string(FlatpakDefaults.MANIFEST_FILE.value)
 
     @get:Attribute("buildDir")
-    var buildDir: String? by string("_build")
+    var buildDir: String? by string(FlatpakDefaults.BUILD_DIR.value)
 
     @get:Attribute("command")
     var command: String? by string("BUILD")

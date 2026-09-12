@@ -26,24 +26,6 @@ object EscapeTables {
         }
     }
 
-    /** JSON string escaping: quote/backslash escapes plus `\uXXXX` control chars. */
-    private val JSON_ESCAPES: Map<Char, String> =
-        mapOf(
-            '"' to "\\\"",
-            '\\' to "\\\\",
-            '\n' to "\\n",
-            '\r' to "\\r",
-            '\t' to "\\t",
-            '\b' to "\\b",
-            '\u000C' to "\\f",
-        )
-
-    /** Escapes [value] for embedding inside a JSON string literal. */
-    fun json(value: CharSequence): String =
-        escape(value, JSON_ESCAPES) { ch ->
-            if (ch.code < 0x20) "\\u%04x".format(ch.code) else null
-        }
-
     /** XML character escaping for attribute values. */
     private val XML_ESCAPES: Map<Char, String> =
         mapOf(

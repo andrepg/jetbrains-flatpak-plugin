@@ -180,6 +180,7 @@ class RunConfigurationValidatorTest {
         val throwing =
             object : ValidationRule {
                 override val id = "throwing"
+
                 override fun check(
                     config: FlatpakRunSettings,
                     basePath: String?,

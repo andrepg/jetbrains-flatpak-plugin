@@ -1,8 +1,6 @@
 package io.github.andrepg.shared.diagnostics
 
 import com.intellij.ide.AppLifecycleListener
-import com.intellij.openapi.components.service
-import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
 import io.github.andrepg.shared.log.Log
 import io.github.andrepg.shared.log.LogConfiguration
 import io.github.andrepg.shared.sentry.SentryGuard
@@ -32,7 +30,7 @@ class DiagnosticsInitializer : AppLifecycleListener {
     fun applyRuntimeConfiguration() {
         val debugEnabled =
             LogConfiguration.isDebugRequested() ||
-                service<FlatpakGlobalSettingsState>().debugLoggingEnabled
+                DiagnosticsSettings.debugLoggingEnabled
         LogConfiguration.setDebugEnabled(debugEnabled)
 
         var sentryActive = false

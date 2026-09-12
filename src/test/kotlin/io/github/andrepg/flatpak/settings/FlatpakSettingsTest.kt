@@ -1,7 +1,6 @@
 package io.github.andrepg.flatpak.settings
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Test
 
 /**
@@ -14,11 +13,5 @@ class FlatpakSettingsTest {
     fun `falls back to default binaries without an IDE application`() {
         assertEquals(DefaultFlatpakPaths.MAIN_BINARY, FlatpakSettings.flatpakBinary)
         assertEquals(DefaultFlatpakPaths.BUILDER_BINARY, FlatpakSettings.builderBinary)
-    }
-
-    @Test
-    fun `falls back to disabled flags without an IDE application`() {
-        assertFalse(FlatpakSettings.sentryEnabled)
-        assertFalse(FlatpakSettings.debugLoggingEnabled)
     }
 }
