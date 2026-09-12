@@ -17,14 +17,15 @@ import io.github.andrepg.shared.diagnostics.DiagnosticsSettingsState
 import javax.swing.JComponent
 
 /**
- * Settings page for the Flatpak binary paths and diagnostics.
+ * IDE-level settings page for the plugin: Flatpak binary paths and diagnostics.
  *
- * Backed by the persisted [FlatpakGlobalSettingsState] application service:
- * [reset] loads the current values, [apply] writes them back. Applying the
- * Diagnostics group reconfigures the runtime (debug logging level + Sentry
- * client) immediately, no IDE restart needed.
+ * Backed by the persisted [FlatpakGlobalSettingsState] and
+ * [DiagnosticsSettingsState] application services: [reset] loads the current
+ * values, [apply] writes them back. Applying the Diagnostics group reconfigures
+ * the runtime (debug logging level + Sentry client) immediately, no IDE
+ * restart needed.
  */
-class FlatpakSettingsConfigurable : Configurable {
+class DevToolsSettingsConfigurable : Configurable {
     private val settings = service<FlatpakGlobalSettingsState>()
     private val diagnostics = service<DiagnosticsSettingsState>()
 
@@ -33,37 +34,37 @@ class FlatpakSettingsConfigurable : Configurable {
     private lateinit var sentryCheck: JBCheckBox
     private lateinit var debugCheck: JBCheckBox
 
-    override fun getDisplayName(): String = "Flatpak"
+    override fun getDisplayName(): String = Localization.message("settings.devtools.title")
 
     override fun createComponent(): JComponent =
         panel {
-            group(Localization.message("settings.flatpak.binaries.title")) {
+            group(Localization.message("settings.devtools.binaries.title")) {
                 flatpakField =
                     browseTextFieldRow(
-                        label = Localization.message("settings.flatpak.binaries.flatpak.label"),
+                        label = Localization.message("settings.devtools.binaries.flatpak.label"),
                         project = ProjectManager.getInstance().defaultProject,
-                        comment = Localization.message("settings.flatpak.binaries.flatpak.description"),
+                        comment = Localization.message("settings.devtools.binaries.flatpak.description"),
                         fileChosen = { chosenFile -> chosenFile.path },
                     ).component
 
                 builderField =
                     textFieldRow(
-                        label = Localization.message("settings.flatpak.binaries.flatpak-builder.label"),
-                        comment = Localization.message("settings.flatpak.binaries.flatpak-builder.description"),
+                        label = Localization.message("settings.devtools.binaries.flatpak-builder.label"),
+                        comment = Localization.message("settings.devtools.binaries.flatpak-builder.description"),
                     ).component
             }
 
-            group(Localization.message("settings.flatpak.diagnostics.title")) {
+            group(Localization.message("settings.devtools.diagnostics.title")) {
                 row {
                     sentryCheck =
-                        checkBox(Localization.message("settings.flatpak.diagnostics.sentry.label"))
-                            .comment(Localization.message("settings.flatpak.diagnostics.sentry.description"))
+                        checkBox(Localization.message("settings.devtools.diagnostics.sentry.label"))
+                            .comment(Localization.message("settings.devtools.diagnostics.sentry.description"))
                             .component
                 }
                 row {
                     debugCheck =
-                        checkBox(Localization.message("settings.flatpak.diagnostics.debug.label"))
-                            .comment(Localization.message("settings.flatpak.diagnostics.debug.description"))
+                        checkBox(Localization.message("settings.devtools.diagnostics.debug.label"))
+                            .comment(Localization.message("settings.devtools.diagnostics.debug.description"))
                             .component
                 }
             }

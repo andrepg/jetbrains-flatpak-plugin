@@ -1,6 +1,6 @@
 package io.github.andrepg.gtk
 
-import com.intellij.notification.NotificationGroupManager
+import com.intellij.notification.Notification
 import com.intellij.notification.NotificationType
 import com.intellij.openapi.project.Project
 
@@ -19,11 +19,5 @@ internal object GtkNotifications {
         title: String,
         content: String,
         type: NotificationType,
-    ) {
-        NotificationGroupManager
-            .getInstance()
-            .getNotificationGroup(groupId)
-            .createNotification(title, content, type)
-            .notify(project)
-    }
+    ) = Notification(groupId, title, content, type).notify(project)
 }

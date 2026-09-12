@@ -6,13 +6,13 @@ import com.intellij.ui.components.JBTextField
 import com.intellij.util.ui.UIUtil
 import io.github.andrepg.flatpak.settings.FlatpakGlobalSettingsState
 
-class FlatpakSettingsConfigurableTest : BasePlatformTestCase() {
+class DevToolsSettingsConfigurableTest : BasePlatformTestCase() {
     fun `test apply persists to the real service and reset restores`() {
         val settings = service<FlatpakGlobalSettingsState>()
         val previousFlatpak = settings.flatpakBinaryPath
         val previousBuilder = settings.flatpakBuilderBinaryPath
         try {
-            val configurable = FlatpakSettingsConfigurable()
+            val configurable = DevToolsSettingsConfigurable()
             val component = configurable.createComponent()
             val fields = UIUtil.findComponentsOfType(component, JBTextField::class.java)
             assertEquals("two text fields expected", 2, fields.size)
