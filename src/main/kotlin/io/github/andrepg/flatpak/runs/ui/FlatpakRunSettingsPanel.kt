@@ -82,7 +82,13 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
                         // One argument per line — each line is trimmed and passed as a separate CLI arg.
                         customArgumentsField =
                             expandableTextField(
-                                { text: String -> text.lines().map(String::trim).filter(String::isNotBlank).toMutableList() },
+                                { text: String ->
+                                    text
+                                        .lines()
+                                        .map(String::trim)
+                                        .filter(String::isNotBlank)
+                                        .toMutableList()
+                                },
                                 { values: List<String> -> values.joinToString("\n") },
                             ).component
                     }
@@ -183,7 +189,8 @@ class FlatpakRunSettingsPanel : SettingsEditor<FlatpakRunSettings>() {
         val command = commandComboBox.item ?: UserVisibleCommand.BUILD
         cleanupGroupRow?.visible(command == UserVisibleCommand.BUILD)
         portalsGroupRow?.visible(command == UserVisibleCommand.RUN)
-        customArgumentsRow?.visible(command == UserVisibleCommand.CUSTOM)
+        customArgumentsRow
+            ?.visible(command == UserVisibleCommand.CUSTOM)
             ?.enabled(command == UserVisibleCommand.CUSTOM)
     }
 

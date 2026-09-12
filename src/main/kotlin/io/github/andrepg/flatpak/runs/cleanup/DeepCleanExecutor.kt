@@ -52,7 +52,8 @@ class DeepCleanExecutor {
     ): Boolean {
         val virtualFile = LocalFileSystem.getInstance().refreshAndFindFileByIoFile(target) ?: return true
         var failure: IOException? = null
-        WriteCommandAction.writeCommandAction(project)
+        WriteCommandAction
+            .writeCommandAction(project)
             .withName("Deep clean")
             .run<RuntimeException> {
                 if (virtualFile.exists()) {

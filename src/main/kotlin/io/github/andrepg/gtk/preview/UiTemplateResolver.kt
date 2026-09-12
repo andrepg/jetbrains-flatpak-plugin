@@ -50,7 +50,6 @@ import javax.xml.transform.stream.StreamResult
  * unit-testable outside the IDE.
  */
 object UiTemplateResolver {
-
     private val log = Log.getInstance(UiTemplateResolver::class.java)
 
     /**
@@ -65,12 +64,15 @@ object UiTemplateResolver {
 
     private val UI_EXTENSIONS = setOf("ui", "glade")
 
-    /* `internal` so same-module tests can inspect the registry directly. */
-    internal data class TemplateInfo(val parent: String, val sourcePath: Path)
+    // `internal` so same-module tests can inspect the registry directly.
+    internal data class TemplateInfo(
+        val parent: String,
+        val sourcePath: Path,
+    )
 
-    /* ------------------------------------------------------------------ */
-    /*  Public API                                                         */
-    /* ------------------------------------------------------------------ */
+    // ------------------------------------------------------------------
+    // Public API
+    // ------------------------------------------------------------------
 
     /**
      * Scans [projectBasePath] for `.ui`/`.glade` files containing
@@ -85,7 +87,10 @@ object UiTemplateResolver {
      * @param projectBasePath root of the project (template files are scanned from here)
      * @return resolved XML string (or the original on parse failure / no templates)
      */
-    fun resolve(uiContent: String, projectBasePath: Path): String {
+    fun resolve(
+        uiContent: String,
+        projectBasePath: Path,
+    ): String {
         val registry = buildTemplateRegistry(projectBasePath)
         if (registry.isEmpty()) return uiContent
 
@@ -95,9 +100,9 @@ object UiTemplateResolver {
         return if (changed) serialize(doc) else uiContent
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Template registry                                                  */
-    /* ------------------------------------------------------------------ */
+    // ------------------------------------------------------------------
+    // Template registry
+    // ------------------------------------------------------------------
 
     internal fun buildTemplateRegistry(projectBasePath: Path): Map<String, TemplateInfo> {
         if (!Files.isDirectory(projectBasePath)) return emptyMap()
@@ -129,21 +134,21 @@ object UiTemplateResolver {
         return registry
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Tree walker + expander                                             */
-    /* ------------------------------------------------------------------ */
+    // ------------------------------------------------------------------
+    // Tree walker + expander
+    // ------------------------------------------------------------------
 
 /**
- * Depth-first walk.  For each `<object>` element whose `class` attribute
- * is in the template registry (and not currently being expanded — cycle
- * guard) the element is replaced with the template's parent class,
- * inherited properties and inlined children.  After expansion the newly
- * inserted children are processed for further template references at
- * depth + 1.
- *
- * @return `true` if at least one element was expanded (document mutated).
- */
-private fun processElement(
+     * Depth-first walk.  For each `<object>` element whose `class` attribute
+     * is in the template registry (and not currently being expanded — cycle
+     * guard) the element is replaced with the template's parent class,
+     * inherited properties and inlined children.  After expansion the newly
+     * inserted children are processed for further template references at
+     * depth + 1.
+     *
+     * @return `true` if at least one element was expanded (document mutated).
+     */
+    private fun processElement(
         element: Element,
         registry: Map<String, TemplateInfo>,
         expanding: MutableSet<String>,
@@ -177,9 +182,9 @@ private fun processElement(
         return anyChanged
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  DOM mutation                                                       */
-    /* ------------------------------------------------------------------ */
+    // ------------------------------------------------------------------
+    // DOM mutation
+    // ------------------------------------------------------------------
 
     /**
      * Replaces the class and children of [el] with the content of the
@@ -191,7 +196,10 @@ private fun processElement(
      * from the template are deep-cloned and appended before the target's own
      * children.  All imported elements have their `id` attributes stripped.
      */
-    private fun expandElement(el: Element, templateInfo: TemplateInfo) {
+    private fun expandElement(
+        el: Element,
+        templateInfo: TemplateInfo,
+    ) {
         val doc = el.ownerDocument
         val className = el.getAttribute("class")
 
@@ -241,11 +249,14 @@ private fun processElement(
         }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  Helpers                                                            */
-    /* ------------------------------------------------------------------ */
+    // ------------------------------------------------------------------
+    // Helpers
+    // ------------------------------------------------------------------
 
-    private fun findTemplateElement(doc: Document, className: String): Element? {
+    private fun findTemplateElement(
+        doc: Document,
+        className: String,
+    ): Element? {
         val templates = doc.getElementsByTagName("template")
         for (i in 0 until templates.length) {
             val el = templates.item(i) as? Element ?: continue
@@ -286,9 +297,9 @@ private fun processElement(
         return UI_EXTENSIONS.any { name.endsWith(".$it") }
     }
 
-    /* ------------------------------------------------------------------ */
-    /*  XML I/O                                                            */
-    /* ------------------------------------------------------------------ */
+    // ------------------------------------------------------------------
+    // XML I/O
+    // ------------------------------------------------------------------
 
     private fun parseXml(content: String): Document? =
         try {

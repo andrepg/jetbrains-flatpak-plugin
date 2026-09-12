@@ -93,8 +93,7 @@ class StaleFuseMountCleaner(
                 if (!entry.type.contains(FUSE_TYPE_MARKER)) return@filter false
                 val canonical = canonicalPath(entry.mountPoint)
                 STATE_DIR_SEGMENT in canonical && bases.any { canonical.startsWith(it) }
-            }
-            .map { it.mountPoint }
+            }.map { it.mountPoint }
             .toList()
     }
 
@@ -173,7 +172,8 @@ class StaleFuseMountCleaner(
                     timeoutMs = UNMOUNT_TIMEOUT_SECONDS * 1000L,
                 )
             if (result == null) {
-                Log.getInstance(StaleFuseMountCleaner::class.java)
+                Log
+                    .getInstance(StaleFuseMountCleaner::class.java)
                     .debug("Unmount command failed: ${command.joinToString(" ")}")
             }
             return result?.exitCode == 0

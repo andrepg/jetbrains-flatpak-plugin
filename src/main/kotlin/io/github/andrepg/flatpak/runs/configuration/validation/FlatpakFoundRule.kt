@@ -45,7 +45,8 @@ class FlatpakFoundRule(
                 return candidate.takeIf { it.isFile && it.canExecute() }
             }
             val pathDirs =
-                System.getenv("PATH")
+                System
+                    .getenv("PATH")
                     ?.split(File.pathSeparator)
                     .orEmpty()
                     .filter { it.isNotBlank() }

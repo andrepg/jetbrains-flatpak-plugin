@@ -117,8 +117,10 @@ object GirSdkLocator {
 
     private fun numericBranch(branch: String): Int = branch.toIntOrNull() ?: -1
 
-    private fun runProcess(command: List<String>, runner: CommandRunner): String? =
-        runner.run(command, TIMEOUT_MS)?.stdout
+    private fun runProcess(
+        command: List<String>,
+        runner: CommandRunner,
+    ): String? = runner.run(command, TIMEOUT_MS)?.stdout
 
     private const val TIMEOUT_MS = 10_000L
 }

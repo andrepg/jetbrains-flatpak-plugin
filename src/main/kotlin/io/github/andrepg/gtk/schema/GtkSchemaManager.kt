@@ -98,7 +98,10 @@ class GtkSchemaManager(
     /**
      * Locates the GIR dir for [hint], logging success or failure.
      */
-    private fun locateGirDir(hint: SdkHint, flatpakBinary: String): File? {
+    private fun locateGirDir(
+        hint: SdkHint,
+        flatpakBinary: String,
+    ): File? {
         val girDir = GirSdkLocator.locate(hint.sdkAppId, hint.branch, flatpakBinary)
         if (girDir == null) {
             log.warn(Messages.GIR_DIR_NOT_FOUND.format(describe(hint)))
@@ -129,7 +132,10 @@ class GtkSchemaManager(
      * @return the cached file, or null when the cache dir is not writable
      *   (caller serves no schema)
      */
-    private fun cacheXsd(hint: SdkHint, xsd: String): File? {
+    private fun cacheXsd(
+        hint: SdkHint,
+        xsd: String,
+    ): File? {
         if (!configDir.isDirectory && !configDir.mkdirs()) {
             log.warn(Messages.CACHE_WRITE_FAILED.format(configDir.absolutePath))
             return null

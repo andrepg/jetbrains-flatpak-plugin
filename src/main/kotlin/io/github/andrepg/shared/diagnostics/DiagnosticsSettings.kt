@@ -9,8 +9,7 @@ import com.intellij.openapi.application.ApplicationManager
  * `false` when no IDE application exists (headless unit tests).
  */
 object DiagnosticsSettings {
-    private fun state(): DiagnosticsSettingsState? =
-        ApplicationManager.getApplication()?.getService(DiagnosticsSettingsState::class.java)
+    private fun state(): DiagnosticsSettingsState? = ApplicationManager.getApplication()?.getService(DiagnosticsSettingsState::class.java)
 
     /** Opt-in anonymous error reporting via Sentry. */
     val sentryEnabled: Boolean

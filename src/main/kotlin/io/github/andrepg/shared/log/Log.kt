@@ -18,7 +18,9 @@ import java.util.logging.Logger as JdkLogger
  * observe every recorded event. Listeners must be fast and are isolated so a
  * misbehaving one never breaks the caller.
  */
-class Log private constructor(private val jdk: JdkLogger) {
+class Log private constructor(
+    private val jdk: JdkLogger,
+) {
     /** Logger category, typically the owning class name. */
     val category: String get() = jdk.name
 

@@ -14,7 +14,9 @@ import io.github.andrepg.shared.log.Log
 /**
  * Suggests a `Run '[build] <app-id>'` action when a Flatpak manifest is right-clicked.
  */
-class RunManifestProducer : LazyRunConfigurationProducer<FlatpakRunSettings>(), DumbAware {
+class RunManifestProducer :
+    LazyRunConfigurationProducer<FlatpakRunSettings>(),
+    DumbAware {
     private val log = Log.getInstance(RunManifestProducer::class.java)
 
     override fun setupConfigurationFromContext(

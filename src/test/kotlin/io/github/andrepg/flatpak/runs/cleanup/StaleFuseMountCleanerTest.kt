@@ -20,8 +20,7 @@ class StaleFuseMountCleanerTest {
 
     private fun mounts(vararg lines: String) = lines.joinToString("\n") + "\n"
 
-    private fun fuseLine(mountPoint: String) =
-        realFormatLine("rofiles", mountPoint, "fuse.rofiles.rofiles")
+    private fun fuseLine(mountPoint: String) = realFormatLine("rofiles", mountPoint, "fuse.rofiles.rofiles")
 
     private fun realFormatLine(
         device: String,
@@ -73,10 +72,11 @@ class StaleFuseMountCleanerTest {
             val reports = mutableListOf<String>()
             val cleaner =
                 StaleFuseMountCleaner(
-                    mountsSupplier = sequenced(
-                        mounts(fuseLine(mountPoint)),
-                        mounts(),
-                    ),
+                    mountsSupplier =
+                        sequenced(
+                            mounts(fuseLine(mountPoint)),
+                            mounts(),
+                        ),
                     unmountRunner = runner,
                 )
 
@@ -103,10 +103,11 @@ class StaleFuseMountCleanerTest {
             val reports = mutableListOf<String>()
             val cleaner =
                 StaleFuseMountCleaner(
-                    mountsSupplier = sequenced(
-                        mounts(fuseLine(mountPoint)),
-                        mounts(),
-                    ),
+                    mountsSupplier =
+                        sequenced(
+                            mounts(fuseLine(mountPoint)),
+                            mounts(),
+                        ),
                     unmountRunner = runner,
                 )
 
@@ -171,10 +172,11 @@ class StaleFuseMountCleanerTest {
                 }
             val cleaner =
                 StaleFuseMountCleaner(
-                    mountsSupplier = sequenced(
-                        mounts(fuseLine(mountPoint)),
-                        mounts(),
-                    ),
+                    mountsSupplier =
+                        sequenced(
+                            mounts(fuseLine(mountPoint)),
+                            mounts(),
+                        ),
                     unmountRunner = runner,
                 )
 
@@ -222,10 +224,11 @@ class StaleFuseMountCleanerTest {
             val reports = mutableListOf<String>()
             val cleaner =
                 StaleFuseMountCleaner(
-                    mountsSupplier = sequenced(
-                        mounts(realFormatLine("rofiles", mountPoint, "rofiles-fuse")),
-                        mounts(),
-                    ),
+                    mountsSupplier =
+                        sequenced(
+                            mounts(realFormatLine("rofiles", mountPoint, "rofiles-fuse")),
+                            mounts(),
+                        ),
                     unmountRunner = runner,
                 )
 
@@ -250,10 +253,11 @@ class StaleFuseMountCleanerTest {
             val reports = mutableListOf<String>()
             val cleaner =
                 StaleFuseMountCleaner(
-                    mountsSupplier = sequenced(
-                        mounts(fuseLine(mountPoint)),
-                        mounts(),
-                    ),
+                    mountsSupplier =
+                        sequenced(
+                            mounts(fuseLine(mountPoint)),
+                            mounts(),
+                        ),
                     unmountRunner = runner,
                 )
 
