@@ -42,13 +42,16 @@ class MutterHeadlessCompositor {
      * @throws IllegalStateException if mutter is not installed, fails to
      *   start, or the socket does not appear within the timeout
      */
-    fun start(width: Int, height: Int) {
+    fun start(
+        width: Int,
+        height: Int,
+    ) {
         check(process == null) { "Compositor already running" }
 
         val runtime = resolveRuntimeDir()
         val display = nextDisplay(runtime)
 
-        log.info("Starting mutter headless ${width}x${height} on $display")
+        log.info("Starting mutter headless ${width}x$height on $display")
 
         val pb =
             ProcessBuilder(
@@ -57,7 +60,7 @@ class MutterHeadlessCompositor {
                 "--no-x11",
                 "--headless",
                 "--virtual-monitor",
-                "${width}x${height}",
+                "${width}x$height",
                 "--wayland-display",
                 display,
             )
@@ -87,7 +90,7 @@ class MutterHeadlessCompositor {
         try {
             waitForSocket(runtime, display)
         } catch (e: Exception) {
-            proc.destroyForcibly()
+            killProcessTree(proc)
             process = null
             _display = null
             _runtimeDir = null
@@ -99,12 +102,22 @@ class MutterHeadlessCompositor {
     fun stop() {
         val proc = process ?: return
         log.info("Stopping mutter headless")
-        proc.destroyForcibly()
+        killProcessTree(proc)
         try {
             proc.waitFor(2, TimeUnit.SECONDS)
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
         }
+
+        // Remove any leftover socket so a stale `wayland-N` name is never
+        // mistaken for a running compositor on the next render.
+        val runtime = _runtimeDir
+        val display = _display
+        if (runtime != null && display != null) {
+            runCatching { Files.deleteIfExists(Paths.get(runtime, display)) }
+                .onFailure { log.info("Could not remove leftover socket: ${it.message}") }
+        }
+
         process = null
         _display = null
         _runtimeDir = null
@@ -114,13 +127,27 @@ class MutterHeadlessCompositor {
     //  Internals                                                          //
     // ------------------------------------------------------------------ //
 
+    /**
+     * Force-kills the whole compositor process chain. `flatpak`-style parent
+     * processes (here `dbus-run-session`) do not propagate termination to
+     * their children, so a plain destroy could orphan the actual `mutter`
+     * compositor — leaving it running in the user's session and holding its
+     * Wayland socket.
+     */
+    private fun killProcessTree(proc: Process) {
+        runCatching { proc.descendants().forEach { it.destroyForcibly() } }
+            .onFailure { log.info("Compositor process tree kill failed: ${it.message}") }
+        proc.destroyForcibly()
+    }
+
     private fun resolveRuntimeDir(): String {
         val dir = System.getenv("XDG_RUNTIME_DIR")
         if (dir != null && File(dir).isDirectory) return dir
 
         // Fallback: resolve UID via `id -u` (portable across Linux distros)
         val uid =
-            DefaultProcessRunner.run(listOf("id", "-u"), timeoutMs = 2_000)
+            DefaultProcessRunner
+                .run(listOf("id", "-u"), timeoutMs = 2_000)
                 ?.stdout
                 ?.trim()
                 ?.takeIf { it.isNotBlank() }
@@ -146,7 +173,10 @@ class MutterHeadlessCompositor {
     /**
      * Polls for the Wayland socket to appear, with a hard timeout.
      */
-    private fun waitForSocket(runtime: String, display: String) {
+    private fun waitForSocket(
+        runtime: String,
+        display: String,
+    ) {
         val socketPath = Paths.get(runtime, display)
         val deadline = System.currentTimeMillis() + SOCKET_TIMEOUT_MS
 
@@ -160,7 +190,10 @@ class MutterHeadlessCompositor {
             val proc = process
             if (proc != null && !proc.isAlive) {
                 val output =
-                    proc.inputStream.bufferedReader().readText().trim()
+                    proc.inputStream
+                        .bufferedReader()
+                        .readText()
+                        .trim()
                 error("Mutter exited early: $output")
             }
 
