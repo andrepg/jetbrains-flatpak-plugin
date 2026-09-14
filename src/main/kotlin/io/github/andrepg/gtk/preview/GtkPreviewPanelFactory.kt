@@ -5,6 +5,7 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.wm.ToolWindow
+import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import io.github.andrepg.gtk.isGtkUiFile
@@ -27,19 +28,26 @@ import javax.swing.JPanel
  * [GtkPreviewPremiumGatePanel] with a subscribe link.
  */
 class GtkPreviewPanelFactory : ToolWindowFactory {
-    private val enablePreview: Boolean = PremiumFeatureGate.isPremiumAvailable()
+    private val shouldEnablePreview: Boolean = PremiumFeatureGate.isPremiumAvailable()
 
     override fun createToolWindowContent(
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        if (!enablePreview) {
+        if (!shouldEnablePreview) {
             createContentWindow(toolWindow, GtkPreviewPremiumGatePanel().panel())
             return
         }
 
         val gtkPreviewPanel = GtkPreviewPanel()
-        val gtkPreviewRenderAction = GtkPreviewRenderAction(gtkPreviewPanel)
+        // The render's first dimension follows the panel's current dock side:
+        // left/right strip → portrait, top/bottom strip → landscape. Read live
+        // so a dock move is honored on the next render.
+        val portraitSide = {
+            toolWindow.anchor == ToolWindowAnchor.LEFT ||
+                toolWindow.anchor == ToolWindowAnchor.RIGHT
+        }
+        val gtkPreviewRenderAction = GtkPreviewRenderAction(gtkPreviewPanel, portraitSide)
 
         createContentWindow(toolWindow, gtkPreviewPanel.panel())
 
