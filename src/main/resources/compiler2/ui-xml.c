@@ -19,7 +19,7 @@
  *   cc -c $(pkg-config --cflags glib-2.0) -o ui-xml.o ui-xml.c
  */
 
-#include <glib.h>
+#include <glib-2.0/glib.h>
 #include "ui-xml.h"
 
 /* ------------------------------------------------------------------ */

@@ -1,7 +1,7 @@
 #ifndef UI_XML_H
 #define UI_XML_H
 
-#include <glib.h>
+#include <glib-2.0/glib.h>
 
 /**
  * Transforms a GTK `.ui` XML string for preview rendering.

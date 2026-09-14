@@ -1,0 +1,3 @@
+[submodule "src/main/resources/compiler"]
+	path = src/main/resources/compiler
+	url = git@github.com:andrepg/gtk-headless-renderer.git

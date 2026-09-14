@@ -11,8 +11,8 @@
  */
 
 #include <stdlib.h>
-#include <adwaita.h>
-#include <graphene.h>
+#include <libadwaita-1/adwaita.h>
+#include <graphene-1.0/graphene.h>
 #include "ui-xml.h"
 #include "preview-render.h"
 

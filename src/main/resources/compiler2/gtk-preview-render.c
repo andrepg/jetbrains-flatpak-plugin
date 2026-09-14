@@ -16,7 +16,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <glib.h>
+#include <glib-2.0/glib.h>
 #include "ui-xml.h"
 #include "preview-render.h"
 
@@ -45,8 +45,11 @@ static int dump_xml(const char *input_path) {
     return EXIT_SUCCESS;
 }
 
-static int render(const char *input_path, const char *output_path,
-                  int width, int height) {
+static int render(const char *input_path,
+                  const char *output_path,
+                  int width,
+                  int height
+  ) {
     GError *error = NULL;
     if (!preview_render_to_png(input_path, output_path, width, height, &error)) {
         if (error) {

@@ -1,7 +1,7 @@
 #ifndef PREVIEW_RENDER_H
 #define PREVIEW_RENDER_H
 
-#include <glib.h>
+#include <glib-2.0/glib.h>
 
 /**
  * Loads a `.ui` file and renders it to a PNG.
