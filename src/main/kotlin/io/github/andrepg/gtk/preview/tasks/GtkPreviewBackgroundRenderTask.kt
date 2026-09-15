@@ -13,21 +13,41 @@ import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.shared.Localization
 import java.nio.file.Files
 import java.nio.file.Path
-import java.time.Instant
-import java.util.Date
 
+/**
+ * Compiles the GTK preview renderer (when needed) and renders the active `.ui`
+ * file to a PNG, then applies the result to the [GtkPreviewPanel].
+ *
+ * All compilation/rendering happens on the background thread in [run]; the
+ * panel is never touched there. The EDT callbacks apply the final state:
+ * [onFinished] swaps in either the rendered image or the failure message, and
+ * [onThrowable] just records the failure so [onFinished] renders the error
+ * panel.
+ */
 class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
     /**
-     * GTK Compiler binary handler to fire and compile interface
+     * GTK compiler binary handler to compile and invoke the renderer.
      */
     private val gtkCompiler: GtkBuilderToolRunner = GtkBuilderToolRunner()
 
     private val configDirectory = GtkPreviewConfig.configDir.toPath()
 
     /**
-     * Content panel to render the output
+     * Content panel to render the output.
      */
     private var rendererPanel: GtkPreviewPanel
+
+    /**
+     * Path of the most recently rendered PNG, produced on the background thread
+     * and consumed by [onFinished] on the EDT.
+     */
+    private var renderedPath: Path? = null
+
+    /**
+     * Human-readable failure reason (no active `.ui` file or a thrown error),
+     * consumed by [onFinished] on the EDT.
+     */
+    private var failureMessage: String? = null
 
     constructor(
         project: Project,
@@ -44,7 +64,7 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
         indicator.isIndeterminate = true
         indicator.text = Localization.message("gtk.preview.compilation.title")
 
-        onStarted()
+        GtkPreviewNotifications.compilationStarted(project)
 
         if (gtkCompiler.needsCompilation()) {
             indicator.text = Localization.message("gtk.preview.compilation.started")
@@ -52,30 +72,38 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
 
         val binary = gtkCompiler.compile()
 
+        val openedFile = getActiveTemplate(project)
+        if (openedFile == null) {
+            failureMessage = Localization.message("gtk.preview.compilation.ui_not_found")
+            return
+        }
+
         indicator.text = Localization.message("gtk.preview.compilation.rendering")
 
-        val openedFile = getActiveTemplate(project) ?: return
-
-        val outputFile = Files.createTempFile(configDirectory, Date.from(Instant.now()).toString(), ".png")
+        val outputFile = Files.createTempFile(configDirectory, "preview-", ".png")
         val (width, height) = RenderDimensions.renderSize(true)
 
-        // TODO Maybe move this to a property to free it later on onSuccess
-        val result = gtkCompiler.render(binary, openedFile, outputFile, width, height)
-
-        System.console().writer().print(result.toString())
+        renderedPath =
+            gtkCompiler.render(
+                binary = binary,
+                uiFile = openedFile,
+                outputPng = outputFile,
+                width = width,
+                height = height,
+                searchDir = openedFile.parent,
+            )
     }
 
-    private fun onStarted() {
-        GtkPreviewNotifications.compilationStarted(project)
-
-        rendererPanel.setLoading(true)
-        rendererPanel.setFailed(false)
-        rendererPanel.refresh()
-    }
-
+    /**
+     * Applies the final state to the panel. Runs on the EDT after [run]
+     * (or [onThrowable]) completes.
+     */
     override fun onFinished() {
         super.onFinished()
         rendererPanel.setLoading(false)
+        rendererPanel.setFailed(failureMessage != null)
+        rendererPanel.errorMessage = failureMessage
+        rendererPanel.renderedImage = renderedPath
         rendererPanel.refresh()
     }
 
@@ -84,28 +112,25 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
     }
 
     /**
-     * Called when runner throws an error
+     * Called when [run] throws an error. Only records the failure so
+     * [onFinished] can render the error panel; the notification is posted here.
      */
     override fun onThrowable(error: Throwable) {
         super.onThrowable(error)
 
         GtkPreviewNotifications.compilationFailed(project, error.message ?: "")
 
-        rendererPanel.setLoading(false)
-        rendererPanel.setFailed(true)
-        rendererPanel.errorMessage = error.localizedMessage
-        rendererPanel.refresh()
+        failureMessage = error.localizedMessage ?: error.message
     }
 
     /**
-     * Get GTK template path from opened editor when is valid
+     * Get GTK template path from the opened editor when valid.
      *
-     * @param project project opened at IDE
+     * @param project project opened at the IDE
      * @return file path or null
      */
     private fun getActiveTemplate(project: Project): Path? {
         val file = FileEditorManager.getInstance(project).selectedEditor?.file ?: return null
-
         return if (isGtkUiFile(file.name)) file.toNioPath() else null
     }
 }
