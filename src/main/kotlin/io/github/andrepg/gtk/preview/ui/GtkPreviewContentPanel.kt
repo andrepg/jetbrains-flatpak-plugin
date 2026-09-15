@@ -1,6 +1,5 @@
 package io.github.andrepg.gtk.preview.ui
 
-import com.intellij.ui.ScrollPaneFactory
 import com.intellij.ui.components.JBLabel
 import java.awt.BorderLayout
 import java.awt.image.BufferedImage
@@ -8,8 +7,8 @@ import java.nio.file.Path
 import javax.imageio.ImageIO
 import javax.swing.BorderFactory
 import javax.swing.ImageIcon
-import javax.swing.JComponent
 import javax.swing.JPanel
+import javax.swing.SwingConstants
 
 /**
  * Displays the rendered GTK preview image.
@@ -28,16 +27,13 @@ class GtkPreviewContentPanel(
 ) {
     fun panel(): JPanel =
         JPanel(BorderLayout()).apply {
-            border = BorderFactory.createEmptyBorder()
-            val component: JComponent =
-                imagePath
-                    ?.let { loadPreview(it) }
-                    ?.let { JBLabel(ImageIcon(it)) }
-                    ?: JBLabel()
-            add(
-                ScrollPaneFactory.createScrollPane(component, true),
-                BorderLayout.CENTER,
-            )
+            border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
+
+            imagePath?.let {
+                val path = loadPreview(it)
+                val imagePanel = JBLabel(ImageIcon(path), SwingConstants.LEFT)
+                add(imagePanel, BorderLayout.CENTER)
+            }
         }
 
     private fun loadPreview(path: Path): BufferedImage? =

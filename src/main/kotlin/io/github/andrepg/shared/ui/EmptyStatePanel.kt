@@ -70,11 +70,13 @@ class EmptyStatePanel(
             layout = BoxLayout(this, BoxLayout.Y_AXIS)
             alignmentX = Component.CENTER_ALIGNMENT
 
-            add(ActionLink(actionText, ActionListener { onAction() }))
+            if (actionText.isNotBlank()) {
+                add(ActionLink(actionText, ActionListener { onAction() }))
 
-            if (!shortcut.isNullOrEmpty()) {
-                add(Box.createHorizontalStrut(8))
-                add(labelShortcut)
+                if (!shortcut.isNullOrEmpty()) {
+                    add(Box.createHorizontalStrut(8))
+                    add(labelShortcut)
+                }
             }
         }
 
@@ -89,8 +91,10 @@ class EmptyStatePanel(
             add(labelTitle)
             add(Box.createVerticalStrut(8))
             add(labelDescription)
-            add(Box.createVerticalStrut(12))
-            add(actionPanel)
+            if (actionText.isNotBlank()) {
+                add(Box.createVerticalStrut(12))
+                add(actionPanel)
+            }
         }
 
     /** Returns the assembled [JPanel]. */
