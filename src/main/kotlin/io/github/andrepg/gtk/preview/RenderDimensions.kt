@@ -1,31 +1,33 @@
 package io.github.andrepg.gtk.preview
 
+import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
+
 /**
- * Maps the GTK Preview tool window's docked side to a default render
- * size for the headless renderer.
+ * Seeds the headless renderer with the GTK Preview panel's current size.
  *
- * A tool window docked on the left/right edge of the IDE is tall (portrait)
- * while one docked on the top/bottom edge is wide (landscape). The renderer
- * snapshot matches that orientation so the first dimension follows the
- * panel's dominant side; the content panel scrolls any overflow.
+ * The renderer snapshot matches the tool window's content area at the moment
+ * the render is scheduled so the preview fills the panel. Because the content
+ * panel scrolls any overflow, a portrait or landscape dock side does not
+ * matter — only the panel's current size.
+ *
+ * The panel size is read on the EDT at the scheduling site of the background
+ * render task, and the resulting pixels are handed to the task, which never
+ * touches Swing.
  */
 internal object RenderDimensions {
-    internal const val PORTRAIT_WIDTH = 600
-    internal const val PORTRAIT_HEIGHT = 800
-
-    internal const val LANDSCAPE_WIDTH = 800
-    internal const val LANDSCAPE_HEIGHT = 600
+    /** Fallback render size when the panel has not been laid out yet. */
+    internal const val DEFAULT_WIDTH = 800
+    internal const val DEFAULT_HEIGHT = 600
 
     /**
-     * @param portrait `true` when the panel occupies a vertical strip of the
-     *   IDE (docked left/right), `false` when it occupies a horizontal strip
-     *   (docked top/bottom).
-     * @return render `(width, height)` in pixels.
+     * @param panel the preview panel whose current size seeds the render
+     * @return render `(width, height)` in pixels; falls back to
+     *   [DEFAULT_WIDTH] x [DEFAULT_HEIGHT] until the panel has a real size
      */
-    internal fun renderSize(portrait: Boolean): Pair<Int, Int> =
-        if (portrait) {
-            PORTRAIT_WIDTH to PORTRAIT_HEIGHT
-        } else {
-            LANDSCAPE_WIDTH to LANDSCAPE_HEIGHT
-        }
+    internal fun renderSize(panel: GtkPreviewPanel): Pair<Int, Int> {
+        val size = panel.panel().size
+        val width = size.width
+        val height = size.height
+        return if (width > 0 && height > 0) width to height else DEFAULT_WIDTH to DEFAULT_HEIGHT
+    }
 }
