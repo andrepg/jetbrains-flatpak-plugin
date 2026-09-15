@@ -8,27 +8,29 @@ import io.github.andrepg.shared.process.CommandRunner
 import io.github.andrepg.shared.process.DefaultProcessRunner
 import io.github.andrepg.shared.process.parseFlatpakRuntimeList
 import java.io.File
+import java.io.IOException
+import java.nio.file.AtomicMoveNotSupportedException
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.nio.file.StandardCopyOption
 
 /**
  * Compiles and invokes the headless GTK4 `.ui` → PNG renderer.
  *
- * The renderer is a small C program split across three source modules plus a
- * Makefile:
- *   - `gtk-preview-render.c` — CLI entry point
- *   - `preview-render.c` — GTK4 load/present/snapshot pipeline
- *   - `ui-xml.c` — pure-GLib XML preprocessing (template rewrite, drop rules)
- *   - `Makefile` — compiles the three sources inside the SDK via `make`
+ * The renderer is a small C program compiled from the classpath resources into
+ * a single binary via `make` inside the SDK:
+ *   - `main.c` — CLI entry point and orchestrator of the preview pipeline
+ *   - `.c` sources under `src/` — XML loading/parsing, normalization
+ *     and snapshot rendering
+ *   - `Makefile` — builds the binary inside the SDK via `make`
  *
- * All sources are shipped as classpath resources.  On first use they are
- * extracted and compiled together inside the GNOME Flatpak SDK via
- * `flatpak run --command=make`, which provides the GTK4/libadwaita headers
- * and libraries without requiring `-devel` packages on the host.  The
- * resulting binary is cached in [configDir] so subsequent invocations skip
- * compilation entirely.  A SHA-256 over all source files detects stale
- * caches after a plugin update.
+ * On first use the sources are extracted and compiled together inside the
+ * GNOME Flatpak SDK via `flatpak run --command=make`, which provides the
+ * GTK4/libadwaita headers and libraries without requiring `-devel` packages on
+ * the host.  The resulting binary is cached in [configDir] so subsequent
+ * invocations skip compilation entirely.  A SHA-256 over all source files
+ * detects stale caches after a plugin update.
  *
  * @property runner process runner used to execute flatpak and shell commands
  * @property flatpakBinary path to the `flatpak` CLI binary (from plugin settings)
@@ -91,7 +93,7 @@ class GtkBuilderToolRunner(
         if (!binary.canExecute()) {
             error("Compilation succeeded but binary is not executable: ${binary.absolutePath}")
         }
-        configDir.resolve(HASH_NAME).writeText(sourceHash())
+        writeHashAtomically(sourceHash())
         log.info("GTK preview renderer compiled: ${binary.absolutePath}")
         return binary
     }
@@ -141,31 +143,17 @@ class GtkBuilderToolRunner(
             log.info("Rendering ${uiFile.fileName} → ${outputPng.fileName}")
 
             val cmd =
-                flatpakRun(
-                    env =
-                        mapOf(
-                            // Pin the Wayland backend so GTK fails instead of
-                            // falling back to the user's session display (which
-                            // would pop windows onto their desktop) whenever the
-                            // private headless socket is unavailable.
-                            "GDK_BACKEND" to "wayland",
-                            "WAYLAND_DISPLAY" to compositor.display,
-                            // Resolve the socket against the exact host runtime
-                            // dir the compositor listens on, regardless of how
-                            // flatpak would otherwise set XDG_RUNTIME_DIR.
-                            "XDG_RUNTIME_DIR" to compositor.runtimeDir,
-                        ),
-                    extraFilesystems = listOf(compositor.runtimeDir),
-                    command = binary.absolutePath,
+                renderCommand(
+                    flatpakBinary = flatpakBinary,
                     branch = branch,
-                    args =
-                        buildList {
-                            add(uiFile.toAbsolutePath().toString())
-                            add(outputPng.toAbsolutePath().toString())
-                            add(width.toString())
-                            add(height.toString())
-                            searchDir?.let { add(it.toAbsolutePath().toString()) }
-                        }.toTypedArray(),
+                    binary = binary,
+                    uiFile = uiFile,
+                    outputPng = outputPng,
+                    width = width,
+                    height = height,
+                    searchDir = searchDir,
+                    display = compositor.display,
+                    runtimeDir = compositor.runtimeDir,
                 )
 
             val result =
@@ -245,13 +233,7 @@ class GtkBuilderToolRunner(
         //     -C <configDir>/compiler build-flatpak TARGET=<configDir>/gtk_embedded_preview
         val compilerDir = configDir.resolve("compiler").absolutePath
 
-        val cmd =
-            FlatpakSandboxRunner.run(
-                flatpakBinary = flatpakBinary,
-                appRef = "${GirSdkLocator.SDK_APP_ID}//$branch",
-                flatpakOptions = listOf("--command=make", "--filesystem=host"),
-                refArguments = listOf("-C", compilerDir, "build-flatpak", "TARGET=${binary.absolutePath}"),
-            )
+        val cmd = compileCommand(flatpakBinary, branch, compilerDir, binary.absolutePath)
 
         log.debug("Building flatpak run: $cmd")
 
@@ -266,13 +248,71 @@ class GtkBuilderToolRunner(
     }
 
     /**
+     * Builds the SDK `make` invocation that compiles the C renderer. Pure
+     * command construction, unit-testable without a flatpak install.
+     */
+    internal fun compileCommand(
+        flatpakBinary: String,
+        branch: String,
+        compilerDir: String,
+        target: String,
+    ): List<String> =
+        FlatpakSandboxRunner.run(
+            flatpakBinary = flatpakBinary,
+            appRef = "${GirSdkLocator.SDK_APP_ID}//$branch",
+            flatpakOptions = listOf("--command=make", "--filesystem=host"),
+            refArguments = listOf("-C", compilerDir, "build-flatpak", "TARGET=$target"),
+        )
+
+    /**
+     * Builds the sandboxed renderer invocation: a `flatpak run` of the compiled
+     * binary inside the GNOME SDK, pinned to the headless compositor's private
+     * Wayland display (no fallback to the user's session display). Pure command
+     * construction, unit-testable without a flatpak install.
+     */
+    internal fun renderCommand(
+        flatpakBinary: String,
+        branch: String,
+        binary: File,
+        uiFile: Path,
+        outputPng: Path,
+        width: Int,
+        height: Int,
+        searchDir: Path?,
+        display: String,
+        runtimeDir: String,
+    ): List<String> =
+        FlatpakSandboxRunner.run(
+            flatpakBinary = flatpakBinary,
+            appRef = "${GirSdkLocator.SDK_APP_ID}//$branch",
+            flatpakOptions =
+                buildList {
+                    add("--filesystem=host")
+                    add("--filesystem=$runtimeDir")
+                    add("--env=GDK_BACKEND=wayland")
+                    add("--env=WAYLAND_DISPLAY=$display")
+                    add("--env=XDG_RUNTIME_DIR=$runtimeDir")
+                    add("--command=${binary.absolutePath}")
+                },
+            refArguments =
+                buildList {
+                    add(uiFile.toAbsolutePath().toString())
+                    add(outputPng.toAbsolutePath().toString())
+                    add(width.toString())
+                    add(height.toString())
+                    searchDir?.let { add(it.toAbsolutePath().toString()) }
+                },
+        )
+
+    /**
      * Detects the installed [GirSdkLocator.SDK_APP_ID] branch by querying the
      * flatpak CLI, reusing [GirSdkLocator.pickBranch] so the schema locator
-     * and the preview tool select the same branch.
+     * and the preview tool select the same branch. The result is cached across
+     * runner instances (a fresh runner is created per render) so a session pays
+     * one `flatpak list` instead of one per render.
      */
-    private fun detectSdkBranch(): String? {
-        val cached = detectedBranch
-        if (cached != null) return cached
+    internal fun detectSdkBranch(): String? {
+        cachedBranch?.let { return it }
 
         val result =
             runner.run(
@@ -287,35 +327,31 @@ class GtkBuilderToolRunner(
                 null,
             )
 
-        detectedBranch = branch
+        cachedBranch = branch
         return branch
     }
 
-    private var detectedBranch: String? = null
-
     /**
-     * Builds a `flatpak run` command targeting the GNOME SDK via the shared
-     * [FlatpakSandboxRunner] so every sandboxed invocation stays consistent.
+     * Mirrors [io.github.andrepg.gtk.schema.GtkSchemaManager]'s cache write:
+     * writes to a temp file and moves it into place atomically so a crash never
+     * leaves a truncated hash that would force an unnecessary recompile.
      */
-    private fun flatpakRun(
-        env: Map<String, String> = emptyMap(),
-        extraFilesystems: List<String> = emptyList(),
-        command: String,
-        branch: String,
-        vararg args: String,
-    ): List<String> =
-        FlatpakSandboxRunner.run(
-            flatpakBinary = flatpakBinary,
-            appRef = "${GirSdkLocator.SDK_APP_ID}//$branch",
-            flatpakOptions =
-                buildList {
-                    add("--filesystem=host")
-                    extraFilesystems.forEach { fs -> add("--filesystem=$fs") }
-                    env.forEach { (k, v) -> add("--env=$k=$v") }
-                    add("--command=$command")
-                },
-            refArguments = args.toList(),
-        )
+    private fun writeHashAtomically(hash: String) {
+        val target = configDir.resolve(HASH_NAME)
+        val temp = Files.createTempFile(configDir.toPath(), target.name, ".tmp")
+        try {
+            Files.write(temp, hash.toByteArray())
+            try {
+                Files.move(temp, target.toPath(), StandardCopyOption.ATOMIC_MOVE)
+            } catch (_: AtomicMoveNotSupportedException) {
+                Files.move(temp, target.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
+        } catch (e: IOException) {
+            log.warn("Failed to write renderer source hash: ${e.message}")
+        } finally {
+            runCatching { Files.deleteIfExists(temp) }
+        }
+    }
 
     companion object {
         /** All shipped source files, in a fixed order (used for hashing). */
@@ -341,5 +377,13 @@ class GtkBuilderToolRunner(
         private const val BINARY_NAME = "gtk_embedded_preview"
         private const val HASH_NAME = "gtk_embedded_preview.hash"
         private const val TIMEOUT_MS = 30_000L
+
+        /** SDK branch shared across runner instances; reset is test-only. */
+        @Volatile
+        private var cachedBranch: String? = null
+
+        internal fun clearCachedBranchForTests() {
+            cachedBranch = null
+        }
     }
 }

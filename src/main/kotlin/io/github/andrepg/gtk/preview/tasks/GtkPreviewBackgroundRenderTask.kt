@@ -8,21 +8,24 @@ import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.GtkBuilderToolRunner
 import io.github.andrepg.gtk.preview.GtkPreviewConfig
 import io.github.andrepg.gtk.preview.GtkPreviewNotifications
-import io.github.andrepg.gtk.preview.RenderDimensions
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.shared.Localization
 import java.nio.file.Files
 import java.nio.file.Path
+import javax.imageio.ImageIO
 
 /**
  * Compiles the GTK preview renderer (when needed) and renders the active `.ui`
  * file to a PNG, then applies the result to the [GtkPreviewPanel].
  *
  * All compilation/rendering happens on the background thread in [run]; the
- * panel is never touched there. The EDT callbacks apply the final state:
- * [onFinished] swaps in either the rendered image or the failure message, and
- * [onThrowable] just records the failure so [onFinished] renders the error
- * panel.
+ * panel is never touched there. The EDT callback [onFinished] swaps in either
+ * the rendered image or the failure message, and [onThrowable] just records
+ * the failure so [onFinished] renders the error panel.
+ *
+ * @property onFinishedAction invoked from [onFinished] once the panel state is
+ *   applied, letting the caller (the render scheduler) start the next pending
+ *   render.
  */
 class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
     /**
@@ -38,6 +41,18 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
     private var rendererPanel: GtkPreviewPanel
 
     /**
+     * Render size in pixels, captured on the EDT at scheduling time so the
+     * snapshot matches the panel's current bounds.
+     */
+    private var renderWidth: Int
+    private var renderHeight: Int
+
+    /**
+     * Completion hook for the render scheduler, invoked on the EDT.
+     */
+    private val onFinishedAction: () -> Unit
+
+    /**
      * Path of the most recently rendered PNG, produced on the background thread
      * and consumed by [onFinished] on the EDT.
      */
@@ -49,28 +64,56 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
      */
     private var failureMessage: String? = null
 
+    /**
+     * Temp PNG produced by [run]; deleted from [onFinished] when it was not
+     * applied to the panel (failure or cancellation).
+     */
+    private var tempOutput: Path? = null
+
     constructor(
         project: Project,
         panel: GtkPreviewPanel,
+        renderWidth: Int,
+        renderHeight: Int,
+        onFinishedAction: () -> Unit = {},
     ) : super(
         project,
         Localization.message("gtk.preview.compilation.title"),
         true,
     ) {
         this.rendererPanel = panel
+        this.renderWidth = renderWidth
+        this.renderHeight = renderHeight
+        this.onFinishedAction = onFinishedAction
     }
 
     override fun run(indicator: ProgressIndicator) {
         indicator.isIndeterminate = true
         indicator.text = Localization.message("gtk.preview.compilation.title")
 
-        GtkPreviewNotifications.compilationStarted(project)
+        if (indicator.isCanceled) {
+            failureMessage = Localization.message("gtk.preview.compilation.cancelled")
+            return
+        }
 
+        // M2: free the previous render's PNG (already loaded by the panel, so
+        // deleting it off the EDT cannot disturb the visible preview).
+        rendererPanel.renderedImage?.let { previous ->
+            runCatching { Files.deleteIfExists(previous) }
+        }
+
+        // M1: only announce a balloon when a (re)compilation actually happens;
+        // plain re-renders (open, save, refresh) stay silent.
         if (gtkCompiler.needsCompilation()) {
             indicator.text = Localization.message("gtk.preview.compilation.started")
+            GtkPreviewNotifications.compilationStarted(project)
         }
 
         val binary = gtkCompiler.compile()
+        if (indicator.isCanceled) {
+            failureMessage = Localization.message("gtk.preview.compilation.cancelled")
+            return
+        }
 
         val openedFile = getActiveTemplate(project)
         if (openedFile == null) {
@@ -81,17 +124,32 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
         indicator.text = Localization.message("gtk.preview.compilation.rendering")
 
         val outputFile = Files.createTempFile(configDirectory, "preview-", ".png")
-        val (width, height) = RenderDimensions.renderSize(true)
+        tempOutput = outputFile
 
-        renderedPath =
+        // M4: a render the user cancelled must not apply a partial/stale result.
+        val rendered =
             gtkCompiler.render(
                 binary = binary,
                 uiFile = openedFile,
                 outputPng = outputFile,
-                width = width,
-                height = height,
+                width = renderWidth,
+                height = renderHeight,
                 searchDir = openedFile.parent,
             )
+
+        if (indicator.isCanceled) {
+            failureMessage = Localization.message("gtk.preview.compilation.cancelled")
+            return
+        }
+
+        // M5: the existence of a PNG file is not enough — reject empty/invalid
+        // output so the error panel is shown instead of a blank preview.
+        if (ImageIO.read(rendered.toFile()) == null) {
+            failureMessage = Localization.message("gtk.preview.compilation.invalid_image")
+            return
+        }
+
+        renderedPath = rendered
     }
 
     /**
@@ -105,10 +163,15 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
         rendererPanel.errorMessage = failureMessage
         rendererPanel.renderedImage = renderedPath
         rendererPanel.refresh()
-    }
 
-    override fun onSuccess() {
-        super.onSuccess()
+        // M2: delete a produced temp PNG that was not applied to the panel
+        // (failure or cancellation mid-run).
+        val temp = tempOutput
+        if (temp != null && temp != renderedPath) {
+            runCatching { Files.deleteIfExists(temp) }
+        }
+
+        onFinishedAction()
     }
 
     /**
