@@ -5,11 +5,9 @@ import com.intellij.openapi.vfs.VirtualFileManager
 import com.intellij.openapi.vfs.newvfs.BulkFileListener
 import com.intellij.openapi.vfs.newvfs.events.VFileEvent
 import com.intellij.openapi.wm.ToolWindow
-import com.intellij.openapi.wm.ToolWindowAnchor
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import io.github.andrepg.gtk.isGtkUiFile
-import io.github.andrepg.gtk.preview.actions.GtkPreviewRefreshAction
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRenderAction
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPremiumGatePanel
@@ -28,69 +26,62 @@ import javax.swing.JPanel
  * [GtkPreviewPremiumGatePanel] with a subscribe link.
  */
 class GtkPreviewPanelFactory : ToolWindowFactory {
+    /**
+     * Defines if we should enable preview based on licensing gate
+     */
     private val shouldEnablePreview: Boolean = PremiumFeatureGate.isPremiumAvailable()
 
+    /**
+     * Holds the main preview to display at panel
+     */
+    private val gtkPreviewPanel = GtkPreviewPanel()
+
+    /**
+     * The action used to refresh the panel
+     */
+    private val gtkPreviewRenderAction = GtkPreviewRenderAction(gtkPreviewPanel)
+
+    /**
+     * Create main window content to display at panel
+     */
     override fun createToolWindowContent(
         project: Project,
         toolWindow: ToolWindow,
     ) {
         if (!shouldEnablePreview) {
-            createContentWindow(toolWindow, GtkPreviewPremiumGatePanel().panel())
+            createMainContentPanel(toolWindow, GtkPreviewPremiumGatePanel().panel())
             return
         }
 
-        val gtkPreviewPanel = GtkPreviewPanel()
-        // The render's first dimension follows the panel's current dock side:
-        // left/right strip → portrait, top/bottom strip → landscape. Read live
-        // so a dock move is honored on the next render.
-        val portraitSide = {
-            toolWindow.anchor == ToolWindowAnchor.LEFT ||
-                toolWindow.anchor == ToolWindowAnchor.RIGHT
-        }
-        val gtkPreviewRenderAction = GtkPreviewRenderAction(gtkPreviewPanel, portraitSide)
+        createMainContentPanel(toolWindow, gtkPreviewPanel.panel())
 
-        createContentWindow(toolWindow, gtkPreviewPanel.panel())
+        toolWindow.setTitleActions(listOf(gtkPreviewRenderAction))
 
-        val refreshAction =
-            GtkPreviewRefreshAction { e ->
-                e.project?.let { gtkPreviewRenderAction.triggerRender(it) }
-            }
-
-        toolWindow.setTitleActions(listOf(refreshAction))
-
-        registerFileListener(project, toolWindow, gtkPreviewRenderAction)
-        gtkPreviewRenderAction.triggerRender(project)
+        registerFileListener(project, toolWindow)
     }
 
-    private fun createContentWindow(
+    /**
+     * Create main content panel and adds it to main window
+     * via main Window ContentManager current instance
+     */
+    private fun createMainContentPanel(
         window: ToolWindow,
         panel: JPanel,
-    ) {
-        window.contentManager.addContent(
-            ContentFactory.getInstance().createContent(panel, null, false),
-        )
-    }
+    ) = window.contentManager.addContent(
+        ContentFactory.getInstance().createContent(panel, null, false),
+    )
 
     private fun registerFileListener(
         project: Project,
         toolWindow: ToolWindow,
-        renderAction: GtkPreviewRenderAction,
-    ) {
-        project.messageBus.connect(toolWindow.disposable).subscribe(
-            VirtualFileManager.VFS_CHANGES,
-            object : BulkFileListener {
-                override fun after(events: List<VFileEvent>) {
-                    val hasUiChange =
-                        events.any { event ->
-                            event.file?.name?.let(::isPreviewableFile) == true
-                        }
-                    if (hasUiChange) {
-                        renderAction.triggerRender(project)
-                    }
-                }
-            },
-        )
-    }
+    ) = project.messageBus.connect(toolWindow.disposable).subscribe(
+        VirtualFileManager.VFS_CHANGES,
+        object : BulkFileListener {
+            override fun after(events: List<VFileEvent>) {
+                val supportedUiOpened = events.any({ isGtkUiFile(it.file?.name.toString()) })
 
-    private fun isPreviewableFile(name: String): Boolean = isGtkUiFile(name)
+                if (supportedUiOpened) gtkPreviewRenderAction.callBackgroundTask(project)
+            }
+        },
+    )
 }
