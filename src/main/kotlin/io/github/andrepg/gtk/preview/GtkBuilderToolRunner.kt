@@ -112,6 +112,10 @@ class GtkBuilderToolRunner(
      * @param outputPng destination path for the resulting PNG
      * @param width   render width in pixels (default 800)
      * @param height  render height in pixels (default 600)
+     * @param searchDir directory the C compiler scans for sibling `.ui`
+     *   files that may define custom classes referenced by [uiFile]
+     *   (`src_dir` positional arg; `null` makes the compiler use the
+     *   input file's own directory)
      * @return [outputPng] on success
      * @throws IllegalStateException if mutter or the renderer fails
      */
@@ -121,6 +125,7 @@ class GtkBuilderToolRunner(
         outputPng: Path,
         width: Int = 800,
         height: Int = 600,
+        searchDir: Path? = null,
     ): Path {
         val branch =
             detectSdkBranch()
@@ -154,21 +159,22 @@ class GtkBuilderToolRunner(
                     command = binary.absolutePath,
                     branch = branch,
                     args =
-                        arrayOf(
-                            uiFile.toAbsolutePath().toString(),
-                            outputPng.toAbsolutePath().toString(),
-                            width.toString(),
-                            height.toString(),
-                        ),
+                        buildList {
+                            add(uiFile.toAbsolutePath().toString())
+                            add(outputPng.toAbsolutePath().toString())
+                            add(width.toString())
+                            add(height.toString())
+                            searchDir?.let { add(it.toAbsolutePath().toString()) }
+                        }.toTypedArray(),
                 )
 
-            val result = runner.run(cmd, timeoutMs = TIMEOUT_MS)
-            if (result == null) {
-                error("Renderer process timed out or could not be started")
-            }
+            val result =
+                runner.run(cmd, timeoutMs = TIMEOUT_MS) ?: error("Renderer process timed out or could not be started")
+
             if (!result.succeeded) {
                 error("Renderer failed (exit ${result.exitCode}): ${result.stderr.ifBlank { result.stdout }}")
             }
+
             if (!outputPng.toFile().exists()) {
                 error("Renderer exited successfully but output file was not created: $outputPng")
             }
@@ -235,22 +241,22 @@ class GtkBuilderToolRunner(
         binary: File,
         branch: String,
     ) {
-        val makeArgs =
-            arrayOf(
-                "-C",
-                configDir.resolve("compiler").absolutePath,
-                "TARGET=${binary.absolutePath}",
-            )
+        // flatpak run --command=make --filesystem=host org.gnome.Sdk//<branch> \
+        //     -C <configDir>/compiler build-flatpak TARGET=<configDir>/gtk_embedded_preview
+        val compilerDir = configDir.resolve("compiler").absolutePath
 
         val cmd =
-            flatpakRun(
-                env = mapOf("PKG_CONFIG_PATH" to PKG_CONFIG_PATH),
-                command = "/usr/bin/make",
-                branch = branch,
-                args = makeArgs,
+            FlatpakSandboxRunner.run(
+                flatpakBinary = flatpakBinary,
+                appRef = "${GirSdkLocator.SDK_APP_ID}//$branch",
+                flatpakOptions = listOf("--command=make", "--filesystem=host"),
+                refArguments = listOf("-C", compilerDir, "build-flatpak", "TARGET=${binary.absolutePath}"),
             )
 
+        log.debug("Building flatpak run: $cmd")
+
         val result = runner.run(cmd, timeoutMs = TIMEOUT_MS)
+
         if (result == null || !result.succeeded) {
             val stderr = result?.stderr.orEmpty()
             val stdout = result?.stdout.orEmpty()
@@ -303,7 +309,7 @@ class GtkBuilderToolRunner(
             appRef = "${GirSdkLocator.SDK_APP_ID}//$branch",
             flatpakOptions =
                 buildList {
-                    add("--filesystem=home")
+                    add("--filesystem=host")
                     extraFilesystems.forEach { fs -> add("--filesystem=$fs") }
                     env.forEach { (k, v) -> add("--env=$k=$v") }
                     add("--command=$command")
@@ -335,7 +341,5 @@ class GtkBuilderToolRunner(
         private const val BINARY_NAME = "gtk_embedded_preview"
         private const val HASH_NAME = "gtk_embedded_preview.hash"
         private const val TIMEOUT_MS = 30_000L
-        private const val PKG_CONFIG_PATH =
-            "/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
     }
 }
