@@ -1,6 +1,7 @@
 package io.github.andrepg.gtk.schema.providers
 
 import com.intellij.notification.NotificationType
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.application.PathManager
 import com.intellij.openapi.module.Module
 import com.intellij.openapi.progress.ProgressIndicator
@@ -103,9 +104,12 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
      * Schedules schema generation as a cancellable background task with a
      * determinate progress bar, notifying via balloon on success/failure.
      *
-     * Safe to call from any thread ([Task.Backgroundable] routes non-EDT starts
-     * through `invokeLater`), which covers [getSchema] being invoked during
-     * highlighting and background analysis.
+     * [getSchema] runs on analysis/highlight worker threads. [ProgressManager.run]
+     * executes a [Task.Backgroundable] **inline on the calling thread** when it is
+     * not the EDT, which would stall a worker for the whole SDK → XSD generation.
+     * The start is therefore routed through the EDT: `ProgressManager.run` on the
+     * EDT launches a real background thread and returns immediately, and the
+     * task's callbacks land on the EDT.
      */
     private fun scheduleGeneration(
         project: Project,
@@ -153,7 +157,16 @@ class GtkInterfaceXmlSchemaProvider : XmlSchemaProvider() {
                 }
             }
 
-        ProgressManager.getInstance().run(generation)
+        val app = ApplicationManager.getApplication()
+        if (app.isDispatchThread) {
+            ProgressManager.getInstance().run(generation)
+        } else {
+            app.invokeLater {
+                if (!project.isDisposed) {
+                    ProgressManager.getInstance().run(generation)
+                }
+            }
+        }
     }
 
     private fun notifyGeneration(

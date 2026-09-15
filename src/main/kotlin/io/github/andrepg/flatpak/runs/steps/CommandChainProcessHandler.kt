@@ -10,6 +10,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.util.Key
 import io.github.andrepg.flatpak.runs.UserVisibleCommand
 import io.github.andrepg.flatpak.runs.commands.CommandExecutionEngine
+import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.log.Log
 import java.io.OutputStream
 
@@ -19,7 +20,7 @@ import java.io.OutputStream
  * Each command runs as an [OSProcessHandler]; on success the next one starts.
  *
  * Every step (pre-step or command) is announced to the console as a named
- * workflow step, e.g. `Running DEEP_CLEAN...` then `Running BUILD: <cmdline>`,
+ * workflow step, e.g. `Running DEEP_CLEAN…` then `Running BUILD: <cmdline>`,
  * so the user sees the whole `DEEP_CLEAN -> BUILD` flow instead of only the
  * build report. Text and termination of the underlying handlers are relayed.
  */
@@ -34,7 +35,7 @@ class CommandChainProcessHandler(
     /**
      * A blocking step run before the first command, announced as [type].
      *
-     * Quiet steps skip the `Running <type>...` announcement and print only
+     * Quiet steps skip the `Running <type>…` announcement and print only
      * what they explicitly [report]; use them for cheap conditional cleanups
      * that are usually no-ops.
      */
@@ -74,13 +75,19 @@ class CommandChainProcessHandler(
                     return
                 }
                 if (!step.quiet) {
-                    notifyTextAvailable("Running ${step.type}...\n", ProcessOutputTypes.SYSTEM)
+                    notifyTextAvailable(
+                        Localization.message("runs.console.step.start", step.type) + "\n",
+                        ProcessOutputTypes.SYSTEM,
+                    )
                 }
                 val report: (String) -> Unit = { text ->
                     notifyTextAvailable(text, ProcessOutputTypes.SYSTEM)
                 }
                 if (!step.run(report)) {
-                    notifyTextAvailable("${step.type} failed; aborting.\n", ProcessOutputTypes.SYSTEM)
+                    notifyTextAvailable(
+                        Localization.message("runs.console.step.failed", step.type) + "\n",
+                        ProcessOutputTypes.SYSTEM,
+                    )
                     notifyProcessTerminated(1)
                     return
                 }
@@ -94,7 +101,11 @@ class CommandChainProcessHandler(
 
         val label = commandSteps.getOrElse(currentIndex) { UserVisibleCommand.CUSTOM }.name
         notifyTextAvailable(
-            "Running $label: ${commandLines[currentIndex].commandLineString}\n",
+            Localization.message(
+                "runs.console.command.start",
+                label,
+                commandLines[currentIndex].commandLineString,
+            ) + "\n",
             ProcessOutputTypes.SYSTEM,
         )
 
@@ -114,7 +125,7 @@ class CommandChainProcessHandler(
                     activeHandler = null
                     log.info("Command execution terminated with exit code ${event.exitCode}")
                     notifyTextAvailable(
-                        "$label finished with exit code ${event.exitCode}\n",
+                        Localization.message("runs.console.command.finished", label, event.exitCode) + "\n",
                         ProcessOutputTypes.SYSTEM,
                     )
 

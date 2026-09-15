@@ -1,6 +1,7 @@
 package io.github.andrepg.gtk.preview
 
 import io.github.andrepg.shared.log.Log
+import io.github.andrepg.shared.process.CommandRunner
 import io.github.andrepg.shared.process.DefaultProcessRunner
 import java.io.File
 import java.nio.file.Files
@@ -17,8 +18,15 @@ import java.util.concurrent.TimeUnit
  *
  * Prerequisites: `mutter` and `dbus-run-session` must be available on
  * the host.  These ship with every GNOME installation.
+ *
+ * @param runner process runner used for the `id -u` fallback when
+ *   `XDG_RUNTIME_DIR` is not set (injectable for tests)
+ * @param environmentProvider reads environment variables (injectable for tests)
  */
-class MutterHeadlessCompositor {
+class MutterHeadlessCompositor(
+    private val runner: CommandRunner = DefaultProcessRunner,
+    private val environmentProvider: (String) -> String? = { name -> System.getenv(name) },
+) {
     private val log = Log.getInstance(MutterHeadlessCompositor::class.java)
 
     /** The `WAYLAND_DISPLAY` name the compositor listens on (e.g. `wayland-1`). */
@@ -140,13 +148,13 @@ class MutterHeadlessCompositor {
         proc.destroyForcibly()
     }
 
-    private fun resolveRuntimeDir(): String {
-        val dir = System.getenv("XDG_RUNTIME_DIR")
+    internal fun resolveRuntimeDir(): String {
+        val dir = environmentProvider("XDG_RUNTIME_DIR")
         if (dir != null && File(dir).isDirectory) return dir
 
         // Fallback: resolve UID via `id -u` (portable across Linux distros)
         val uid =
-            DefaultProcessRunner
+            runner
                 .run(listOf("id", "-u"), timeoutMs = 2_000)
                 ?.stdout
                 ?.trim()
@@ -162,7 +170,7 @@ class MutterHeadlessCompositor {
      * Picks the next `wayland-N` name that does not already have a
      * socket file on disk.
      */
-    private fun nextDisplay(runtime: String): String {
+    internal fun nextDisplay(runtime: String): String {
         for (n in 1..9) {
             val name = "wayland-$n"
             if (!Files.exists(Paths.get(runtime, name))) return name

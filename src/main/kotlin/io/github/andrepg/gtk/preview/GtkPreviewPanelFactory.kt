@@ -9,7 +9,6 @@ import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRefreshAction
-import io.github.andrepg.gtk.preview.actions.GtkPreviewRenderAction
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPremiumGatePanel
 import io.github.andrepg.shared.license.PremiumFeatureGate
@@ -18,33 +17,34 @@ import javax.swing.JPanel
 /**
  * Factory for the GTK Preview tool window.
  *
- * When premium features are available the tool window shows a live
- * preview of the active `.ui` file powered by [GtkPreviewRenderAction].
- * A [BulkFileListener] re-triggers the render whenever a `.ui` or
- * `.glade` file is saved.
+ * When premium features are available the tool window shows a live preview of
+ * the active `.ui` file, rendered through [GtkPreviewRenderScheduler]. A
+ * [BulkFileListener] re-triggers the render whenever the open `.ui`/`.glade`
+ * file is saved (other `.ui` files are ignored so they cannot clobber the
+ * preview).
  *
- * When premium is locked the window displays a
- * [GtkPreviewPremiumGatePanel] with a subscribe link.
+ * When premium is locked the window displays a [GtkPreviewPremiumGatePanel]
+ * with a subscribe link. The gate is evaluated fresh on every
+ * [createToolWindowContent] and re-checked before every render, so a mid-session
+ * subscription change is honoured without an IDE restart.
  */
 class GtkPreviewPanelFactory : ToolWindowFactory {
-    /**
-     * Defines if we should enable preview based on licensing gate
-     */
-    private val shouldEnablePreview: Boolean = PremiumFeatureGate.isPremiumAvailable()
-
     /**
      * Holds the main preview to display at panel
      */
     private val gtkPreviewPanel = GtkPreviewPanel()
 
     /**
+     * Serializes all render triggers (open, refresh, VFS saves).
+     */
+    private val renderScheduler = GtkPreviewRenderScheduler(gtkPreviewPanel)
+
+    /**
      * The action used to refresh the panel
      */
-    private val gtkPreviewRenderAction = GtkPreviewRenderAction(gtkPreviewPanel)
-
     private val gtkPreviewRefreshAction =
         GtkPreviewRefreshAction { project ->
-            gtkPreviewRenderAction.callBackgroundTask(project)
+            renderScheduler.scheduleRender(project)
         }
 
     /**
@@ -54,7 +54,9 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
         project: Project,
         toolWindow: ToolWindow,
     ) {
-        if (!shouldEnablePreview) {
+        // H4: the premium gate is re-evaluated here, not stored as a field, so
+        // a subscription purchase/expiry mid-session flips the panel.
+        if (!PremiumFeatureGate.isPremiumAvailable()) {
             createMainContentPanel(toolWindow, GtkPreviewPremiumGatePanel().panel())
             return
         }
@@ -67,7 +69,7 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
 
         registerFileListener(project, toolWindow)
 
-        gtkPreviewRenderAction.callBackgroundTask(project)
+        renderScheduler.scheduleRender(project)
     }
 
     /**
@@ -88,9 +90,10 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
         VirtualFileManager.VFS_CHANGES,
         object : BulkFileListener {
             override fun after(events: List<VFileEvent>) {
-                val supportedUiOpened = events.any({ isGtkUiFile(it.file?.name.toString()) })
-
-                if (supportedUiOpened) gtkPreviewRenderAction.callBackgroundTask(project)
+                val uiEvent = events.firstOrNull { isGtkUiFile(it.file?.name.toString()) } ?: return
+                // M3: only the file currently open in the editor re-triggers the
+                // render; a sibling `.ui` saved in the background is ignored.
+                renderScheduler.scheduleRenderIfCurrent(project, uiEvent.file)
             }
         },
     )

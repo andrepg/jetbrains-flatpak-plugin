@@ -4,6 +4,7 @@ import com.intellij.openapi.command.WriteCommandAction
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.vfs.LocalFileSystem
 import io.github.andrepg.flatpak.runs.configuration.FlatpakRunSettings
+import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.log.Log
 import java.io.File
 import java.io.IOException
@@ -54,7 +55,7 @@ class DeepCleanExecutor {
         var failure: IOException? = null
         WriteCommandAction
             .writeCommandAction(project)
-            .withName("Deep clean")
+            .withName(Localization.message("runs.cleanup.deep-clean.name"))
             .run<RuntimeException> {
                 if (virtualFile.exists()) {
                     try {

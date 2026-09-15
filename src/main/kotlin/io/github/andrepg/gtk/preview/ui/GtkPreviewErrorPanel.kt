@@ -12,7 +12,7 @@ import javax.swing.JPanel
  * Uses [EmptyStatePanel] to show a bold title and a description
  * explaining what went wrong.  When [message] is non-null it
  * overrides the default localized description so the caller can
- * provide a specific reason (e.g. "No .ui file open").
+ * provide a specific reason (e.g. "No .ui/.glade file open").
  *
  * @property message optional human-readable error description;
  *   defaults to the localized `gtk.preview.fail.description` key
