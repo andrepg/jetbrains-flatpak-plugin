@@ -20,7 +20,7 @@
         <ul>
             <li><b>Automatic manifest detection</b> — <code>manifest.json</code>, <code>flatpak.json</code>, <code>flatpak-manifest.json</code> and app-id style files (<code>org.example.App.json</code>/<code>.yaml</code>/<code>.yml</code>) are bound to the official Flatpak schema automatically</li>
             <li><b>Code completion &amp; validation</b> — schema-driven completion and inline validation for <code>app-id</code>, <code>runtime</code>, <code>sdk</code>, <code>modules</code>, <code>finish-args</code>, <code>command</code> and every other manifest field</li>
-            <li><b>One-click Flatpak actions</b> — a dedicated Flatpak Run Configuration with <i>Build</i>, <i>Run</i>, <i>Export</i>, <i>Clean</i>, <i>Validate</i> and <i>Custom</i> commands</li>
+            <li><b>One-click Flatpak actions</b> — a dedicated Flatpak Run Configuration with <i>Build</i>, <i>Run</i>, <i>Export</i>, <i>Validate</i> and <i>Custom</i> commands</li>
             <li><b>Smart project detection</b> — Flatpak manifests are detected on project open with a one-time balloon offering to create run configurations; right-click any manifest to run <i>Build &lt;app-id&gt;</i></li>
             <li><b>Smart run</b> — the <i>Run</i> command launches the built app inside the sandbox, executing the manifest's <code>command</code> (falling back to the app-id), with optional cleanup and portal sandbox flags</li>
             <li><b>Flatpak Builder SDK integration</b> — commands execute through the official <code>org.flatpak.Builder</code> SDK, with output streamed to the Run console</li>
@@ -32,7 +32,7 @@
             <li><b>Code completion &amp; validation</b> — schema-driven completion and inline validation for <code>.ui</code>/<code>.glade</code> interface files, driven by a GtkBuilder schema generated from the project's GNOME SDK</li>
             <li><b>GNOME SDK autodetection</b> — the schema follows the <code>sdk</code>/<code>runtime</code> declared in your Flatpak manifest; requires an installed <code>org.gnome.Sdk</code> runtime</li>
             <li><code>.xml</code> files whose root element is <code>&lt;interface&gt;</code> are also supported once a Flatpak project is recognized</li>
-            <li><i>Planned:</i> Basic window/widget preview directly from the IDE</li>
+            <li>GTK XML Preview: These same files now can be rendered at a sidebar Preview panel. The renderer parses opened files and renders it with proper child expansion</li>
             <li><i>Planned:</i> Autodetected unregistered files from GResource</li>
             <li><i>Planned:</i> Blueprint format support</li>
         </ul>
@@ -104,6 +104,7 @@
         <!--  GTK Preview panel -->
         <toolWindow
                 id="GtkPreviewPanel"
+                icon="AllIcons.FileTypes.UiForm"
                 factoryClass="io.github.andrepg.gtk.preview.GtkPreviewPanelFactory"
                 anchor="right"/>
 
