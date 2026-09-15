@@ -4,6 +4,7 @@ import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.openapi.project.Project
 
 /**
  * Resets the GTK Preview panel and triggers a fresh re-render.
@@ -12,14 +13,14 @@ import com.intellij.openapi.actionSystem.AnActionEvent
  *   caller can access the project and start the render
  */
 class GtkPreviewRefreshAction(
-    private val onRender: (AnActionEvent) -> Unit,
+    private val onRender: (Project) -> Unit,
 ) : AnAction(
         "Refresh Preview",
         "Re-render the current GTK preview",
         AllIcons.Actions.Refresh,
     ) {
     override fun actionPerformed(e: AnActionEvent) {
-        onRender(e)
+        e.project?.let { project -> onRender(project) }
     }
 
     override fun getActionUpdateThread() = ActionUpdateThread.BGT

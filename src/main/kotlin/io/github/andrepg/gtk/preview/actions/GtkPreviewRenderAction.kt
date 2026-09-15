@@ -34,6 +34,12 @@ class GtkPreviewRenderAction(
     }
 
     fun callBackgroundTask(project: Project) {
+        // Runs on the EDT (title action / VFS listener): flip the panel to the
+        // loading state before the background render starts.
+        panel.setLoading(true)
+        panel.setFailed(false)
+        panel.refresh()
+
         val task = GtkPreviewBackgroundRenderTask(project, panel)
 
         ProgressManager.getInstance().run(task)
