@@ -8,7 +8,9 @@ import io.github.andrepg.shared.process.CommandRunner
 import io.github.andrepg.shared.process.DefaultProcessRunner
 import io.github.andrepg.shared.process.parseFlatpakRuntimeList
 import java.io.File
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 
 /**
  * Compiles and invokes the headless GTK4 `.ui` → PNG renderer.
@@ -100,7 +102,10 @@ class GtkBuilderToolRunner(
      * A headless Mutter compositor is started on the host with a virtual
      * monitor of exactly [width] × [height].  The compiled renderer runs
      * inside the GNOME SDK Flatpak and connects to the private Wayland
-     * display — no window appears on the user's desktop.
+     * display — no window appears on the user's desktop.  The sandbox env is
+     * pinned (`GDK_BACKEND=wayland`, `WAYLAND_DISPLAY`, `XDG_RUNTIME_DIR`) and
+     * the socket is verified before launch so GTK can never fall back to the
+     * user's session display (which would flash a window on screen).
      *
      * @param binary  path to the compiled renderer (from [compile])
      * @param uiFile  the `.ui` file to render
@@ -124,6 +129,9 @@ class GtkBuilderToolRunner(
         val compositor = MutterHeadlessCompositor()
         try {
             compositor.start(width, height)
+            // Fail fast if the socket the renderer will resolve inside the
+            // sandbox (`$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY`) is not visible.
+            checkRenderSocket(compositor)
 
             log.info("Rendering ${uiFile.fileName} → ${outputPng.fileName}")
 
@@ -137,6 +145,10 @@ class GtkBuilderToolRunner(
                             // private headless socket is unavailable.
                             "GDK_BACKEND" to "wayland",
                             "WAYLAND_DISPLAY" to compositor.display,
+                            // Resolve the socket against the exact host runtime
+                            // dir the compositor listens on, regardless of how
+                            // flatpak would otherwise set XDG_RUNTIME_DIR.
+                            "XDG_RUNTIME_DIR" to compositor.runtimeDir,
                         ),
                     extraFilesystems = listOf(compositor.runtimeDir),
                     command = binary.absolutePath,
@@ -165,6 +177,25 @@ class GtkBuilderToolRunner(
         } finally {
             compositor.stop()
         }
+    }
+
+    /**
+     * Fail-fast guard for the sandboxed renderer: verifies the compositor
+     * socket is present at the exact path the renderer will resolve inside
+     * the SDK (`$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY`). When the socket is
+     * missing the render aborts with a clear message instead of risking GDK
+     * falling back to the user's session display (which would flash a window
+     * before rendering).
+     */
+    private fun checkRenderSocket(compositor: MutterHeadlessCompositor) {
+        val socket = Paths.get(compositor.runtimeDir, compositor.display)
+        if (!Files.exists(socket)) {
+            error(
+                "Headless compositor socket $socket is not reachable from the sandbox; " +
+                    "refusing to render so GTK cannot fall back to the session display",
+            )
+        }
+        log.info("Sandbox renderer socket verified: $socket")
     }
 
     private fun extractSources() {
@@ -285,14 +316,24 @@ class GtkBuilderToolRunner(
         private val SOURCE_RESOURCES =
             listOf(
                 "/compiler/Makefile",
-                "/compiler/ui-xml.h",
-                "/compiler/ui-xml.c",
-                "/compiler/preview-render.h",
-                "/compiler/preview-render.c",
-                "/compiler/gtk-preview-render.c",
+                "/compiler/main.c",
+                "/compiler/src/component_registry.h",
+                "/compiler/src/error_codes.h",
+                "/compiler/src/normalizer.h",
+                "/compiler/src/renderer.h",
+                "/compiler/src/serializer.h",
+                "/compiler/src/utils.h",
+                "/compiler/src/xml_loader.h",
+                "/compiler/src/xml_parser.h",
+                "/compiler/src/component_registry.c",
+                "/compiler/src/normalizer.c",
+                "/compiler/src/renderer.c",
+                "/compiler/src/serializer.c",
+                "/compiler/src/xml_loader.c",
+                "/compiler/src/xml_parser.c",
             )
-        private const val BINARY_NAME = "gtk-preview-render"
-        private const val HASH_NAME = "gtk-preview-render.hash"
+        private const val BINARY_NAME = "gtk_embedded_preview"
+        private const val HASH_NAME = "gtk_embedded_preview.hash"
         private const val TIMEOUT_MS = 30_000L
         private const val PKG_CONFIG_PATH =
             "/usr/lib/x86_64-linux-gnu/pkgconfig:/usr/share/pkgconfig"
