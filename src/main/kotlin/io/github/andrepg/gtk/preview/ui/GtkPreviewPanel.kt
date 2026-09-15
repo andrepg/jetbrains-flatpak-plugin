@@ -15,6 +15,9 @@ import javax.swing.JPanel
  * - **Error** — shown when the render fails or no `.ui` file is active
  * - **Content** — displays the rendered preview image
  *
+ * The panel opens in the loading state by default; the first render result
+ * (or failure) is applied by the EDT callbacks of the background task.
+ *
  * The render lifecycle is driven externally by
  * [io.github.andrepg.gtk.preview.actions.GtkPreviewRenderAction]
  * which calls [setLoading], [setFailed], sets [renderedImage], and
@@ -27,7 +30,7 @@ import javax.swing.JPanel
  */
 class GtkPreviewPanel {
     private var hasFailed: Boolean = false
-    private var isLoading: Boolean = false
+    private var isLoading: Boolean = true
 
     var renderedImage: Path? = null
     var errorMessage: String? = null
