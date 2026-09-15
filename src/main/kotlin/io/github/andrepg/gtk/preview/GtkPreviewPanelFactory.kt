@@ -8,6 +8,7 @@ import com.intellij.openapi.wm.ToolWindow
 import com.intellij.openapi.wm.ToolWindowFactory
 import com.intellij.ui.content.ContentFactory
 import io.github.andrepg.gtk.isGtkUiFile
+import io.github.andrepg.gtk.preview.actions.GtkPreviewRefreshAction
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRenderAction
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPremiumGatePanel
@@ -41,6 +42,11 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
      */
     private val gtkPreviewRenderAction = GtkPreviewRenderAction(gtkPreviewPanel)
 
+    private val gtkPreviewRefreshAction =
+        GtkPreviewRefreshAction { project ->
+            gtkPreviewRenderAction.callBackgroundTask(project)
+        }
+
     /**
      * Create main window content to display at panel
      */
@@ -55,9 +61,13 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
 
         createMainContentPanel(toolWindow, gtkPreviewPanel.panel())
 
-        toolWindow.setTitleActions(listOf(gtkPreviewRenderAction))
+        toolWindow.setTitleActions(
+            listOf(gtkPreviewRefreshAction),
+        )
 
         registerFileListener(project, toolWindow)
+
+        gtkPreviewRenderAction.callBackgroundTask(project)
     }
 
     /**
