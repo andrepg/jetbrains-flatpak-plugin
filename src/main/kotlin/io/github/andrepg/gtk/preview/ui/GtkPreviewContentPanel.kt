@@ -25,9 +25,25 @@ import javax.swing.SwingConstants
 class GtkPreviewContentPanel(
     private val imagePath: Path?,
 ) {
+    companion object {
+        /**
+         * Empty-border insets applied around the rendered image, in pixels.
+         * The size handed to the renderer subtracts 2x this padding so the
+         * PNG fills exactly the visible area instead of being cropped
+         * (see [io.github.andrepg.gtk.preview.RenderDimensions]).
+         */
+        const val CONTENT_PADDING = 8
+    }
+
     fun panel(): JPanel =
         JPanel(BorderLayout()).apply {
-            border = BorderFactory.createEmptyBorder(8, 8, 8, 8)
+            border =
+                BorderFactory.createEmptyBorder(
+                    CONTENT_PADDING,
+                    CONTENT_PADDING,
+                    CONTENT_PADDING,
+                    CONTENT_PADDING,
+                )
 
             imagePath?.let {
                 val path = loadPreview(it)

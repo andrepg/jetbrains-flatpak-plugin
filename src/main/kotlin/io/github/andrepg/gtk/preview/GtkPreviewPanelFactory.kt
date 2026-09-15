@@ -11,6 +11,7 @@ import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.actions.GtkPreviewRefreshAction
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPremiumGatePanel
+import io.github.andrepg.shared.Localization
 import io.github.andrepg.shared.license.PremiumFeatureGate
 import javax.swing.JPanel
 
@@ -54,6 +55,10 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
         project: Project,
         toolWindow: ToolWindow,
     ) {
+        // The tool window id stays "GtkPreviewPanel" (layout persistence,
+        // stable identifier) while the stripe shows the user-facing title.
+        toolWindow.setStripeTitle(Localization.message("gtk.preview.panel.title"))
+
         // H4: the premium gate is re-evaluated here, not stored as a field, so
         // a subscription purchase/expiry mid-session flips the panel.
         if (!PremiumFeatureGate.isPremiumAvailable()) {
