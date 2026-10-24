@@ -11,67 +11,47 @@ import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.shared.license.PremiumFeatureGate
 import io.github.andrepg.shared.log.Log
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.concurrent.atomic.AtomicReference
 
 /**
- * Serializes GTK preview renders.
+ * Serializes GTK preview renders in "lock and block" mode.
  *
- * Every trigger point — tool-window open, the Render/Refresh title actions and
- * the VFS change listener — goes through [scheduleRender], so at most one
- * render is in flight at a time. While a render is running, further calls are
- * coalesced into a single pending render of the latest [Project], which starts
- * as soon as the current one finishes: two `mutter`/`make` processes can never
- * overlap (no `wayland-N` TOCTOU, no concurrent `make` on the same binary) and
- * a stale PNG can never be applied over a newer render.
- *
- * All Swing mutation (the panel state flip and the size read) happens on the
- * EDT via [startRender]; the render itself runs through
- * [GtkPreviewBackgroundRenderTask], whose callbacks return to the EDT. This is
- * what makes the H1 action path (invoked on a background thread) safe.
- *
- * Thread-safe: [scheduleRender] and [scheduleRenderIfCurrent] may be called
- * from any thread and return immediately.
+ * At most one render runs at a time. While a render is in flight, further
+ * triggers are ignored (not queued/coalesced).
  */
 class GtkPreviewRenderScheduler(
     private val panel: GtkPreviewPanel,
 ) {
     private val log = Log.getInstance(GtkPreviewRenderScheduler::class.java)
 
-    private val inFlight = AtomicBoolean(false)
-    private val pendingProject = AtomicReference<Project>(null)
-    private val lock = Any()
+    private val running = AtomicBoolean(false)
+
+    fun isRunning(): Boolean = running.get()
 
     /**
-     * Schedules a render of the currently open `.ui` file, coalescing with any
-     * in-flight render. Returns immediately.
+     * Schedules a render of the currently open `.ui` file. If a render is
+     * already running, the request is ignored.
      */
     fun scheduleRender(project: Project) {
         if (project.isDisposed) return
 
-        // H4: re-check the premium gate on every render, so a mid-session
-        // subscription change is honoured without an IDE restart.
+        // By checking premium status here we avoid to restart the IDE after a purchase to re-render
         if (!PremiumFeatureGate.isPremiumAvailable()) {
             log.debug("Skipping preview render; premium feature is locked")
             return
         }
 
-        val startNow =
-            synchronized(lock) {
-                if (inFlight.get()) {
-                    pendingProject.set(project)
-                    false
-                } else {
-                    inFlight.set(true)
-                    true
-                }
-            }
-        if (startNow) startRender(project)
+        if (!running.compareAndSet(false, true)) {
+            log.debug("Skipping preview render; already running")
+            return
+        }
+
+        startRender(project)
     }
 
     /**
      * Schedules a render only when [changedFile] is the `.ui` file currently
-     * open in the active editor, so saving a different `.ui` file (e.g. a
-     * sibling defining a custom class) does not clobber the preview.
+     * open in the active editor. If a render is already running, the request
+     * is ignored.
      */
     fun scheduleRenderIfCurrent(
         project: Project,
@@ -95,9 +75,7 @@ class GtkPreviewRenderScheduler(
 
     /**
      * EDT: flips the panel to the loading state, captures its current size and
-     * hands the render to the platform progress manager — which, when started
-     * from the EDT, runs the task on a background thread and dispatches its
-     * callbacks back to the EDT.
+     * hands the render to the platform progress manager.
      */
     private fun runOnEdt(project: Project) {
         panel.setLoading(true)
@@ -116,20 +94,9 @@ class GtkPreviewRenderScheduler(
 
     /**
      * Called from the render task's `onFinished` (on the EDT): releases the
-     * in-flight guard and starts the coalesced pending render, if any.
+     * running guard.
      */
     private fun renderFinished() {
-        val next =
-            synchronized(lock) {
-                inFlight.set(false)
-                val pending = pendingProject.getAndSet(null)
-                if (pending != null && !pending.isDisposed) {
-                    inFlight.set(true)
-                    pending
-                } else {
-                    null
-                }
-            }
-        if (next != null) startRender(next)
+        running.set(false)
     }
 }

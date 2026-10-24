@@ -13,4 +13,12 @@ internal object GtkPreviewConfig {
             .resolve("flatpak-preview")
             .toFile()
             .also { it.mkdirs() }
+
+    /** Directory for precompiled binaries. */
+    val binDir: File =
+        configDir.resolve("bin")
+            .also { it.mkdirs() }
+
+    /** Name of the downloaded headless renderer binary. */
+    const val RENDERER_BINARY_NAME = "gtk-headless-preview"
 }

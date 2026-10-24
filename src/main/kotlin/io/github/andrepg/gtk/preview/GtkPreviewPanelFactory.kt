@@ -44,7 +44,7 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
      * The action used to refresh the panel
      */
     private val gtkPreviewRefreshAction =
-        GtkPreviewRefreshAction { project ->
+        GtkPreviewRefreshAction(renderScheduler) { project ->
             renderScheduler.scheduleRender(project)
         }
 
@@ -57,7 +57,7 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
     ) {
         // The tool window id stays "GtkPreviewPanel" (layout persistence,
         // stable identifier) while the stripe shows the user-facing title.
-        toolWindow.setStripeTitle(Localization.message("gtk.preview.panel.title"))
+        toolWindow.stripeTitle = Localization.message("gtk.preview.panel.title")
 
         // H4: the premium gate is re-evaluated here, not stored as a field, so
         // a subscription purchase/expiry mid-session flips the panel.
@@ -96,8 +96,6 @@ class GtkPreviewPanelFactory : ToolWindowFactory {
         object : BulkFileListener {
             override fun after(events: List<VFileEvent>) {
                 val uiEvent = events.firstOrNull { isGtkUiFile(it.file?.name.toString()) } ?: return
-                // M3: only the file currently open in the editor re-triggers the
-                // render; a sibling `.ui` saved in the background is ignored.
                 renderScheduler.scheduleRenderIfCurrent(project, uiEvent.file)
             }
         },
