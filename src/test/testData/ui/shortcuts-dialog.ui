@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  <object class="AdwShortcutsDialog" id="shortcutsDialog">
+    <child>
+      <object class="AdwShortcutsSection">
+        <property name="title" translatable="yes">General</property>
+        <child>
+          <object class="AdwShortcutsItem">
+            <property name="title" translatable="yes">Open Menu</property>
+            <property name="accelerator">F10</property>
+          </object>
+        </child>
+        <child>
+          <object class="AdwShortcutsItem">
+            <property name="title" translatable="yes">Save</property>
+            <property name="accelerator">&lt;Ctrl&gt;s</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

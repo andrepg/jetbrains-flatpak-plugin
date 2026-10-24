@@ -38,6 +38,8 @@ class MutterHeadlessCompositor(
     private var _display: String? = null
     private var _runtimeDir: String? = null
     private var process: Process? = null
+    @Volatile
+    private var compositorOutput: StringBuilder = StringBuilder()
 
     /**
      * Starts a headless Mutter compositor with a virtual monitor of
@@ -57,9 +59,9 @@ class MutterHeadlessCompositor(
         check(process == null) { "Compositor already running" }
 
         val runtime = resolveRuntimeDir()
-        val display = nextDisplay(runtime)
+        val displayName = nextDisplay(runtime)
 
-        log.info("Starting mutter headless ${width}x$height on $display")
+        log.info("Starting mutter headless ${width}x$height on $displayName")
 
         val pb =
             ProcessBuilder(
@@ -70,9 +72,10 @@ class MutterHeadlessCompositor(
                 "--virtual-monitor",
                 "${width}x$height",
                 "--wayland-display",
-                display,
+                displayName,
             )
         pb.environment()["DBUS_SESSION_BUS_ADDRESS"] = "" // force new session via dbus-run-session
+        pb.environment()["XDG_RUNTIME_DIR"] = runtime
         pb.redirectErrorStream(true)
 
         val proc =
@@ -87,21 +90,28 @@ class MutterHeadlessCompositor(
                 wrapped.start()
             } catch (e: java.io.IOException) {
                 error(
-                    "mutter not found. Install GNOME (mutter + dbus): ${e.message}",
+                    "mutter not found. Install GNOME (mutter + dbus-run-session): ${e.message}",
                 )
             }
 
         process = proc
-        _display = display
+        _display = displayName
         _runtimeDir = runtime
+        compositorOutput = StringBuilder()
+
+        startOutputDrainer(proc)
 
         try {
-            waitForSocket(runtime, display)
+            waitForSocket(runtime, displayName)
         } catch (e: Exception) {
             killProcessTree(proc)
             process = null
             _display = null
             _runtimeDir = null
+            val details = compositorOutput.toString().trim()
+            if (details.isNotEmpty()) {
+                throw IllegalStateException("$e\n$details", e)
+            }
             throw e
         }
     }
@@ -120,10 +130,12 @@ class MutterHeadlessCompositor(
         // Remove any leftover socket so a stale `wayland-N` name is never
         // mistaken for a running compositor on the next render.
         val runtime = _runtimeDir
-        val display = _display
-        if (runtime != null && display != null) {
-            runCatching { Files.deleteIfExists(Paths.get(runtime, display)) }
+        val displayName = _display
+        if (runtime != null && displayName != null) {
+            runCatching { Files.deleteIfExists(Paths.get(runtime, displayName)) }
                 .onFailure { log.info("Could not remove leftover socket: ${it.message}") }
+            runCatching { Files.deleteIfExists(Paths.get(runtime, "$displayName.lock")) }
+                .onFailure { log.info("Could not remove leftover socket lock: ${it.message}") }
         }
 
         process = null
@@ -148,6 +160,34 @@ class MutterHeadlessCompositor(
         proc.destroyForcibly()
     }
 
+    /**
+     * Drains the compositor's merged stdout/stderr on a daemon thread so a
+     * full pipe cannot block `mutter`/`dbus-run-session` and prevent the
+     * Wayland socket from being created.
+     */
+    private fun startOutputDrainer(proc: Process) {
+        val thread =
+            Thread({
+                try {
+                    proc.inputStream.bufferedReader().use { reader ->
+                        var line: String?
+                        while (reader.readLine().also { line = it } != null) {
+                            val text = line ?: continue
+                            synchronized(compositorOutput) {
+                                if (compositorOutput.length < MAX_OUTPUT_CHARS) {
+                                    compositorOutput.append(text).append('\n')
+                                }
+                            }
+                            log.debug("mutter: $text")
+                        }
+                    }
+                } catch (_: Exception) {
+                }
+            }, "mutter-headless-drainer")
+        thread.isDaemon = true
+        thread.start()
+    }
+
     internal fun resolveRuntimeDir(): String {
         val dir = environmentProvider("XDG_RUNTIME_DIR")
         if (dir != null && File(dir).isDirectory) return dir
@@ -163,7 +203,11 @@ class MutterHeadlessCompositor(
                     "Cannot determine XDG_RUNTIME_DIR. " +
                         "Set XDG_RUNTIME_DIR or ensure `id` is available.",
                 )
-        return "/run/user/$uid"
+        val fallback = "/run/user/$uid"
+        if (!File(fallback).isDirectory) {
+            error("XDG_RUNTIME_DIR is not set and $fallback is not available")
+        }
+        return fallback
     }
 
     /**
@@ -171,11 +215,11 @@ class MutterHeadlessCompositor(
      * socket file on disk.
      */
     internal fun nextDisplay(runtime: String): String {
-        for (n in 1..9) {
+        for (n in 1..99) {
             val name = "wayland-$n"
             if (!Files.exists(Paths.get(runtime, name))) return name
         }
-        error("All wayland-1..9 displays are occupied")
+        error("All wayland-1..99 displays are occupied")
     }
 
     /**
@@ -183,9 +227,9 @@ class MutterHeadlessCompositor(
      */
     private fun waitForSocket(
         runtime: String,
-        display: String,
+        displayName: String,
     ) {
-        val socketPath = Paths.get(runtime, display)
+        val socketPath = Paths.get(runtime, displayName)
         val deadline = System.currentTimeMillis() + SOCKET_TIMEOUT_MS
 
         while (System.currentTimeMillis() < deadline) {
@@ -198,11 +242,8 @@ class MutterHeadlessCompositor(
             val proc = process
             if (proc != null && !proc.isAlive) {
                 val output =
-                    proc.inputStream
-                        .bufferedReader()
-                        .readText()
-                        .trim()
-                error("Mutter exited early: $output")
+                    synchronized(compositorOutput) { compositorOutput.toString() }.trim()
+                error("Mutter exited early: ${if (output.isNotEmpty()) output else "(no output captured)"}")
             }
 
             Thread.sleep(SOCKET_POLL_MS)
@@ -218,5 +259,6 @@ class MutterHeadlessCompositor(
         private const val MUTTER_BIN = "mutter"
         private const val SOCKET_POLL_MS = 50L
         private const val SOCKET_TIMEOUT_MS = 5_000L
+        private const val MAX_OUTPUT_CHARS = 4096
     }
 }

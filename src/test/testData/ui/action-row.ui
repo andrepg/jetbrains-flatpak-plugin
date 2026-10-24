@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
+  <object class="GtkBox" id="taskCard">
+    <property name="spacing">6</property>
+    <property name="margin-top">8</property>
+    <property name="margin-bottom">8</property>
+    <property name="margin-start">8</property>
+    <property name="margin-end">8</property>
+    <child>
+      <object class="AdwActionRow" id="taskActionRow">
+        <property name="title">Task</property>
+        <property name="subtitle">A compact task row inside a box</property>
+        <property name="activatable">True</property>
+        <child type="suffix">
+          <object class="GtkSwitch" id="taskSwitch">
+            <property name="valign">center</property>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>

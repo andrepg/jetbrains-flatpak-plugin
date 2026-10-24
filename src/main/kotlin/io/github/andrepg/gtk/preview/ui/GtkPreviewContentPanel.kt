@@ -1,5 +1,6 @@
 package io.github.andrepg.gtk.preview.ui
 
+import com.intellij.ui.components.JBScrollPane
 import com.intellij.ui.components.JBLabel
 import java.awt.BorderLayout
 import java.awt.image.BufferedImage
@@ -15,12 +16,7 @@ import javax.swing.SwingConstants
  *
  * The PNG is shown at its natural (1:1) size inside a two-axis scroll pane,
  * so after the tool window is resized smaller the scrollbars let the margins
- * stay reachable instead of cropping the preview.  When [imagePath] is
- * `null` an empty label is displayed (the parent state machine in
- * [GtkPreviewPanel] should not typically show this panel without an image).
- *
- * @property imagePath path to the rendered PNG file, or `null` if no
- *   render has been performed yet
+ * stay reachable instead of cropping the preview.
  */
 class GtkPreviewContentPanel(
     private val imagePath: Path?,
@@ -28,9 +24,6 @@ class GtkPreviewContentPanel(
     companion object {
         /**
          * Empty-border insets applied around the rendered image, in pixels.
-         * The size handed to the renderer subtracts 2x this padding so the
-         * PNG fills exactly the visible area instead of being cropped
-         * (see [io.github.andrepg.gtk.preview.RenderDimensions]).
          */
         const val CONTENT_PADDING = 8
     }
@@ -45,17 +38,28 @@ class GtkPreviewContentPanel(
                     CONTENT_PADDING,
                 )
 
-            imagePath?.let {
-                val path = loadPreview(it)
-                val imagePanel = JBLabel(ImageIcon(path), SwingConstants.LEFT)
-                add(imagePanel, BorderLayout.CENTER)
+            imagePath?.let { path ->
+                val image = loadPreview(path)
+                if (image != null) {
+                    val imageLabel = JBLabel(ImageIcon(image), SwingConstants.LEFT)
+                    val scrollPane =
+                        JBScrollPane(imageLabel).apply {
+                            border = BorderFactory.createEmptyBorder()
+                            horizontalScrollBarPolicy = JBScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+                            verticalScrollBarPolicy = JBScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+                        }
+                    add(scrollPane, BorderLayout.CENTER)
+                } else {
+                    val empty = JBLabel()
+                    add(empty, BorderLayout.CENTER)
+                }
             }
         }
 
     private fun loadPreview(path: Path): BufferedImage? =
         try {
             ImageIO.read(path.toFile())
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             null
         }
 }

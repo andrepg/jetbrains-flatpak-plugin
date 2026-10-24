@@ -19,6 +19,11 @@ import java.time.Duration
  * there is no GitHub API round-trip and no URL construction per release tag. Because that
  * prefix always points at the newest release, [RENDERER_VERSION] is a purely local cache key:
  * bump it whenever the plugin should adopt a newer renderer binary.
+ *
+ * Assets are published per architecture and GNOME version
+ * (`gtk-headless-preview-<arch>-gnome-<branch>`), so the cache is keyed by both: a project
+ * whose GNOME SDK is branch 50 gets the GNOME 50 build, and an ARM machine gets the aarch64
+ * build — the binary always matches the SDK it is executed in.
  */
 internal object GtkHeadlessRendererDownloader {
     private val log = Log.getInstance(GtkHeadlessRendererDownloader::class.java)
@@ -29,13 +34,12 @@ internal object GtkHeadlessRendererDownloader {
     /** Fixed download prefix for the assets of the newest release. */
     private const val RELEASE_BASE_URL = "https://github.com/andrepg/gtk-headless-renderer/releases/latest/download"
 
-    // Hardcoded for now as requested
-    private const val TARGET_ARCH = "x86_64"
-    private const val GNOME_VERSION = "51"
     private const val BINARY_NAME = GtkPreviewConfig.RENDERER_BINARY_NAME
-    private const val ASSET_NAME = "gtk-headless-preview-$TARGET_ARCH-gnome-$GNOME_VERSION"
 
     private const val USER_AGENT = "jetbrains-flatpak-plugin"
+
+    /** Serializes downloads so two projects cannot clobber the same temp/cache file. */
+    private val downloadLock = Any()
 
     private val httpClient: HttpClient by lazy {
         HttpClient.newBuilder()
@@ -45,65 +49,167 @@ internal object GtkHeadlessRendererDownloader {
     }
 
     /**
-     * Ensures the renderer binary is present and valid in [binDir].
+     * Resolves the release architecture for the current host.
      *
-     * @param binDir directory that holds the binary and its `.version` cache marker
-     * @return path to the executable binary
-     * @throws IllegalStateException if the download, checksum verification or move fails
+     * @throws IllegalStateException when the host architecture has no published renderer
      */
-    fun ensureBinary(binDir: File = GtkPreviewConfig.binDir): File = ensureBinary(binDir, RELEASE_BASE_URL)
+    internal fun hostArch(): String =
+        when (val arch = System.getProperty("os.arch").orEmpty().lowercase()) {
+            "amd64", "x86_64", "x64" -> "x86_64"
+            "aarch64", "arm64" -> "aarch64"
+            else -> error(
+                "The GTK preview renderer is not available for architecture '$arch' " +
+                    "(supported: x86_64, aarch64)",
+            )
+        }
+
+    /** Release asset name for [arch] on the GNOME [gnomeVersion] branch. */
+    internal fun assetName(
+        arch: String,
+        gnomeVersion: String,
+    ): String = "$BINARY_NAME-$arch-gnome-$gnomeVersion"
+
+    /** Local executable for [arch] on the GNOME [gnomeVersion] branch. */
+    internal fun binaryFile(
+        binDir: File,
+        arch: String,
+        gnomeVersion: String,
+    ): File = File(binDir, assetName(arch, gnomeVersion))
+
+    /** Cache marker for [binaryFile]; one marker per architecture/branch pair. */
+    internal fun markerFile(
+        binDir: File,
+        arch: String,
+        gnomeVersion: String,
+    ): File = File(binDir, "${assetName(arch, gnomeVersion)}.version")
+
+    /**
+     * Ensures the renderer binary for [arch]/[gnomeVersion] is present and valid in [binDir]
+     * and returns its path.
+     *
+     * @throws IllegalStateException if the architecture is unsupported, the asset is missing
+     *   for that GNOME branch, the checksum does not match, or the file cannot be made executable
+     */
+    fun ensureBinary(
+        binDir: File,
+        arch: String,
+        gnomeVersion: String,
+    ): File = ensureBinary(binDir, RELEASE_BASE_URL, arch, gnomeVersion)
 
     /**
      * [ensureBinary] with an explicit release base URL, so tests can point it at a local server.
      */
-    internal fun ensureBinary(binDir: File, baseUrl: String): File {
-        binDir.mkdirs()
-        val binary = File(binDir, BINARY_NAME)
-        if (isCurrent(binDir)) {
-            log.debug("$BINARY_NAME ($TARGET_ARCH, GNOME $GNOME_VERSION) already present at ${binary.absolutePath}")
-            return binary
-        }
+    internal fun ensureBinary(
+        binDir: File,
+        baseUrl: String,
+        arch: String,
+        gnomeVersion: String,
+    ): File =
+        synchronized(downloadLock) {
+            check(binDir.mkdirs() || binDir.isDirectory) { "Could not create ${binDir.absolutePath}" }
+            removeLegacyCache(binDir)
 
-        log.info("Downloading GTK preview renderer $ASSET_NAME (cache key $RENDERER_VERSION)...")
-        val temp = File(binDir, "$BINARY_NAME.download")
-        try {
-            download("$baseUrl/$ASSET_NAME", temp)
-            verifySha256(temp, downloadText("$baseUrl/$ASSET_NAME.sha256"))
-            Files.move(temp.toPath(), binary.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        } finally {
-            runCatching { Files.deleteIfExists(temp.toPath()) }
-        }
+            val binary = binaryFile(binDir, arch, gnomeVersion)
+            if (isCurrent(binDir, arch, gnomeVersion)) {
+                log.debug("${binary.name} already present at ${binary.absolutePath}")
+                return@synchronized binary
+            }
 
-        makeExecutable(binary)
-        writeMarker(markerFile(binDir))
-        log.info("$BINARY_NAME installed at ${binary.absolutePath}")
-        return binary
-    }
+            val asset = assetName(arch, gnomeVersion)
+            log.info("Downloading GTK preview renderer $asset (cache key $RENDERER_VERSION)...")
+            val temp = File(binDir, "$asset.download-${ProcessHandle.current().pid()}-${System.nanoTime()}")
+            try {
+                download("$baseUrl/$asset", temp, asset, arch, gnomeVersion)
+                val checksum =
+                    downloadText("$baseUrl/$asset.sha256", asset, arch, gnomeVersion)
+                verifySha256(temp, checksum)
+                Files.move(temp.toPath(), binary.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            } finally {
+                runCatching { Files.deleteIfExists(temp.toPath()) }
+            }
+
+            makeExecutable(binary)
+            writeMarker(markerFile(binDir, arch, gnomeVersion))
+            log.info("${binary.name} installed at ${binary.absolutePath}")
+            binary
+        }
 
     /**
-     * True when an executable binary with the current [RENDERER_VERSION] marker is cached.
+     * True when an executable binary with the current [RENDERER_VERSION] marker exists for
+     * [arch]/[gnomeVersion].
      */
-    internal fun isCurrent(binDir: File = GtkPreviewConfig.binDir): Boolean {
-        val binary = File(binDir, BINARY_NAME)
+    internal fun isCurrent(
+        binDir: File,
+        arch: String,
+        gnomeVersion: String,
+    ): Boolean {
+        val binary = binaryFile(binDir, arch, gnomeVersion)
         if (!binary.isFile || !binary.canExecute()) return false
-        val marker = markerFile(binDir)
+        val marker = markerFile(binDir, arch, gnomeVersion)
         val markerVersion = if (marker.exists()) runCatching { marker.readText().trim() }.getOrNull() else null
         return markerVersion == RENDERER_VERSION
     }
 
-    private fun markerFile(binDir: File): File = File(binDir, "$BINARY_NAME.version")
+    /**
+     * Removes pre-variant cache files (`gtk-headless-preview` and `.version`) left by older
+     * plugin builds that shipped a single hardcoded renderer.
+     */
+    private fun removeLegacyCache(binDir: File) {
+        listOf(File(binDir, BINARY_NAME), File(binDir, "$BINARY_NAME.version")).forEach { legacy ->
+            if (legacy.isFile) {
+                runCatching { Files.deleteIfExists(legacy.toPath()) }
+                    .onSuccess { log.debug("Removed legacy renderer cache ${legacy.name}") }
+            }
+        }
+    }
 
-    private fun download(url: String, targetFile: File) {
-        val response = send(url, HttpResponse.BodyHandlers.ofInputStream())
+    private fun download(
+        url: String,
+        targetFile: File,
+        asset: String,
+        arch: String,
+        gnomeVersion: String,
+    ) {
+        val response =
+            try {
+                send(url, HttpResponse.BodyHandlers.ofInputStream())
+            } catch (e: Exception) {
+                throw downloadFailure(asset, arch, gnomeVersion, e)
+            }
         targetFile.parentFile?.mkdirs()
         response.body().use { input ->
             Files.newOutputStream(targetFile.toPath()).use { output -> input.copyTo(output) }
         }
     }
 
-    private fun downloadText(url: String): String = send(url, HttpResponse.BodyHandlers.ofString()).body()
+    private fun downloadText(
+        url: String,
+        asset: String,
+        arch: String,
+        gnomeVersion: String,
+    ): String =
+        try {
+            send(url, HttpResponse.BodyHandlers.ofString()).body()
+        } catch (e: Exception) {
+            throw downloadFailure(asset, arch, gnomeVersion, e)
+        }
 
-    private fun <T> send(url: String, handler: HttpResponse.BodyHandler<T>): HttpResponse<T> {
+    private fun downloadFailure(
+        asset: String,
+        arch: String,
+        gnomeVersion: String,
+        cause: Exception,
+    ): IllegalStateException =
+        IllegalStateException(
+            "Could not download the GTK preview renderer '$asset' for $arch on GNOME $gnomeVersion. " +
+                "Make sure a renderer build exists for that GNOME SDK branch. ${cause.message.orEmpty()}",
+            cause,
+        )
+
+    private fun <T> send(
+        url: String,
+        handler: HttpResponse.BodyHandler<T>,
+    ): HttpResponse<T> {
         val request =
             HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -128,7 +234,10 @@ internal object GtkHeadlessRendererDownloader {
     /**
      * Accepts either a bare hash or the `hash  filename` shape GitHub ships.
      */
-    private fun verifySha256(binaryFile: File, checksumContent: String) {
+    private fun verifySha256(
+        binaryFile: File,
+        checksumContent: String,
+    ) {
         val expectedHash = checksumContent.trim().split("\\s+".toRegex()).first().lowercase()
         if (expectedHash.isEmpty()) {
             throw IllegalStateException("Empty SHA256 checksum for ${binaryFile.name}")
@@ -154,9 +263,16 @@ internal object GtkHeadlessRendererDownloader {
         return digest.digest().joinToString("") { "%02x".format(it) }
     }
 
+    /**
+     * @throws IllegalStateException when the file cannot be made executable — the marker is
+     *   intentionally not written, so the cache never reports a broken binary as current
+     */
     private fun makeExecutable(file: File) {
-        if (!file.setExecutable(true, false)) {
-            log.warn("Failed to set executable permission on ${file.absolutePath}")
+        if (!file.setExecutable(true, false) || !file.canExecute()) {
+            throw IllegalStateException(
+                "Cannot make ${file.absolutePath} executable. " +
+                    "The plugin config directory may be mounted with 'noexec'.",
+            )
         }
     }
 
@@ -164,7 +280,7 @@ internal object GtkHeadlessRendererDownloader {
         try {
             marker.writeText(RENDERER_VERSION)
         } catch (e: Exception) {
-            log.debug("Failed to write version marker: ${e.message}")
+            log.warn("Failed to write version marker: ${e.message}")
         }
     }
 }

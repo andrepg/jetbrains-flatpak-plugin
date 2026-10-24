@@ -11,6 +11,14 @@
   configured `flatpak` CLI must be locatable (absolute path or on `PATH`), and the CUSTOM
   command now requires arguments
 
+#### Changed
+
+- The GTK Preview render size now follows the tool window's current dock side: a tall
+  (left/right) strip renders portrait, a wide (top/bottom) strip renders landscape
+- The GTK Preview content panel now scrolls on both axes at 1:1 pixels, so resizing the
+  panel smaller never crops the rendered image; the loading/error/premium-gate text
+  panels wrap their labels to the available width with consistent padding
+
 #### Fixed
 
 - The `UNMOUNT_STALE` pre-step introduced in 2026.1.4 scanned only the build directory, but
@@ -21,6 +29,11 @@
     touches mounts containing `.flatpak-builder/`, leaving unrelated FUSE mounts alone
   - Dead mount points are matched through their canonicalized parent, surviving symlinked roots such
     as Fedora Atomic's `/home` → `/var/home`
+- The GTK Preview renderer could leak into the user's session display and flash a window before
+  rendering. The headless compositor socket is now pinned inside the SDK (`XDG_RUNTIME_DIR` +
+  `WAYLAND_DISPLAY` + `GDK_BACKEND`) and verified before launch, so the sandboxed renderer fails
+  fast instead of ever falling back to the session display; stopping the compositor also kills the
+  whole process tree and removes any leftover Wayland socket
 
 #### Removed
 

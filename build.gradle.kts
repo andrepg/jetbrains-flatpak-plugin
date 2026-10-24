@@ -97,5 +97,3 @@ tasks.named("runIde") {
         systemProperty("flatpak.devtools.development", "true")
     }
 }
-
-

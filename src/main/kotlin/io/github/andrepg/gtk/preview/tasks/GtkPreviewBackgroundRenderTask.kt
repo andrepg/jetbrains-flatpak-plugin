@@ -8,6 +8,7 @@ import io.github.andrepg.gtk.isGtkUiFile
 import io.github.andrepg.gtk.preview.GtkBuilderToolRunner
 import io.github.andrepg.gtk.preview.GtkPreviewConfig
 import io.github.andrepg.gtk.preview.GtkPreviewNotifications
+import io.github.andrepg.gtk.preview.binary.GtkHeadlessRendererDownloader
 import io.github.andrepg.gtk.preview.ui.GtkPreviewPanel
 import io.github.andrepg.shared.Localization
 import java.nio.file.Files
@@ -27,7 +28,13 @@ import javax.imageio.ImageIO
  *   applied, letting the caller (the render scheduler) start the next pending
  *   render.
  */
-class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
+class GtkPreviewBackgroundRenderTask(
+    project: Project,
+    panel: GtkPreviewPanel,
+    private val renderWidth: Int,
+    private val renderHeight: Int,
+    private val onFinishedAction: () -> Unit = {},
+) : Task.Backgroundable(project, Localization.message("gtk.preview.compilation.title"), true) {
     /**
      * GTK compiler binary handler to compile and invoke the renderer.
      */
@@ -38,19 +45,7 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
     /**
      * Content panel to render the output.
      */
-    private var rendererPanel: GtkPreviewPanel
-
-    /**
-     * Render size in pixels, captured on the EDT at scheduling time so the
-     * snapshot matches the panel's current bounds.
-     */
-    private var renderWidth: Int
-    private var renderHeight: Int
-
-    /**
-     * Completion hook for the render scheduler, invoked on the EDT.
-     */
-    private val onFinishedAction: () -> Unit
+    private val rendererPanel: GtkPreviewPanel = panel
 
     /**
      * Path of the most recently rendered PNG, produced on the background thread
@@ -70,22 +65,7 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
      */
     private var tempOutput: Path? = null
 
-    constructor(
-        project: Project,
-        panel: GtkPreviewPanel,
-        renderWidth: Int,
-        renderHeight: Int,
-        onFinishedAction: () -> Unit = {},
-    ) : super(
-        project,
-        Localization.message("gtk.preview.compilation.title"),
-        true,
-    ) {
-        this.rendererPanel = panel
-        this.renderWidth = renderWidth
-        this.renderHeight = renderHeight
-        this.onFinishedAction = onFinishedAction
-    }
+    private var sdkBranch: String? = null
 
     override fun run(indicator: ProgressIndicator) {
         indicator.isIndeterminate = true
@@ -102,14 +82,30 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
             runCatching { Files.deleteIfExists(previous) }
         }
 
+        sdkBranch = gtkCompiler.detectSdkBranch()
+        if (sdkBranch.isNullOrBlank()) {
+            failureMessage = Localization.message("gtk.preview.sdk.missing")
+            try {
+                project.getService(io.github.andrepg.gtk.preview.GtkPreviewProjectService::class.java).showSdkMissingState()
+            } catch (_: Throwable) {
+            }
+            return
+        }
+
         // M1: only announce a balloon when a (re)compilation actually happens;
         // plain re-renders (open, save, refresh) stay silent.
-        if (gtkCompiler.needsCompilation()) {
+        if (gtkCompiler.needsCompilation(sdkBranch)) {
             indicator.text = Localization.message("gtk.preview.compilation.started")
             GtkPreviewNotifications.compilationStarted(project)
         }
 
-        val binary = gtkCompiler.compile()
+        val binary =
+            try {
+                gtkCompiler.compile(sdkBranch!!)
+            } catch (t: Throwable) {
+                failureMessage = t.localizedMessage ?: t.message
+                return
+            }
         if (indicator.isCanceled) {
             failureMessage = Localization.message("gtk.preview.compilation.cancelled")
             return
@@ -117,7 +113,11 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
 
         val openedFile = getActiveTemplate(project)
         if (openedFile == null) {
-            failureMessage = Localization.message("gtk.preview.compilation.ui_not_found")
+            failureMessage = Localization.message("gtk.preview.ui.missing")
+            try {
+                project.getService(io.github.andrepg.gtk.preview.GtkPreviewProjectService::class.java).showUiMissingState()
+            } catch (_: Throwable) {
+            }
             return
         }
 
@@ -128,14 +128,20 @@ class GtkPreviewBackgroundRenderTask : Task.Backgroundable {
 
         // M4: a render the user cancelled must not apply a partial/stale result.
         val rendered =
-            gtkCompiler.render(
-                binary = binary,
-                uiFile = openedFile,
-                outputPng = outputFile,
-                width = renderWidth,
-                height = renderHeight,
-                searchDir = openedFile.parent,
-            )
+            try {
+                gtkCompiler.render(
+                    branch = sdkBranch!!,
+                    binary = binary,
+                    uiFile = openedFile,
+                    outputPng = outputFile,
+                    width = renderWidth,
+                    height = renderHeight,
+                    searchDir = openedFile.parent,
+                )
+            } catch (t: Throwable) {
+                failureMessage = t.localizedMessage ?: t.message
+                return
+            }
 
         if (indicator.isCanceled) {
             failureMessage = Localization.message("gtk.preview.compilation.cancelled")
