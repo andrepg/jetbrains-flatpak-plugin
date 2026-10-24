@@ -1,8 +1,8 @@
 package io.github.andrepg.gtk.preview
 
-import io.github.andrepg.shared.process.CommandRunner
-import io.github.andrepg.shared.process.ProcessResult
+import io.github.andrepg.gtk.preview.binary.GtkHeadlessRendererDownloader
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -20,72 +20,30 @@ class GtkBuilderToolRunnerTest {
     }
 
     @Test
-    fun `compile runs make inside the GNOME SDK and writes the hash`() {
-        val configDir = tmp.newFolder("cfg").toPath()
-        // Pre-create an executable binary so compile() succeeds after the
-        // fake make returns (no-op). The runner checks canExecute() once the
-        // (in this case already-compiled) binary is in place.
-        val binary = configDir.resolve("gtk_embedded_preview").also {
-            Files.createFile(it)
-            it.toFile().setExecutable(true)
-        }
-        val commands = mutableListOf<List<String>>()
-        val fakeRunner = CommandRunner { command, _ ->
-            commands += command
-            when {
-                command.size >= 2 && command[1] == "list" -> ProcessResult(0, "org.gnome.Sdk\t50\tuser\n", "")
-                else -> ProcessResult(0, "", "")
-            }
-        }
+    fun `needsCompilation is true when the renderer is not cached`() {
+        val configDir = tmp.newFolder("cfg")
 
-        val runner = GtkBuilderToolRunner(runner = fakeRunner, flatpakBinary = "/usr/bin/flatpak", configDir = configDir.toFile())
-        val result = runner.compile()
+        val runner = GtkBuilderToolRunner(flatpakBinary = "/usr/bin/flatpak", configDir = configDir)
 
-        // Branch detection happened
-        assertTrue(commands.any { it.size >= 2 && it[1] == "list" })
-
-        // Make was invoked with the correct shape
-        val expectedMake = listOf(
-            "/usr/bin/flatpak", "run",
-            "--command=make", "--filesystem=host",
-            "org.gnome.Sdk//50",
-            "-C", configDir.resolve("compiler").toFile().absolutePath,
-            "build-flatpak",
-            "TARGET=${binary.toFile().absolutePath}",
-        )
-        assertTrue("Make command not recorded: $commands", commands.contains(expectedMake))
-
-        // The source hash file was written
-        assertTrue("Hash file missing", configDir.resolve("gtk_embedded_preview.hash").toFile().exists())
-
-        // compile() returned the expected binary
-        assertEquals(binary.toFile(), result)
+        assertTrue(runner.needsCompilation())
     }
 
     @Test
-    fun `compile skips recompilation when the hash is current`() {
-        val configDir = tmp.newFolder("cfg").toPath()
-        configDir.resolve("gtk_embedded_preview").also {
+    fun `needsCompilation is false when the cached binary matches the marker`() {
+        val configDir = tmp.newFolder("cfg")
+        val binDir = configDir.toPath().resolve("bin")
+        Files.createDirectories(binDir)
+        binDir.resolve(GtkPreviewConfig.RENDERER_BINARY_NAME).also {
             Files.createFile(it)
             it.toFile().setExecutable(true)
         }
-        // First compile writes the current hash and (re)uses the existing
-        // executable binary, via a fake flatpak.
-        val firstRunner = CommandRunner { command, _ ->
-            when {
-                command.size >= 2 && command[1] == "list" -> ProcessResult(0, "org.gnome.Sdk\t50\tuser\n", "")
-                else -> ProcessResult(0, "", "")
-            }
-        }
-        GtkBuilderToolRunner(runner = firstRunner, flatpakBinary = "/usr/bin/flatpak", configDir = configDir.toFile()).compile()
+        binDir.resolve("${GtkPreviewConfig.RENDERER_BINARY_NAME}.version")
+            .toFile()
+            .writeText(GtkHeadlessRendererDownloader.RENDERER_VERSION)
 
-        val fakeRunner = CommandRunner { _, _ -> error("should not be called — recompilation skipped") }
-        val binary = configDir.resolve("gtk_embedded_preview").toFile()
-        val secondRunner = GtkBuilderToolRunner(runner = fakeRunner, flatpakBinary = "/usr/bin/flatpak", configDir = configDir.toFile())
-        // isCurrentBinary now matches, so compile() returns the cached binary
-        // without touching the flatpak runner at all.
-        val result = secondRunner.compile()
-        assertEquals(binary, result)
+        val runner = GtkBuilderToolRunner(flatpakBinary = "/usr/bin/flatpak", configDir = configDir)
+
+        assertFalse(runner.needsCompilation())
     }
 
     @Test
@@ -96,18 +54,19 @@ class GtkBuilderToolRunnerTest {
         val output = tmp.newFolder("out").toPath().resolve("preview-x.png")
         val runner = GtkBuilderToolRunner(flatpakBinary = "/usr/bin/flatpak", configDir = configDir)
 
-        val cmd = runner.renderCommand(
-            flatpakBinary = "/usr/bin/flatpak",
-            branch = "50",
-            binary = binary,
-            uiFile = uiFile,
-            outputPng = output,
-            width = 640,
-            height = 360,
-            searchDir = uiFile.parent,
-            display = "wayland-2",
-            runtimeDir = "/run/user/1000",
-        )
+        val cmd =
+            runner.renderCommand(
+                flatpakBinary = "/usr/bin/flatpak",
+                branch = "50",
+                binary = binary,
+                uiFile = uiFile,
+                outputPng = output,
+                width = 640,
+                height = 360,
+                searchDir = uiFile.parent,
+                display = "wayland-2",
+                runtimeDir = "/run/user/1000",
+            )
 
         // Head: flatpak run targeting the GNOME SDK
         assertEquals("/usr/bin/flatpak", cmd[0])
@@ -115,6 +74,7 @@ class GtkBuilderToolRunnerTest {
         assertTrue("app ref missing", cmd.contains("org.gnome.Sdk//50"))
 
         // Sandbox options
+        assertTrue("--socket=wayland missing", cmd.contains("--socket=wayland"))
         assertTrue("--filesystem=host missing", cmd.contains("--filesystem=host"))
         assertTrue("--filesystem=…/runtime missing", cmd.contains("--filesystem=/run/user/1000"))
         assertTrue("--env=GDK_BACKEND missing", cmd.contains("--env=GDK_BACKEND=wayland"))
