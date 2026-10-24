@@ -19,7 +19,7 @@ import javax.swing.JPanel
  * (or failure) is applied by the EDT callbacks of the background task.
  *
  * The render lifecycle is driven externally by
- * [io.github.andrepg.gtk.preview.actions.GtkPreviewRenderAction]
+ * [io.github.andrepg.gtk.preview.GtkPreviewRenderScheduler]
  * which calls [setLoading], [setFailed], sets [renderedImage], and
  * finally calls [refresh] to swap the visible panel.
  *

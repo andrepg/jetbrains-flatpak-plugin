@@ -1,23 +1,24 @@
 package io.github.andrepg.gtk.preview.ui
 
+import com.intellij.ui.AnimatedIcon.Default
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
 import io.github.andrepg.shared.Localization
 import java.awt.BorderLayout
 import javax.swing.JPanel
-import javax.swing.JProgressBar
+import javax.swing.SwingConstants
 
 class GtkPreviewLoadingPanel {
-    private val loadingMessage = Localization.message("gtk.preview.loading.title")
-
-    private val loadingLabel = JBLabel(loadingMessage).apply { isAllowAutoWrapping = true }
-
-    private val progressBar: JProgressBar = JProgressBar().apply { isIndeterminate = true }
+    private val loadingLabel =
+        JBLabel(
+            Localization.message("gtk.preview.loading.title"),
+            Default(),
+            SwingConstants.CENTER,
+        )
 
     fun panel(): JPanel =
         JPanel(BorderLayout()).apply {
             border = JBUI.Borders.empty(16)
-            add(loadingLabel, BorderLayout.NORTH)
-            add(progressBar, BorderLayout.CENTER)
+            add(loadingLabel, BorderLayout.CENTER)
         }
 }
